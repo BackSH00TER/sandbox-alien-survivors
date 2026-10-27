@@ -2,6 +2,8 @@ using Sandbox;
 
 public sealed class Enemy : Entity
 {
+	public override bool CanTakeDamage => Health > 0f;
+
 	[Property, RequireComponent] public PlayerController Controller { get; set; }
 	[Property, Range( 1f, 200f )] public float PunchRange { get; set; } = 64f;
 	[Property, Range( 0.1f, 10f )] public float PunchInterval { get; set; } = 1f;
@@ -42,6 +44,8 @@ public sealed class Enemy : Entity
 			return;
 
 		Controller.WishVelocity = Vector3.Zero;
+		if (Health <= 0f)
+			return;
 
 		var gameManager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
 		if (gameManager != null && gameManager.State != GameState.InProgress)
@@ -122,6 +126,29 @@ public sealed class Enemy : Entity
 			var velocity = Controller.Body.Velocity;
 			Controller.Body.Velocity = new Vector3(0f, 0f, velocity.z);
 		}
+	}
+
+	protected override void OnHealthDepleted()
+	{
+		IsWindingUp = false;
+		StopAttackMovement();
+
+		if (!Controller.Renderer.IsValid())
+		{
+			Log.Error("Enemy requires an animated renderer to create a ragdoll.");
+			return;
+		}
+
+		RestoreMaterials();
+		var ragdoll = Controller.CreateRagdoll("Enemy Ragdoll");
+		if (!ragdoll.NetworkSpawn())
+		{
+			ragdoll.Destroy();
+			Log.Error("Failed to network-spawn enemy ragdoll.");
+			return;
+		}
+
+		GameObject.Destroy();
 	}
 
 	[Rpc.Broadcast( NetFlags.HostOnly )]

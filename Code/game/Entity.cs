@@ -5,6 +5,7 @@ public abstract class Entity : Component
 	[Property, Range( 1f, 1000f )] public float MaxHealth { get; set; } = 100f;
 	[Property, Range( 0.01f, 1f )] public float HitFlashDuration { get; set; } = 0.12f;
 	[Sync( SyncFlags.FromHost )] public float Health { get; private set; } = 100f;
+	public virtual bool CanTakeDamage => true;
 
 	private readonly Dictionary<ModelRenderer, Material> _originalMaterials = new();
 	private Material _flashMaterial;
@@ -30,8 +31,18 @@ public abstract class Entity : Component
 			return;
 		}
 
+		if (!CanTakeDamage)
+			return;
+
+		var previousHealth = Health;
 		Health = System.MathF.Max(0f, Health - amount);
 		FlashHit();
+		if (previousHealth > 0f && Health <= 0f)
+			OnHealthDepleted();
+	}
+
+	protected virtual void OnHealthDepleted()
+	{
 	}
 
 	protected void Punch<T>(PlayerController controller, float range, float damage) where T : Entity
@@ -40,7 +51,7 @@ public abstract class Entity : Component
 		var closestDistanceSquared = range * range;
 		foreach (var candidate in Scene.GetAllComponents<T>())
 		{
-			if (!candidate.Active || candidate == this)
+			if (!candidate.Active || !candidate.CanTakeDamage || candidate == this)
 				continue;
 
 			var offset = candidate.WorldPosition - WorldPosition;
@@ -94,7 +105,7 @@ public abstract class Entity : Component
 			RestoreMaterials();
 	}
 
-	private void RestoreMaterials()
+	protected void RestoreMaterials()
 	{
 		foreach (var entry in _originalMaterials)
 		{
