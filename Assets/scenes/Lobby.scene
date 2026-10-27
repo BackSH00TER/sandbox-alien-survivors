@@ -379,7 +379,7 @@
           "OnComponentUpdate": null,
           "PlayerPrefab": {
             "_type": "gameobject",
-            "prefab": "prefabs/player.prefab"
+            "prefab": "prefabs/lobby_player.prefab"
           },
           "StartServer": true
         }
