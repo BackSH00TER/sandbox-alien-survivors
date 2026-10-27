@@ -26,12 +26,17 @@
           "go": "584b711c-7537-4772-ba13-53bbc7b3e538",
           "component_type": "PlayerController"
         },
+        "HitFlashDuration": 0.12,
+        "MaxHealth": 100,
         "OnComponentDestroy": null,
         "OnComponentDisabled": null,
         "OnComponentEnabled": null,
         "OnComponentFixedUpdate": null,
         "OnComponentStart": null,
         "OnComponentUpdate": null,
+        "PunchDamage": 10,
+        "PunchInterval": 1,
+        "PunchRange": 64,
         "Zoom": 1.5
       },
       {
@@ -223,6 +228,25 @@
         "Source": "OwnerConnection",
         "WaistSize": 0.5,
         "WorkshopItems": []
+      },
+      {
+        "__type": "PlayerOutfit",
+        "__guid": "3b38a540-b12e-4f15-a817-e5b323cbe43c",
+        "__enabled": true,
+        "Flags": 0,
+        "Dresser": {
+          "_type": "component",
+          "component_id": "3775bfe2-fe54-4f8a-9cbd-8d25f64492f1",
+          "go": "584b711c-7537-4772-ba13-53bbc7b3e538",
+          "component_type": "Dresser"
+        },
+        "OnComponentDestroy": null,
+        "OnComponentDisabled": null,
+        "OnComponentEnabled": null,
+        "OnComponentFixedUpdate": null,
+        "OnComponentStart": null,
+        "OnComponentUpdate": null,
+        "StartDelay": 0.05
       }
     ],
     "Children": [
@@ -293,7 +317,7 @@
         ],
         "Children": [
           {
-            "__guid": "1233ca05-102d-4b3c-9c35-d0ea7df18b85",
+            "__guid": "7927d51a-a944-4e96-a677-bff09584bace",
             "__version": 2,
             "Flags": 0,
             "Name": "Clothing - y_front_pants_white",
@@ -310,7 +334,7 @@
             "Components": [
               {
                 "__type": "Sandbox.SkinnedModelRenderer",
-                "__guid": "100c69d1-40b6-473b-9a58-44dadca5f5e1",
+                "__guid": "2da0fcb7-50e5-4e69-8de7-cc508af6b7ac",
                 "__enabled": true,
                 "Flags": 0,
                 "AnimationGraph": null,
