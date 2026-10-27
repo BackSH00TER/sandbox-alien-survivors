@@ -20,6 +20,7 @@
         "__guid": "9539ee0a-1df9-4c76-83a8-f0e84c44c927",
         "__enabled": true,
         "Flags": 0,
+        "MaxHealth": 30,
         "Controller": {
           "_type": "component",
           "component_id": "f199813a-0cdc-4cd1-a745-1a33bd1517de",

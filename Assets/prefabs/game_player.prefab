@@ -3,7 +3,7 @@
     "__guid": "584b711c-7537-4772-ba13-53bbc7b3e538",
     "__version": 2,
     "Flags": 0,
-    "Name": "player",
+    "Name": "game_player",
     "Position": "0,0,0",
     "Rotation": "0,0,0,1",
     "Scale": "1,1,1",
@@ -251,6 +251,62 @@
     ],
     "Children": [
       {
+        "__guid": "0ff331f2-b403-4e1b-929c-b88c989a8515",
+        "__version": 2,
+        "Flags": 0,
+        "Name": "HealthBar",
+        "Position": "0,0,90",
+        "Rotation": "0,0,0,1",
+        "Scale": "1,1,1",
+        "Tags": "",
+        "Enabled": true,
+        "NetworkMode": 2,
+        "NetworkFlags": 0,
+        "NetworkOrphaned": 0,
+        "NetworkTransmit": true,
+        "OwnerTransfer": 1,
+        "Components": [
+          {
+            "__type": "Sandbox.ScreenPanel",
+            "__guid": "dc5654d5-3b01-419e-8d15-98603d82b47f",
+            "__enabled": true,
+            "Flags": 0,
+            "AutoScreenScale": true,
+            "OnComponentDestroy": null,
+            "OnComponentDisabled": null,
+            "OnComponentEnabled": null,
+            "OnComponentFixedUpdate": null,
+            "OnComponentStart": null,
+            "OnComponentUpdate": null,
+            "Opacity": 1,
+            "Scale": 1,
+            "ScaleStrategy": "ConsistentHeight",
+            "TargetCamera": null,
+            "Timing": "AfterPostProcess",
+            "ZIndex": 100
+          },
+          {
+            "__type": "Sandbox.SurvivorHealthBar",
+            "__guid": "0c6d6508-bb9d-4c6e-b883-98750f8aed23",
+            "__enabled": true,
+            "Flags": 0,
+            "OnComponentDestroy": null,
+            "OnComponentDisabled": null,
+            "OnComponentEnabled": null,
+            "OnComponentFixedUpdate": null,
+            "OnComponentStart": null,
+            "OnComponentUpdate": null,
+            "Survivor": {
+              "_type": "component",
+              "component_id": "4a96a11b-c648-4118-a19a-b06f1de6d5f3",
+              "go": "584b711c-7537-4772-ba13-53bbc7b3e538",
+              "component_type": "SurvivorController"
+            }
+          }
+        ],
+        "Children": []
+      },
+      {
         "__guid": "7faabcca-ad4f-4684-8b42-2b46308948c5",
         "__version": 2,
         "Flags": 0,
@@ -317,7 +373,7 @@
         ],
         "Children": [
           {
-            "__guid": "7927d51a-a944-4e96-a677-bff09584bace",
+            "__guid": "925f90ce-e001-4e6f-9b45-f69ff5751577",
             "__version": 2,
             "Flags": 0,
             "Name": "Clothing - y_front_pants_white",
@@ -334,7 +390,7 @@
             "Components": [
               {
                 "__type": "Sandbox.SkinnedModelRenderer",
-                "__guid": "2da0fcb7-50e5-4e69-8de7-cc508af6b7ac",
+                "__guid": "692af4bd-6fdb-487d-90da-d6b1e7cd50d3",
                 "__enabled": true,
                 "Flags": 0,
                 "AnimationGraph": null,
