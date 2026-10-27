@@ -34,36 +34,6 @@
         "OnComponentUpdate": null
       },
       {
-        "__type": "Sandbox.ModelRenderer",
-        "__guid": "0c1c4f6a-d5dd-41b3-9587-946d13a80075",
-        "__enabled": true,
-        "Flags": 0,
-        "BodyGroups": 149761,
-        "CreateAttachments": false,
-        "LodOverride": null,
-        "MaterialGroup": null,
-        "MaterialOverride": null,
-        "Materials": null,
-        "Model": {
-          "Id": "318496b2-dea3-4b17-af27-b0657ee2ab94",
-          "Path": "models/citizen_human/human.vmdl"
-        },
-        "OnComponentDestroy": null,
-        "OnComponentDisabled": null,
-        "OnComponentEnabled": null,
-        "OnComponentFixedUpdate": null,
-        "OnComponentStart": null,
-        "OnComponentUpdate": null,
-        "RenderOptions": {
-          "GameLayer": true,
-          "OverlayLayer": false,
-          "BloomLayer": false,
-          "AfterUILayer": false
-        },
-        "RenderType": "On",
-        "Tint": "1,1,1,1"
-      },
-      {
         "__type": "Sandbox.PlayerController",
         "__guid": "f199813a-0cdc-4cd1-a745-1a33bd1517de",
         "__enabled": true,
@@ -115,7 +85,12 @@
         "OnComponentUpdate": null,
         "PitchClamp": 90,
         "ReachLength": 130,
-        "Renderer": null,
+        "Renderer": {
+          "_type": "component",
+          "component_id": "0c1c4f6a-d5dd-41b3-9587-946d13a80075",
+          "go": "9ed662a8-5815-4c36-ab67-70f7fbb77a45",
+          "component_type": "SkinnedModelRenderer"
+        },
         "RotateWithGround": true,
         "RotationAngleLimit": 45,
         "RotationSpeed": 1,
@@ -184,9 +159,148 @@
         "Priority": 0,
         "StepDownHeight": 18,
         "StepUpHeight": 18
+      },
+      {
+        "__type": "Sandbox.Dresser",
+        "__guid": "9a7d3877-bdcd-4fce-9184-d8564fd39cb0",
+        "__enabled": true,
+        "Flags": 0,
+        "ApplyHeightScale": true,
+        "BodyTarget": {
+          "_type": "component",
+          "component_id": "0c1c4f6a-d5dd-41b3-9587-946d13a80075",
+          "go": "9ed662a8-5815-4c36-ab67-70f7fbb77a45",
+          "component_type": "SkinnedModelRenderer"
+        },
+        "ChestSize": 0.5,
+        "ChinSize": 0,
+        "Clothing": [
+          {
+            "Clothing": {
+              "Id": "4391bec6-7285-4982-8536-4a75fed8b95c",
+              "Path": "models/citizen_clothes/hat/baseball_cap/baseball_cap.clothing"
+            },
+            "Tint": 0.6804432
+          },
+          {
+            "Clothing": {
+              "Id": "2fdaedde-8a28-4d70-8ed1-f7e22d39c84b",
+              "Path": "models/citizen_clothes/shorts/boxing_shorts/boxing_shorts_blue.clothing"
+            },
+            "Tint": 0.86075705
+          },
+          {
+            "Clothing": {
+              "Id": "67b7e638-61d3-46c4-93e2-22eb089281f8",
+              "Path": "models/citizen_clothes/shirt/tshirt/tshirt.clothing"
+            },
+            "Tint": 0.42703262
+          },
+          {
+            "Clothing": {
+              "Id": "522c5b11-7284-4956-a26a-ec9980a6db0d",
+              "Path": "models/citizen_clothes/shoes/boots/army_boots.clothing"
+            },
+            "Tint": 0.227801
+          },
+          {
+            "Clothing": {
+              "Id": "8ccfc83a-1f8c-4655-9764-d74313a4b7f8",
+              "Path": "models/citizen_clothes/jacket/puffer_jacket/puffer_jacket.clothing"
+            },
+            "Tint": 0.5984686
+          },
+          {
+            "Clothing": {
+              "Id": "e4f9d837-41a1-4888-b698-000f15ce2f11",
+              "Path": "models/citizen_clothes/gloves/goalie_gloves/goalie_gloves.clothing"
+            },
+            "Tint": 0.17889646
+          }
+        ],
+        "EyeAlign": 0.5,
+        "EyeColor": 0.51089567,
+        "HeadShape": 0.5,
+        "ManualAge": 0.5351039,
+        "ManualHeight": 0.62060386,
+        "ManualTint": 0.78896314,
+        "NeckSize": 0,
+        "NoseSize": 0,
+        "OnComponentDestroy": null,
+        "OnComponentDisabled": null,
+        "OnComponentEnabled": null,
+        "OnComponentFixedUpdate": null,
+        "OnComponentStart": null,
+        "OnComponentUpdate": null,
+        "RemoveUnownedItems": true,
+        "Source": "Manual",
+        "WaistSize": 0.5,
+        "WorkshopItems": []
       }
     ],
     "Children": [
+      {
+        "__guid": "9ed662a8-5815-4c36-ab67-70f7fbb77a45",
+        "__version": 2,
+        "Flags": 0,
+        "Name": "Body",
+        "Position": "0,0,0",
+        "Rotation": "0,0,0,1",
+        "Scale": "1,1,1",
+        "Tags": "",
+        "Enabled": true,
+        "NetworkMode": 2,
+        "NetworkFlags": 0,
+        "NetworkOrphaned": 0,
+        "NetworkTransmit": true,
+        "OwnerTransfer": 1,
+        "Components": [
+          {
+            "__type": "Sandbox.SkinnedModelRenderer",
+            "__guid": "0c1c4f6a-d5dd-41b3-9587-946d13a80075",
+            "__enabled": true,
+            "Flags": 0,
+            "AnimationGraph": null,
+            "BodyGroups": 5185,
+            "BoneMergeTarget": null,
+            "CreateAttachments": false,
+            "CreateBoneObjects": false,
+            "DeformationMode": "Normal",
+            "LodOverride": null,
+            "MaterialGroup": "default",
+            "MaterialOverride": null,
+            "Materials": null,
+            "Model": {
+              "Id": "161d0b00-c517-4044-989d-b679dab75a28",
+              "Path": "models/citizen_human/citizen_human_male.vmdl"
+            },
+            "Morphs": {},
+            "OnComponentDestroy": null,
+            "OnComponentDisabled": null,
+            "OnComponentEnabled": null,
+            "OnComponentFixedUpdate": null,
+            "OnComponentStart": null,
+            "OnComponentUpdate": null,
+            "Parameters": {},
+            "PlaybackRate": 1,
+            "RenderOptions": {
+              "GameLayer": true,
+              "OverlayLayer": false,
+              "BloomLayer": false,
+              "AfterUILayer": false
+            },
+            "RenderType": "On",
+            "Sequence": {
+              "Name": null,
+              "Looping": true,
+              "Blending": false
+            },
+            "Tint": "1,1,1,1",
+            "UseAnimGraph": true
+          }
+        ],
+        "Children": []
+      },
       {
         "__guid": "b2c93ecf-299f-413f-8320-8bda3f5fe588",
         "__version": 2,
