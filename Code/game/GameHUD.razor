@@ -1,0 +1,15 @@
+@using Sandbox;
+@using Sandbox.UI;
+@inherits PanelComponent
+@namespace Sandbox
+
+<root>
+	<div class="title">Time: @CountdownTime</div>
+</root>
+
+@code
+{
+	private int CountdownTime => Scene.GetAllComponents<GameManager>().FirstOrDefault()?.CountdownTime ?? 0;
+
+	protected override int BuildHash() => System.HashCode.Combine( CountdownTime );
+}

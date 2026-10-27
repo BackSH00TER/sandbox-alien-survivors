@@ -1,0 +1,17 @@
+GameHUD
+{
+	position: absolute;
+	top: 24px;
+	left: 0;
+	right: 0;
+	background-color: transparent;
+	justify-content: center;
+	font-weight: bold;
+
+	.title
+	{
+		font-size: 25px;
+		font-family: Orbitron;
+		color: #fff;
+	}
+}
