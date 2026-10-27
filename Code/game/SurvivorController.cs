@@ -1,24 +1,35 @@
 using Sandbox;
 
-public sealed class SurvivorController : Component
+public sealed class SurvivorController : Entity
 {
 	[Property, RequireComponent] public PlayerController Controller { get; set; }
-	[Property] public Vector3 CameraOffset { get; set; } = new Vector3(-500f, 0f, 800f);
+	[Property, Range( 0.25f, 4f )] public float Zoom { get; set; } = 1.5f;
+	[Property, Range( 0.1f, 10f )] public float PunchInterval { get; set; } = 1f;
+	[Property, Range( 1f, 200f )] public float PunchRange { get; set; } = 64f;
+	[Property, Range( 1f, 100f )] public float PunchDamage { get; set; } = 10f;
 
+	[Sync( SyncFlags.FromHost )] private float NextPunchTime { get; set; }
+
+	private static readonly Vector3 BaseCameraOffset = new Vector3(-500f, 0f, 800f);
 	private bool _missingCameraLogged;
 
 	protected override void OnStart()
 	{
+		base.OnStart();
 		Controller.UseCameraControls = false;
 		Controller.UseLookControls = false;
 		Controller.UseInputControls = false;
 		Controller.RunByDefault = false;
 		Controller.AltMoveButton = "";
 		Controller.RunSpeed = Controller.WalkSpeed;
+
+		if (Networking.IsHost)
+			NextPunchTime = Time.Now + System.MathF.Max(0.1f, PunchInterval);
 	}
 
 	protected override void OnUpdate()
 	{
+		base.OnUpdate();
 		if (IsProxy)
 			return;
 
@@ -37,8 +48,8 @@ public sealed class SurvivorController : Component
 		}
 
 		_missingCameraLogged = false;
-		camera.WorldPosition = WorldPosition + CameraOffset;
-		camera.WorldRotation = Rotation.LookAt(-CameraOffset, Vector3.Up);
+		camera.WorldPosition = WorldPosition + BaseCameraOffset / Zoom.Clamp(0.25f, 4f);
+		camera.WorldRotation = Rotation.LookAt(-BaseCameraOffset, Vector3.Up);
 
 		var ray = camera.ScreenPixelToRay(Mouse.Position);
 		var result = Scene.Trace
@@ -71,12 +82,39 @@ public sealed class SurvivorController : Component
 
 	protected override void OnFixedUpdate()
 	{
-		if (IsProxy)
+		if (!IsProxy)
+		{
+			var cameraRotation = Rotation.LookAt(-BaseCameraOffset, Vector3.Up);
+			var movementRotation = Rotation.FromYaw(cameraRotation.Angles().yaw);
+			Controller.WishVelocity = Controller.Mode.UpdateMove(movementRotation, Input.AnalogMove);
+		}
+
+		if (!Networking.IsHost)
 			return;
 
-		var cameraRotation = Rotation.LookAt(-CameraOffset, Vector3.Up);
-		var movementRotation = Rotation.FromYaw(cameraRotation.Angles().yaw);
-		Controller.WishVelocity = Controller.Mode.UpdateMove(movementRotation, Input.AnalogMove);
+		var gameManager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
+		if (gameManager != null && gameManager.State != GameState.InProgress)
+			return;
+
+		if (Time.Now >= NextPunchTime)
+		{
+			NextPunchTime = Time.Now + System.MathF.Max(0.1f, PunchInterval);
+			PlayPunch();
+			Punch<Enemy>(Controller, PunchRange, PunchDamage);
+		}
+	}
+
+	[Rpc.Broadcast( NetFlags.HostOnly )]
+	private void PlayPunch()
+	{
+		if (!Controller.Renderer.IsValid())
+		{
+			Log.Error("SurvivorController requires an animated renderer to punch.");
+			return;
+		}
+
+		Controller.Renderer.Set("holdtype", (int)Sandbox.Citizen.CitizenAnimationHelper.HoldTypes.Punch);
+		Controller.Renderer.Set("b_attack", true);
 	}
 
 	protected override void OnPreRender()
@@ -87,6 +125,7 @@ public sealed class SurvivorController : Component
 
 	protected override void OnDisabled()
 	{
+		base.OnDisabled();
 		if (!IsProxy && Controller.IsValid())
 			Controller.WishVelocity = Vector3.Zero;
 	}

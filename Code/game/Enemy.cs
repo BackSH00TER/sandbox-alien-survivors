@@ -7,6 +7,7 @@ public sealed class Enemy : Entity
 	[Property, Range( 0.1f, 10f )] public float PunchInterval { get; set; } = 1f;
 	[Property, Range( 0f, 2f )] public float PunchWindup { get; set; } = 0.35f;
 	[Property, Range( 0f, 2f )] public float PunchRecovery { get; set; } = 0.4f;
+	[Property, Range( 1f, 100f )] public float PunchDamage { get; set; } = 10f;
 
 	[Sync( SyncFlags.FromHost )] private float NextPunchTime { get; set; }
 	[Sync( SyncFlags.FromHost )] private bool IsWindingUp { get; set; }
@@ -15,6 +16,7 @@ public sealed class Enemy : Entity
 
 	protected override void OnStart()
 	{
+		base.OnStart();
 		Controller.UseInputControls = false;
 		Controller.UseLookControls = false;
 		Controller.UseCameraControls = false;
@@ -57,6 +59,7 @@ public sealed class Enemy : Entity
 				NextPunchTime = Time.Now + System.MathF.Max(0.1f, PunchInterval);
 				MovementUnlockTime = Time.Now + System.MathF.Max(0f, PunchRecovery);
 				PlayPunch();
+				Punch<SurvivorController>(Controller, PunchRange, PunchDamage);
 			}
 
 			return;
@@ -136,6 +139,7 @@ public sealed class Enemy : Entity
 
 	protected override void OnDisabled()
 	{
+		base.OnDisabled();
 		if (Networking.IsHost && !IsProxy && Controller.IsValid())
 		{
 			IsWindingUp = false;

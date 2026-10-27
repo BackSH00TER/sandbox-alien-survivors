@@ -26,13 +26,13 @@
           "go": "584b711c-7537-4772-ba13-53bbc7b3e538",
           "component_type": "PlayerController"
         },
-        "CameraOffset": "-500,0,800",
         "OnComponentDestroy": null,
         "OnComponentDisabled": null,
         "OnComponentEnabled": null,
         "OnComponentFixedUpdate": null,
         "OnComponentStart": null,
-        "OnComponentUpdate": null
+        "OnComponentUpdate": null,
+        "Zoom": 1.5
       },
       {
         "__type": "Sandbox.PlayerController",
@@ -293,7 +293,7 @@
         ],
         "Children": [
           {
-            "__guid": "e1284217-87b4-4d77-b98a-fdd7c1b0cc4c",
+            "__guid": "1233ca05-102d-4b3c-9c35-d0ea7df18b85",
             "__version": 2,
             "Flags": 0,
             "Name": "Clothing - y_front_pants_white",
@@ -310,7 +310,7 @@
             "Components": [
               {
                 "__type": "Sandbox.SkinnedModelRenderer",
-                "__guid": "c79e14a6-9bca-4b88-a597-17df4f43fbe9",
+                "__guid": "100c69d1-40b6-473b-9a58-44dadca5f5e1",
                 "__enabled": true,
                 "Flags": 0,
                 "AnimationGraph": null,
