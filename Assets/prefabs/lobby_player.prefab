@@ -202,6 +202,7 @@
         "OnComponentStart": null,
         "OnComponentUpdate": null,
         "ShouldMoveArms": true,
+        "Smoothing": 8,
         "WristBend": 2
       }
     ],
@@ -273,7 +274,7 @@
         ],
         "Children": [
           {
-            "__guid": "f3c1ae99-51ec-4dba-a125-e6325378ecdd",
+            "__guid": "dc8a98cd-ace7-459a-a1d8-b9f4b1da56a3",
             "__version": 2,
             "Flags": 0,
             "Name": "Clothing - y_front_pants_white",
@@ -290,7 +291,7 @@
             "Components": [
               {
                 "__type": "Sandbox.SkinnedModelRenderer",
-                "__guid": "ce534aa7-90d5-4e1e-9ee2-da2aa89f51a4",
+                "__guid": "df0ef383-dc18-4610-a5a4-80fc64145123",
                 "__enabled": true,
                 "Flags": 0,
                 "AnimationGraph": null,

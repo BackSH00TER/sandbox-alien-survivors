@@ -23,7 +23,7 @@ public sealed class LobbyMouseLook : Component
     [Property, Range( 0.1f, 1f )] public float MaxHandReachFraction { get; set; } = 0.95f;
 
     /// <summary>Distance from the shoulder to the cursor at which the arm is fully extended.</summary>
-    [Property] public float FullReachDistance { get; set; } = 160f;
+    [Property] public float FullReachDistance { get; set; } = 50f;
 
     /// <summary>How quickly the head and arms catch up to the cursor. Higher is snappier.</summary>
     [Property, Range( 1f, 30f )] public float Smoothing { get; set; } = 8f;
