@@ -178,6 +178,31 @@
         "OnComponentStart": null,
         "OnComponentUpdate": null,
         "StartDelay": 0.05
+      },
+      {
+        "__type": "LobbyMouseLook",
+        "__guid": "9c2f6a0e-4b7d-4e1a-8f53-1d6b0a7e2c94",
+        "__enabled": true,
+        "Flags": 0,
+        "Controller": {
+          "_type": "component",
+          "component_id": "5730eb51-d014-4ca1-aa2a-a61b64e73a7d",
+          "go": "584b711c-7537-4772-ba13-53bbc7b3e538",
+          "component_type": "PlayerController"
+        },
+        "FullReachDistance": 160,
+        "MaxHandReachFraction": 0.95,
+        "MaxPitch": 35,
+        "MaxYaw": 40,
+        "MinHandReachFraction": 0.35,
+        "OnComponentDestroy": null,
+        "OnComponentDisabled": null,
+        "OnComponentEnabled": null,
+        "OnComponentFixedUpdate": null,
+        "OnComponentStart": null,
+        "OnComponentUpdate": null,
+        "ShouldMoveArms": true,
+        "WristBend": 2
       }
     ],
     "Children": [
