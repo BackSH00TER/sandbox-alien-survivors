@@ -16,6 +16,24 @@
     "OwnerTransfer": 1,
     "Components": [
       {
+        "__type": "Enemy",
+        "__guid": "9539ee0a-1df9-4c76-83a8-f0e84c44c927",
+        "__enabled": true,
+        "Flags": 0,
+        "Controller": {
+          "_type": "component",
+          "component_id": "f199813a-0cdc-4cd1-a745-1a33bd1517de",
+          "go": "f09b054d-10a6-4382-9daf-19c65ffda157",
+          "component_type": "PlayerController"
+        },
+        "OnComponentDestroy": null,
+        "OnComponentDisabled": null,
+        "OnComponentEnabled": null,
+        "OnComponentFixedUpdate": null,
+        "OnComponentStart": null,
+        "OnComponentUpdate": null
+      },
+      {
         "__type": "Sandbox.ModelRenderer",
         "__guid": "0c1c4f6a-d5dd-41b3-9587-946d13a80075",
         "__enabled": true,

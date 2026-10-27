@@ -68,28 +68,7 @@ public sealed class EnemySpawner : Component
 		);
 
 		var enemy = EnemyPrefab.Clone(spawnPosition);
-		var playerController = enemy.GetComponent<PlayerController>();
-		if (playerController == null)
-		{
-			enemy.Destroy();
-			Log.Error("Enemy prefab must include a PlayerController.");
-			return;
-		}
-
-		playerController.UseInputControls = false;
-		playerController.UseLookControls = false;
-		playerController.UseCameraControls = false;
-
-		var dresser = enemy.GetComponent<Dresser>();
-		if (dresser == null)
-		{
-			enemy.Destroy();
-			Log.Error("Enemy prefab must include a Dresser.");
-			return;
-		}
-
-		dresser.Source = Dresser.ClothingSource.Manual;
-		dresser.Randomize();
+		enemy.GetOrAddComponent<Enemy>();
 
 		if (!enemy.NetworkSpawn())
 		{
