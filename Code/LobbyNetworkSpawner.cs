@@ -20,6 +20,9 @@ public sealed class LobbyNetworkSpawner : Component, Component.INetworkListener
     /// <summary>Prefab cloned for each connected player.</summary>
     [Property] public GameObject PlayerPrefab { get; set; }
 
+    /// <summary>Height above the player origin where the bottom of the nameplate sits.</summary>
+    [Property] public float NameplateHeight { get; set; } = 80f;
+
     private readonly Dictionary<ulong, GameObject> _playerLookup = new();
     private readonly Dictionary<ulong, int> _spawnIndexByConnection = new();
 
@@ -108,10 +111,32 @@ public sealed class LobbyNetworkSpawner : Component, Component.INetworkListener
         playerObject.Name = $"LobbyPlayer_{connection.DisplayName}";
         playerObject.NetworkMode = NetworkMode.Object;
         playerObject.SetParent( GameObject );
+
+        // Created before NetworkSpawn so it replicates with the player to every client.
+        SpawnNameplateForPlayer( playerObject, connection );
+
         playerObject.NetworkSpawn( connection );
+
         _playerLookup[connection.SteamId] = playerObject;
 
         return playerObject;
+    }
+
+    private void SpawnNameplateForPlayer( GameObject playerObject, Connection connection )
+    {
+        GameObject nameplateObject = Scene.CreateObject();
+        nameplateObject.Name = $"LobbyNameplate_{connection.DisplayName}";
+        nameplateObject.NetworkMode = NetworkMode.Object;
+        nameplateObject.SetParent( playerObject );
+        nameplateObject.LocalPosition = Vector3.Up * NameplateHeight;
+
+        // 0.05 world units per pixel. World panels also scale UI 2x, so CSS space is half of PanelSize (460 x 80).
+        WorldPanel worldPanel = nameplateObject.Components.Create<WorldPanel>();
+        worldPanel.PanelSize = new Vector2( 920f, 160f );
+        worldPanel.VerticalAlign = WorldPanel.VAlignment.Bottom;
+        worldPanel.LookAtCamera = true;
+
+        nameplateObject.Components.Create<LobbyPlayerNameplate>();
     }
 
     private void ApplySpawnTransform( GameObject playerObject, ulong steamId )
