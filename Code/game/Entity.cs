@@ -10,14 +10,17 @@ public abstract class Entity : Component
 	private readonly Dictionary<ModelRenderer, Material> _originalMaterials = new();
 	private Material _flashMaterial;
 	private float _flashEndTime;
+	internal bool IsHitFlashing => Time.Now < _flashEndTime;
 
 	protected override void OnStart()
 	{
+		var blood = GameObject.GetOrAddComponent<BloodiedModel>();
+		blood.Flags |= ComponentFlags.NotNetworked | ComponentFlags.NotSaved;
 		if (Networking.IsHost)
 			Health = MaxHealth;
 	}
 
-	public void TakeDamage(float amount)
+	public void TakeDamage(float amount, Vector3 hitDirection = default)
 	{
 		if (!Networking.IsHost)
 		{
@@ -37,11 +40,16 @@ public abstract class Entity : Component
 		var previousHealth = Health;
 		Health = System.MathF.Max(0f, Health - amount);
 		FlashHit();
+		OnDamaged(hitDirection);
 		if (previousHealth > 0f && Health <= 0f)
 			OnHealthDepleted();
 	}
 
 	protected virtual void OnHealthDepleted()
+	{
+	}
+
+	protected virtual void OnDamaged(Vector3 hitDirection)
 	{
 	}
 
@@ -72,7 +80,7 @@ public abstract class Entity : Component
 		}
 
 		if (target != null)
-			target.TakeDamage(damage);
+			target.TakeDamage(damage, (target.WorldPosition - WorldPosition).Normal);
 	}
 
 	[Rpc.Broadcast( NetFlags.HostOnly )]

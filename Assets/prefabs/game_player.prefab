@@ -37,7 +37,7 @@
         "PunchDamage": 10,
         "PunchInterval": 1,
         "PunchRange": 64,
-        "Zoom": 1.5
+        "Zoom": 2
       },
       {
         "__type": "Sandbox.PlayerController",
@@ -373,7 +373,7 @@
         ],
         "Children": [
           {
-            "__guid": "925f90ce-e001-4e6f-9b45-f69ff5751577",
+            "__guid": "32f2d848-61cf-420a-b65e-18b19be4670d",
             "__version": 2,
             "Flags": 0,
             "Name": "Clothing - y_front_pants_white",
@@ -390,7 +390,7 @@
             "Components": [
               {
                 "__type": "Sandbox.SkinnedModelRenderer",
-                "__guid": "692af4bd-6fdb-487d-90da-d6b1e7cd50d3",
+                "__guid": "bf219980-3e75-412d-8dff-f961da006e9c",
                 "__enabled": true,
                 "Flags": 0,
                 "AnimationGraph": null,
