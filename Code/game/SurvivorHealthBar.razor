@@ -1,0 +1,46 @@
+@using Sandbox;
+@using Sandbox.UI;
+@inherits PanelComponent
+@namespace Sandbox
+
+<root>
+	@if (_visible)
+	{
+		<div class="bar" style="left: @(Percent(_screenPosition.x)); top: @(Percent(_screenPosition.y));">
+			<div class="fill" style="width: @(HealthPercent.ToString(System.Globalization.CultureInfo.InvariantCulture))%;"></div>
+		</div>
+	}
+</root>
+
+@code
+{
+	[Property] public SurvivorController Survivor { get; set; }
+
+	private Vector2 _screenPosition;
+	private bool _visible;
+
+	private static string Percent(float value) =>
+		(value * 100f).ToString(System.Globalization.CultureInfo.InvariantCulture) + "%";
+
+	protected override void OnUpdate()
+	{
+		_visible = false;
+		if (!Survivor.IsValid() || !Scene.Camera.IsValid())
+			return;
+
+		var position = Survivor.WorldPosition + Vector3.Up * 90f;
+		if ((position - Scene.Camera.WorldPosition).Dot(Scene.Camera.WorldRotation.Forward) <= 0f)
+			return;
+
+		_screenPosition = Scene.Camera.PointToScreenNormal(position);
+		_visible = _screenPosition.x >= 0f && _screenPosition.x <= 1f
+			&& _screenPosition.y >= 0f && _screenPosition.y <= 1f;
+	}
+
+	private float HealthPercent => Survivor.IsValid() && Survivor.MaxHealth > 0f
+		? (Survivor.Health / Survivor.MaxHealth).Clamp(0f, 1f) * 100f
+		: 0f;
+
+	protected override int BuildHash() => System.HashCode.Combine(
+		_visible, _screenPosition, HealthPercent);
+}
