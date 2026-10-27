@@ -1,0 +1,38 @@
+@using Sandbox
+@using Sandbox.UI
+@namespace Sandbox
+@inherits PanelComponent
+
+@{
+    Connection owner = ResolveOwner();
+}
+
+<root>
+    @if ( owner != null )
+    {
+        <div class="plate">
+            <img class="avatar" src="avatar:@(owner.SteamId)" />
+            <div class="name">@owner.DisplayName</div>
+        </div>
+    }
+</root>
+
+@code
+{
+    private Connection ResolveOwner()
+    {
+        GameObject player = GameObject.Parent;
+        if ( player == null ) return null;
+
+        Connection owner = player.Network?.Owner;
+        if ( owner != null ) return owner;
+
+        return !player.Network.IsProxy ? Connection.Local : null;
+    }
+
+    protected override int BuildHash()
+    {
+        Connection owner = GameObject.Parent?.Network?.Owner;
+        return System.HashCode.Combine( owner?.Id, owner?.DisplayName );
+    }
+}
