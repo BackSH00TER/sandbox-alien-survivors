@@ -23,6 +23,7 @@ public sealed class Enemy : Entity
 	[Sync( SyncFlags.FromHost )] private bool IsWindingUp { get; set; }
 	[Sync( SyncFlags.FromHost )] private float WindupEndTime { get; set; }
 	[Sync( SyncFlags.FromHost )] private float MovementUnlockTime { get; set; }
+	[Sync( SyncFlags.FromHost )] private bool IsTargetInPunchRange { get; set; }
 
 	protected override void OnStart()
 	{
@@ -67,6 +68,14 @@ public sealed class Enemy : Entity
 	protected override void OnUpdate()
 	{
 		base.OnUpdate();
+		if (Controller.Renderer.IsValid())
+		{
+			var punching = !IsDescending && Health > 0f
+				&& (IsTargetInPunchRange || IsWindingUp || Time.Now < MovementUnlockTime);
+			Controller.Renderer.Set("holdtype", (int)(punching
+				? Sandbox.Citizen.CitizenAnimationHelper.HoldTypes.Punch
+				: Sandbox.Citizen.CitizenAnimationHelper.HoldTypes.None));
+		}
 		if (IsDescending)
 		{
 			if (!_spawnBeam.IsValid())
@@ -137,8 +146,29 @@ public sealed class Enemy : Entity
 		if (gameManager != null && gameManager.State != GameState.InProgress)
 		{
 			IsWindingUp = false;
+			IsTargetInPunchRange = false;
+			MovementUnlockTime = 0f;
 			return;
 		}
+
+		PlayerController target = null;
+		var nearestDistanceSquared = float.PositiveInfinity;
+
+		foreach (var player in Scene.GetAllComponents<PlayerController>())
+		{
+			if (!player.Active || player.GameObject.GetComponent<Enemy>() != null)
+				continue;
+
+			var distanceSquared = (player.WorldPosition - WorldPosition).LengthSquared;
+			if (distanceSquared < nearestDistanceSquared)
+			{
+				target = player;
+				nearestDistanceSquared = distanceSquared;
+			}
+		}
+
+		IsTargetInPunchRange = target != null && PunchRange > 0f
+			&& nearestDistanceSquared <= PunchRange * PunchRange;
 
 		if (IsWindingUp)
 		{
@@ -161,22 +191,6 @@ public sealed class Enemy : Entity
 			return;
 		}
 
-		PlayerController target = null;
-		var nearestDistanceSquared = float.PositiveInfinity;
-
-		foreach (var player in Scene.GetAllComponents<PlayerController>())
-		{
-			if (!player.Active || player.GameObject.GetComponent<Enemy>() != null)
-				continue;
-
-			var distanceSquared = (player.WorldPosition - WorldPosition).LengthSquared;
-			if (distanceSquared < nearestDistanceSquared)
-			{
-				target = player;
-				nearestDistanceSquared = distanceSquared;
-			}
-		}
-
 		if (target == null)
 			return;
 
@@ -185,7 +199,7 @@ public sealed class Enemy : Entity
 		if (direction.LengthSquared > 0.001f)
 			Controller.EyeAngles = Rotation.LookAt(direction).Angles();
 
-		if (PunchRange > 0f && offset.LengthSquared <= PunchRange * PunchRange)
+		if (IsTargetInPunchRange)
 		{
 			if (Time.Now >= NextPunchTime)
 			{
@@ -217,6 +231,7 @@ public sealed class Enemy : Entity
 	protected override void OnHealthDepleted()
 	{
 		IsWindingUp = false;
+		IsTargetInPunchRange = false;
 		StopAttackMovement();
 
 		if (!Controller.Renderer.IsValid())
