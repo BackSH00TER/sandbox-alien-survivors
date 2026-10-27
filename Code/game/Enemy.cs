@@ -3,6 +3,15 @@ using Sandbox;
 public sealed class Enemy : Entity
 {
 	[Property, RequireComponent] public PlayerController Controller { get; set; }
+	[Property, Range( 1f, 200f )] public float PunchRange { get; set; } = 64f;
+	[Property, Range( 0.1f, 10f )] public float PunchInterval { get; set; } = 1f;
+	[Property, Range( 0f, 2f )] public float PunchWindup { get; set; } = 0.35f;
+	[Property, Range( 0f, 2f )] public float PunchRecovery { get; set; } = 0.4f;
+
+	[Sync( SyncFlags.FromHost )] private float NextPunchTime { get; set; }
+	[Sync( SyncFlags.FromHost )] private bool IsWindingUp { get; set; }
+	[Sync( SyncFlags.FromHost )] private float WindupEndTime { get; set; }
+	[Sync( SyncFlags.FromHost )] private float MovementUnlockTime { get; set; }
 
 	protected override void OnStart()
 	{
@@ -34,7 +43,30 @@ public sealed class Enemy : Entity
 
 		var gameManager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
 		if (gameManager != null && gameManager.State != GameState.InProgress)
+		{
+			IsWindingUp = false;
 			return;
+		}
+
+		if (IsWindingUp)
+		{
+			StopAttackMovement();
+			if (Time.Now >= WindupEndTime)
+			{
+				IsWindingUp = false;
+				NextPunchTime = Time.Now + System.MathF.Max(0.1f, PunchInterval);
+				MovementUnlockTime = Time.Now + System.MathF.Max(0f, PunchRecovery);
+				PlayPunch();
+			}
+
+			return;
+		}
+
+		if (Time.Now < MovementUnlockTime)
+		{
+			StopAttackMovement();
+			return;
+		}
 
 		PlayerController target = null;
 		var nearestDistanceSquared = float.PositiveInfinity;
@@ -57,17 +89,58 @@ public sealed class Enemy : Entity
 
 		var offset = target.WorldPosition - WorldPosition;
 		var direction = new Vector3(offset.x, offset.y, 0f);
+		if (direction.LengthSquared > 0.001f)
+			Controller.EyeAngles = Rotation.LookAt(direction).Angles();
+
+		if (PunchRange > 0f && offset.LengthSquared <= PunchRange * PunchRange)
+		{
+			if (Time.Now >= NextPunchTime)
+			{
+				IsWindingUp = true;
+				WindupEndTime = Time.Now + System.MathF.Max(0f, PunchWindup);
+				StopAttackMovement();
+			}
+
+			return;
+		}
+
 		var stoppingDistance = Controller.BodyRadius + target.BodyRadius;
 		if (direction.LengthSquared <= stoppingDistance * stoppingDistance)
 			return;
 
-		Controller.EyeAngles = Rotation.LookAt(direction).Angles();
 		Controller.WishVelocity = direction.Normal * Controller.WalkSpeed;
+	}
+
+	private void StopAttackMovement()
+	{
+		Controller.WishVelocity = Vector3.Zero;
+		if (Controller.Body.IsValid())
+		{
+			var velocity = Controller.Body.Velocity;
+			Controller.Body.Velocity = new Vector3(0f, 0f, velocity.z);
+		}
+	}
+
+	[Rpc.Broadcast( NetFlags.HostOnly )]
+	private void PlayPunch()
+	{
+		if (!Controller.Renderer.IsValid())
+		{
+			Log.Error("Enemy requires an animated renderer to punch.");
+			return;
+		}
+
+		Controller.Renderer.Set("holdtype", (int)Sandbox.Citizen.CitizenAnimationHelper.HoldTypes.Punch);
+		Controller.Renderer.Set("b_attack", true);
 	}
 
 	protected override void OnDisabled()
 	{
 		if (Networking.IsHost && !IsProxy && Controller.IsValid())
+		{
+			IsWindingUp = false;
+			MovementUnlockTime = 0f;
 			Controller.WishVelocity = Vector3.Zero;
+		}
 	}
 }

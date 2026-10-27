@@ -16,6 +16,25 @@
     "OwnerTransfer": 1,
     "Components": [
       {
+        "__type": "SurvivorController",
+        "__guid": "4a96a11b-c648-4118-a19a-b06f1de6d5f3",
+        "__enabled": true,
+        "Flags": 0,
+        "Controller": {
+          "_type": "component",
+          "component_id": "5730eb51-d014-4ca1-aa2a-a61b64e73a7d",
+          "go": "584b711c-7537-4772-ba13-53bbc7b3e538",
+          "component_type": "PlayerController"
+        },
+        "CameraOffset": "-500,0,800",
+        "OnComponentDestroy": null,
+        "OnComponentDisabled": null,
+        "OnComponentEnabled": null,
+        "OnComponentFixedUpdate": null,
+        "OnComponentStart": null,
+        "OnComponentUpdate": null
+      },
+      {
         "__type": "Sandbox.PlayerController",
         "__guid": "5730eb51-d014-4ca1-aa2a-a61b64e73a7d",
         "__enabled": true,
@@ -26,7 +45,7 @@
         "AimStrengthEyes": 1,
         "AimStrengthHead": 1,
         "AirFriction": 0.1,
-        "AltMoveButton": "run",
+        "AltMoveButton": "",
         "Body": {
           "_type": "component",
           "component_id": "8bc03b04-b8df-4b52-ada7-a3d39e95c2ea",
@@ -77,17 +96,17 @@
         "RotationAngleLimit": 45,
         "RotationSpeed": 1,
         "RunByDefault": false,
-        "RunSpeed": 320,
+        "RunSpeed": 110,
         "ShowColliderComponents": false,
         "ShowRigidbodyComponent": false,
         "ThirdPerson": true,
         "ToggleCameraModeButton": "view",
         "UseAnimatorControls": true,
         "UseButton": "use",
-        "UseCameraControls": true,
+        "UseCameraControls": false,
         "UseFovFromPreferences": true,
-        "UseInputControls": true,
-        "UseLookControls": true,
+        "UseInputControls": false,
+        "UseLookControls": false,
         "WalkSpeed": 110
       },
       {
@@ -274,7 +293,7 @@
         ],
         "Children": [
           {
-            "__guid": "cd58716e-139e-457e-b4c6-b7b81c75918e",
+            "__guid": "e1284217-87b4-4d77-b98a-fdd7c1b0cc4c",
             "__version": 2,
             "Flags": 0,
             "Name": "Clothing - y_front_pants_white",
@@ -291,7 +310,7 @@
             "Components": [
               {
                 "__type": "Sandbox.SkinnedModelRenderer",
-                "__guid": "5978c272-6506-4486-a0a0-cd7690bf1205",
+                "__guid": "c79e14a6-9bca-4b88-a597-17df4f43fbe9",
                 "__enabled": true,
                 "Flags": 0,
                 "AnimationGraph": null,

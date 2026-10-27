@@ -106,7 +106,7 @@
         "UseFovFromPreferences": true,
         "UseInputControls": false,
         "UseLookControls": false,
-        "WalkSpeed": 110
+        "WalkSpeed": 77
       },
       {
         "__type": "Sandbox.Rigidbody",
