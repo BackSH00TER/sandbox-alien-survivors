@@ -111,9 +111,11 @@ public sealed class LobbyNetworkSpawner : Component, Component.INetworkListener
         playerObject.Name = $"LobbyPlayer_{connection.DisplayName}";
         playerObject.NetworkMode = NetworkMode.Object;
         playerObject.SetParent( GameObject );
-        playerObject.NetworkSpawn( connection );
 
+        // Created before NetworkSpawn so it replicates with the player to every client.
         SpawnNameplateForPlayer( playerObject, connection );
+
+        playerObject.NetworkSpawn( connection );
 
         _playerLookup[connection.SteamId] = playerObject;
 
@@ -124,6 +126,7 @@ public sealed class LobbyNetworkSpawner : Component, Component.INetworkListener
     {
         GameObject nameplateObject = Scene.CreateObject();
         nameplateObject.Name = $"LobbyNameplate_{connection.DisplayName}";
+        nameplateObject.NetworkMode = NetworkMode.Object;
         nameplateObject.SetParent( playerObject );
         nameplateObject.LocalPosition = Vector3.Up * NameplateHeight;
 
