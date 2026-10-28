@@ -5,8 +5,11 @@ public abstract class Entity : Component
 	[Property, Range( 1f, 1000f ), Sync( SyncFlags.FromHost )] public float MaxHealth { get; set; } = 100f;
 	[Property, Range( 0.01f, 1f )] public float HitFlashDuration { get; set; } = 0.12f;
 	[Sync( SyncFlags.FromHost )] public float Health { get; private set; } = 100f;
+	[Property, Group( "Debug" )] public bool ShowAttackHitboxes { get; set; } = true;
 	public virtual bool CanTakeDamage => true;
 
+	private const float PunchFacingThreshold = 0.5f;
+	private const float PunchTraceHeight = 36f;
 	private readonly Dictionary<ModelRenderer, Material> _originalMaterials = new();
 	private Material _flashMaterial;
 	private float _flashEndTime;
@@ -78,11 +81,11 @@ public abstract class Entity : Component
 			var offset = candidate.WorldPosition - WorldPosition;
 			var direction = new Vector3(offset.x, offset.y, 0f);
 			if (offset.LengthSquared > closestDistanceSquared
-				|| (direction.LengthSquared > 0.001f && direction.Normal.Dot(controller.EyeAngles.ToRotation().Forward) < 0.5f))
+				|| (direction.LengthSquared > 0.001f && direction.Normal.Dot(controller.EyeAngles.ToRotation().Forward) < PunchFacingThreshold))
 				continue;
 
 			var trace = Scene.Trace
-				.FromTo(WorldPosition + Vector3.Up * 36f, candidate.WorldPosition + Vector3.Up * 36f)
+				.FromTo(WorldPosition + Vector3.Up * PunchTraceHeight, candidate.WorldPosition + Vector3.Up * PunchTraceHeight)
 				.IgnoreGameObjectHierarchy(GameObject)
 				.Run();
 			if (trace.Hit && trace.GameObject.GetComponentInParent<Entity>() != candidate)
@@ -92,8 +95,66 @@ public abstract class Entity : Component
 			closestDistanceSquared = offset.LengthSquared;
 		}
 
+		if (ShowAttackHitboxes)
+			DrawPunchHitbox(WorldPosition, controller.EyeAngles.ToRotation().Forward, range,
+				target != null, target?.WorldPosition ?? WorldPosition);
+
 		if (target != null)
 			target.TakeDamage(damage, (target.WorldPosition - WorldPosition).Normal);
+	}
+
+	[Rpc.Broadcast( NetFlags.HostOnly )]
+	private void DrawPunchHitbox(Vector3 origin, Vector3 forward, float range, bool hit, Vector3 targetPosition)
+	{
+		if (!ShowAttackHitboxes)
+			return;
+
+		const float duration = 0.25f;
+		const int segments = 24;
+		var color = hit ? Color.Green : Color.Red;
+		var planarForward = new Vector3(forward.x, forward.y, 0f);
+		var planarLength = planarForward.Length;
+		if (planarLength >= PunchFacingThreshold)
+		{
+			// Punch uses 3D distance but a horizontal facing test.
+			var halfAngle = System.MathF.Acos((PunchFacingThreshold / planarLength).Clamp(0f, 1f));
+			var yaw = System.MathF.Atan2(forward.y, forward.x);
+			for (var elevationIndex = -1; elevationIndex <= 1; elevationIndex++)
+			{
+				var elevation = elevationIndex * System.MathF.PI / 4f;
+				var radius = range * System.MathF.Cos(elevation);
+				var height = Vector3.Up * (range * System.MathF.Sin(elevation));
+				var previous = origin;
+				for (var i = 0; i <= segments; i++)
+				{
+					var angle = yaw - halfAngle + 2f * halfAngle * i / segments;
+					var point = origin + height + new Vector3(System.MathF.Cos(angle), System.MathF.Sin(angle), 0f) * radius;
+					if (i > 0)
+						DebugOverlay.Line(previous, point, color, duration);
+					if (i == 0 || i == segments)
+						DebugOverlay.Line(origin, point, color, duration);
+					previous = point;
+				}
+			}
+
+			for (var side = -1; side <= 1; side++)
+			{
+				var angle = yaw + side * halfAngle;
+				var direction = new Vector3(System.MathF.Cos(angle), System.MathF.Sin(angle), 0f);
+				var previous = origin - Vector3.Up * range;
+				for (var i = 1; i <= segments; i++)
+				{
+					var elevation = -System.MathF.PI / 2f + System.MathF.PI * i / segments;
+					var point = origin + range * (direction * System.MathF.Cos(elevation) + Vector3.Up * System.MathF.Sin(elevation));
+					DebugOverlay.Line(previous, point, color, duration);
+					previous = point;
+				}
+			}
+		}
+
+		if (hit)
+			DebugOverlay.Line(origin + Vector3.Up * PunchTraceHeight,
+				targetPosition + Vector3.Up * PunchTraceHeight, Color.Yellow, duration);
 	}
 
 	[Rpc.Broadcast( NetFlags.HostOnly )]
