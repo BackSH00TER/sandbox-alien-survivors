@@ -5,11 +5,120 @@
 
 <root>
 	<div class="title">Time: @CountdownTime</div>
+
+	@if (LocalSurvivor.IsValid())
+	{
+		<div class="modifier-inventory">
+			@foreach (var modifier in System.Enum.GetValues<Modifier>())
+			{
+				var stacks = ModifierStacks(LocalSurvivor, modifier);
+				@if (stacks > 0)
+				{
+					<div class="modifier-item @modifier.ToString().ToLowerInvariant()">
+						<div class="modifier-icon">@ModifierCatalog.Icon(modifier)</div>
+						<div class="modifier-count">@stacks</div>
+					</div>
+				}
+			}
+		</div>
+
+		@if (LocalSurvivor.ShowAttackDebug)
+		{
+			<div class="attack-debug">
+				<div>Attack rate: @((1f / LocalSurvivor.EffectivePunchInterval).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)) / sec</div>
+				<div>Interval: @(LocalSurvivor.EffectivePunchInterval.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)) sec</div>
+				<div>Range: @(LocalSurvivor.EffectivePunchRange.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)) units</div>
+			</div>
+		}
+		<div class="experience">
+			<div class="fill" style="width: @(ExperiencePercent.ToString(System.Globalization.CultureInfo.InvariantCulture))%;"></div>
+			<div class="label">Lv @LocalSurvivor.Level</div>
+		</div>
+
+		@if (LocalSurvivor.PendingModifierChoices > 0)
+		{
+			var survivor = LocalSurvivor;
+			var offerId = survivor.ModifierOfferId;
+			<div class="modifier-picker">
+				<div class="modifier-heading">Choose an upgrade</div>
+				<div class="modifier-hint">Press 1, 2, or 3, or click a card. Upgrades stack. Gameplay continues.</div>
+				<div class="modifier-options">
+					@for (var index = 0; index < 3; index++)
+					{
+						var option = ModifierOption(survivor, index);
+						<button class="modifier-card" @onclick="@(() => survivor.SelectModifier(offerId, option))">
+							<div class="modifier-key">@(index + 1)</div>
+							<div class="modifier-icon">@ModifierCatalog.Icon(option)</div>
+							<div class="modifier-name">@ModifierCatalog.Name(option)</div>
+							<div class="modifier-description">@ModifierCatalog.Description(option)</div>
+						</button>
+					}
+				</div>
+				@if (survivor.PendingModifierChoices > 1)
+				{
+					<div class="modifier-hint">@survivor.PendingModifierChoices upgrades waiting</div>
+				}
+			</div>
+		}
+	}
 </root>
 
 @code
 {
 	private int CountdownTime => Scene.GetAllComponents<GameManager>().FirstOrDefault()?.CountdownTime ?? 0;
 
-	protected override int BuildHash() => System.HashCode.Combine( CountdownTime );
+	private SurvivorController LocalSurvivor => Scene.GetAllComponents<SurvivorController>().FirstOrDefault(x => !x.IsProxy);
+
+	protected override void OnUpdate()
+	{
+		var survivor = LocalSurvivor;
+		if (!survivor.IsValid() || survivor.PendingModifierChoices <= 0)
+			return;
+
+		for (var index = 0; index < 3; index++)
+		{
+			if (!Input.Pressed($"Slot{index + 1}"))
+				continue;
+
+			survivor.SelectModifier(survivor.ModifierOfferId, ModifierOption(survivor, index));
+			break;
+		}
+	}
+
+	private static Modifier ModifierOption(SurvivorController survivor, int index) => index switch
+	{
+		0 => survivor.ModifierOptionOne,
+		1 => survivor.ModifierOptionTwo,
+		2 => survivor.ModifierOptionThree,
+		_ => throw new System.ArgumentOutOfRangeException(nameof(index))
+	};
+
+	private static int ModifierStacks(SurvivorController survivor, Modifier modifier) => modifier switch
+	{
+		Modifier.AttackSpeed => survivor.AttackSpeedStacks,
+		Modifier.AttackRange => survivor.AttackRangeStacks,
+		Modifier.Vitality => survivor.VitalityStacks,
+		_ => throw new System.ArgumentOutOfRangeException(nameof(modifier))
+	};
+
+	private float ExperiencePercent
+	{
+		get
+		{
+			var survivor = LocalSurvivor;
+			if (!survivor.IsValid())
+				return 0f;
+
+			return ((float)survivor.Experience / survivor.ExperienceToNextLevel).Clamp(0f, 1f) * 100f;
+		}
+	}
+
+	protected override int BuildHash()
+	{
+		var survivor = LocalSurvivor;
+		return System.HashCode.Combine(CountdownTime, survivor, survivor?.Level, ExperiencePercent,
+			survivor?.PendingModifierChoices, survivor?.ModifierOfferId,
+			survivor?.ShowAttackDebug, System.HashCode.Combine(survivor?.EffectivePunchInterval, survivor?.EffectivePunchRange,
+				survivor?.AttackSpeedStacks, survivor?.AttackRangeStacks, survivor?.VitalityStacks));
+	}
 }

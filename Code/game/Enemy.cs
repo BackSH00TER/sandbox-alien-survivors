@@ -12,6 +12,7 @@ public sealed class Enemy : Entity
 	[Property, Range( 1f, 100f )] public float PunchDamage { get; set; } = 10f;
 	[Property, Range( 50f, 1000f )] public float SpawnHeight { get; set; } = 300f;
 	[Property, Range( 0.1f, 10f )] public float SpawnDuration { get; set; } = 2f;
+	[Property, Range( 0, 100 )] public int ExperienceDrop { get; set; } = 1;
 
 	[Sync( SyncFlags.FromHost )] private bool IsDescending { get; set; } = true;
 	[Sync( SyncFlags.FromHost )] private Vector3 LandingPosition { get; set; }
@@ -233,6 +234,7 @@ public sealed class Enemy : Entity
 		IsWindingUp = false;
 		IsTargetInPunchRange = false;
 		StopAttackMovement();
+		ExperienceOrb.Spawn(Scene, WorldPosition, ExperienceDrop);
 
 		if (!Controller.Renderer.IsValid())
 		{
