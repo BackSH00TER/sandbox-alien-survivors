@@ -1,0 +1,13 @@
+{
+  "DisplayName": "Pistol",
+  "FireRate": 1,
+  "BulletsPerShot": 1,
+  "SpreadDegrees": 0,
+  "Damage": 10,
+  "Range": 600,
+  "ProjectileSpeed": 450,
+  "ProjectileRadius": 2,
+  "WorldModel": null,
+  "__references": [],
+  "__version": 0
+}

@@ -106,7 +106,7 @@ public abstract class Entity : Component
 	[Rpc.Broadcast( NetFlags.HostOnly )]
 	private void DrawPunchHitbox(Vector3 origin, Vector3 forward, float range, bool hit, Vector3 targetPosition)
 	{
-		if (!ShowAttackHitboxes)
+		if (!ShowAttackHitboxes || !GameHUD.IsDebugEnabled(Scene))
 			return;
 
 		const float duration = 0.25f;

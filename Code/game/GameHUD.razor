@@ -22,12 +22,15 @@
 			}
 		</div>
 
-		@if (LocalSurvivor.ShowAttackDebug)
+		@if (DebugEnabled && LocalSurvivor.ShowAttackDebug)
 		{
 			<div class="attack-debug">
-				<div>Attack rate: @((1f / LocalSurvivor.EffectivePunchInterval).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)) / sec</div>
-				<div>Interval: @(LocalSurvivor.EffectivePunchInterval.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)) sec</div>
-				<div>Range: @(LocalSurvivor.EffectivePunchRange.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)) units</div>
+				<div>Weapon: @(LocalSurvivor.EquippedWeapon?.DisplayName ?? "None")</div>
+				<div>Attack rate: @((LocalSurvivor.EffectiveAttackInterval > 0f ? 1f / LocalSurvivor.EffectiveAttackInterval : 0f).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)) / sec</div>
+				<div>Interval: @(LocalSurvivor.EffectiveAttackInterval.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)) sec</div>
+				<div>Range: @(LocalSurvivor.EffectiveAttackRange.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)) units</div>
+				<div>Bullets / shot: @(LocalSurvivor.EquippedWeapon?.BulletsPerShot ?? 0)</div>
+				<div>B: Toggle debug</div>
 			</div>
 		}
 		<div class="experience">
@@ -65,12 +68,19 @@
 
 @code
 {
+	public bool DebugEnabled { get; private set; } = true;
+
+	public static bool IsDebugEnabled(Scene scene) => scene.GetAllComponents<GameHUD>().Any(x => x.DebugEnabled);
+
 	private int CountdownTime => Scene.GetAllComponents<GameManager>().FirstOrDefault()?.CountdownTime ?? 0;
 
 	private SurvivorController LocalSurvivor => Scene.GetAllComponents<SurvivorController>().FirstOrDefault(x => !x.IsProxy);
 
 	protected override void OnUpdate()
 	{
+		if (Input.Pressed("ToggleDebug"))
+			DebugEnabled = !DebugEnabled;
+
 		var survivor = LocalSurvivor;
 		if (!survivor.IsValid() || survivor.PendingModifierChoices <= 0)
 			return;
@@ -118,7 +128,8 @@
 		var survivor = LocalSurvivor;
 		return System.HashCode.Combine(CountdownTime, survivor, survivor?.Level, ExperiencePercent,
 			survivor?.PendingModifierChoices, survivor?.ModifierOfferId,
-			survivor?.ShowAttackDebug, System.HashCode.Combine(survivor?.EffectivePunchInterval, survivor?.EffectivePunchRange,
-				survivor?.AttackSpeedStacks, survivor?.AttackRangeStacks, survivor?.VitalityStacks));
+			(DebugEnabled, survivor?.ShowAttackDebug), System.HashCode.Combine(survivor?.EffectiveAttackInterval, survivor?.EffectiveAttackRange,
+				survivor?.AttackSpeedStacks, survivor?.AttackRangeStacks, survivor?.VitalityStacks, survivor?.EquippedWeapon,
+				survivor?.EquippedWeapon?.BulletsPerShot));
 	}
 }
