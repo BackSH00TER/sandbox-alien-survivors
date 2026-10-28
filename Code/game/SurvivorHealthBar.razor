@@ -26,7 +26,7 @@
 	protected override void OnUpdate()
 	{
 		_visible = false;
-		if (!Survivor.IsValid() || !Scene.Camera.IsValid())
+		if (!Survivor.IsValid() || Survivor.IsDead || !Scene.Camera.IsValid())
 			return;
 
 		var position = Survivor.WorldPosition + Vector3.Up * 90f;

@@ -4,6 +4,11 @@ public sealed class SurvivorController : Entity
 {
 	[Property, RequireComponent] public PlayerController Controller { get; set; }
 	[Property, Range( 0.25f, 4f )] public float Zoom { get; set; } = 1.5f;
+	[Property, Group("Spectate"), Range(0f, 2000f), Description("Height above the death position that the UAV flies at.")]
+	public float UavAltitude { get; set; } = 300f;
+	[Property, Group("Spectate"), Range(100f, 3000f)] public float UavSpeed { get; set; } = 900f;
+	[Property, Group("Spectate"), Description("Camera offset from the UAV. Higher and steeper than the alive camera.")]
+	public Vector3 UavCameraOffset { get; set; } = new Vector3(-350f, 0f, 1000f);
 	[Property, Group( "Weapon" ), Description("Weapon equipped on spawn. If unassigned, uses weapons/pistol.weapon.")]
 	public WeaponDefinition StartingWeapon { get; set; }
 	[Sync( SyncFlags.FromHost )] public WeaponDefinition EquippedWeapon { get; private set; }
@@ -32,10 +37,14 @@ public sealed class SurvivorController : Entity
 	public float EffectiveAttackRange => EquippedWeapon == null ? 0f
 		: EquippedWeapon.Range * (1f + AttackRangeStacks);
 
+	public bool IsDead => Health <= 0f;
+	public override bool CanTakeDamage => !IsDead;
+
 	[Sync( SyncFlags.FromHost )] private float NextAttackTime { get; set; }
 
 	private static readonly Vector3 BaseCameraOffset = new Vector3(-500f, 0f, 800f);
 	private bool _missingCameraLogged;
+	private bool _wasDead;
 
 	protected override void OnStart()
 	{
@@ -59,10 +68,20 @@ public sealed class SurvivorController : Entity
 	protected override void OnUpdate()
 	{
 		base.OnUpdate();
+		UpdateDeadState();
 		if (IsProxy)
 			return;
 
 		Mouse.Visibility = MouseVisibility.Visible;
+		if (IsDead)
+		{
+			UpdateUav();
+			return;
+		}
+
+		if (GameHUD.IsDebugEnabled(Scene) && Input.Keyboard.Pressed("K"))
+			DebugKill();
+
 		if (Input.Pressed("Use"))
 		{
 			var pickup = LootPickup.FindNearestWeapon(this);
@@ -120,7 +139,7 @@ public sealed class SurvivorController : Entity
 
 	protected override void OnFixedUpdate()
 	{
-		if (!IsProxy)
+		if (!IsProxy && !IsDead)
 		{
 			var cameraRotation = Rotation.LookAt(-BaseCameraOffset, Vector3.Up);
 			var movementRotation = Rotation.FromYaw(cameraRotation.Angles().yaw);
@@ -139,6 +158,40 @@ public sealed class SurvivorController : Entity
 			NextAttackTime = Time.Now + EffectiveAttackInterval;
 			FireWeapon();
 		}
+	}
+
+	// Runs on every client so everyone hides the dead player's body and the owner takes off as a UAV.
+	private void UpdateDeadState()
+	{
+		bool isDead = IsDead;
+		if (isDead == _wasDead)
+			return;
+
+		_wasDead = isDead;
+		Controller.Enabled = !isDead;
+		if (Controller.Body.IsValid())
+			Controller.Body.MotionEnabled = !isDead;
+
+		if (Controller.Renderer.IsValid())
+			Controller.Renderer.GameObject.Enabled = !isDead;
+
+		if (isDead && !IsProxy)
+			WorldPosition += Vector3.Up * UavAltitude;
+	}
+
+	private void UpdateUav()
+	{
+		Rotation cameraRotation = Rotation.LookAt(-UavCameraOffset, Vector3.Up);
+		Rotation movementRotation = Rotation.FromYaw(cameraRotation.Angles().yaw);
+		Vector3 move = movementRotation * Input.AnalogMove.WithZ(0f);
+		WorldPosition += move * UavSpeed * Time.Delta;
+
+		CameraComponent camera = Scene.Camera;
+		if (!camera.IsValid())
+			return;
+
+		camera.WorldPosition = WorldPosition + UavCameraOffset;
+		camera.WorldRotation = cameraRotation;
 	}
 
 	/// <summary>Equip a weapon on the host while preserving the player's modifier stacks.</summary>
@@ -161,6 +214,15 @@ public sealed class SurvivorController : Entity
 
 		EquippedWeapon = weapon;
 		NextAttackTime = Time.Now + EffectiveAttackInterval;
+	}
+
+	[Rpc.Host(NetFlags.OwnerOnly)]
+	public void DebugKill()
+	{
+		if (IsDead)
+			return;
+
+		TakeDamage(Health);
 	}
 
 	[Rpc.Host(NetFlags.OwnerOnly)]

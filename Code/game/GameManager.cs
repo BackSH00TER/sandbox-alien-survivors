@@ -8,11 +8,13 @@ public enum GameState
 
 public sealed class GameManager : Component
 {
-	[Group( "Game Settings" )]
-	[Property, Sync( SyncFlags.FromHost )] public int CountdownTime { get; set; } = 60;
-	[Sync( SyncFlags.FromHost )] public GameState State { get; set; } = GameState.InProgress;
+	[Group("Game Settings")]
+	[Property, Sync(SyncFlags.FromHost)] public int CountdownTime { get; set; } = 60;
+	[Group("Game Settings"), Description("Ends the game as soon as every survivor is dead. Off while debugging revives.")]
+	[Property] public bool ShouldEndWhenAllDead { get; set; } = false;
+	[Sync(SyncFlags.FromHost)] public GameState State { get; set; } = GameState.InProgress;
 
-	[Group( "Scene Transition" )]
+	[Group("Scene Transition")]
 	[Property] public string LobbyScene { get; set; }
 
 	private float _countdownAccumulator;
@@ -21,6 +23,12 @@ public sealed class GameManager : Component
 	{
 		if (!Networking.IsHost || State != GameState.InProgress)
 			return;
+
+		if (ShouldEndWhenAllDead && AreAllSurvivorsDead())
+		{
+			EndGame();
+			return;
+		}
 
 		_countdownAccumulator += Time.Delta;
 
@@ -32,6 +40,12 @@ public sealed class GameManager : Component
 
 		if (CountdownTime <= 0)
 			EndGame();
+	}
+
+	private bool AreAllSurvivorsDead()
+	{
+		List<SurvivorController> survivors = Scene.GetAllComponents<SurvivorController>().ToList();
+		return survivors.Count > 0 && survivors.All(x => x.IsDead);
 	}
 
 	private void EndGame()

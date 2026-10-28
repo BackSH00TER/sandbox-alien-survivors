@@ -1,5 +1,4 @@
-GameHUD
-{
+GameHUD {
 	position: absolute;
 	top: 0;
 	right: 0;
@@ -9,15 +8,13 @@ GameHUD
 	font-weight: bold;
 	pointer-events: none;
 
-	.modifier-icon
-	{
+	.modifier-icon {
 		font-family: Material Icons;
 		font-size: 34px;
 		color: #4de38a;
 	}
 
-	.modifier-inventory
-	{
+	.modifier-inventory {
 		position: absolute;
 		top: 68px;
 		left: 0;
@@ -26,8 +23,7 @@ GameHUD
 		gap: 10px;
 	}
 
-	.modifier-item
-	{
+	.modifier-item {
 		position: relative;
 		width: 54px;
 		height: 54px;
@@ -37,27 +33,32 @@ GameHUD
 		border: 2px solid #4de38a;
 		border-radius: 6px;
 
-		&.attackspeed
-		{
+		&.attackspeed {
 			border-color: #f5ce61;
-			.modifier-icon { color: #f5ce61; }
+
+			.modifier-icon {
+				color: #f5ce61;
+			}
 		}
 
-		&.attackrange
-		{
+		&.attackrange {
 			border-color: #69c9ff;
-			.modifier-icon { color: #69c9ff; }
+
+			.modifier-icon {
+				color: #69c9ff;
+			}
 		}
 
-		&.vitality
-		{
+		&.vitality {
 			border-color: #ff7c91;
-			.modifier-icon { color: #ff7c91; }
+
+			.modifier-icon {
+				color: #ff7c91;
+			}
 		}
 	}
 
-	.modifier-count
-	{
+	.modifier-count {
 		position: absolute;
 		right: -5px;
 		bottom: -5px;
@@ -74,8 +75,7 @@ GameHUD
 		color: #fff;
 	}
 
-	.attack-debug
-	{
+	.attack-debug {
 		position: absolute;
 		top: 24px;
 		left: 24px;
@@ -88,8 +88,7 @@ GameHUD
 		color: #fff;
 	}
 
-	.modifier-picker
-	{
+	.modifier-picker {
 		position: absolute;
 		left: 0;
 		right: 0;
@@ -100,8 +99,7 @@ GameHUD
 		color: #fff;
 	}
 
-	.weapon-prompt
-	{
+	.weapon-prompt {
 		position: absolute;
 		top: 140px;
 		left: 0;
@@ -113,27 +111,23 @@ GameHUD
 		text-shadow: 0 2px 3px #000;
 	}
 
-	.modifier-heading
-	{
+	.modifier-heading {
 		font-size: 24px;
 		text-shadow: 0 2px 3px #000;
 	}
 
-	.modifier-hint
-	{
+	.modifier-hint {
 		font-size: 13px;
 		margin: 8px 0;
 		text-shadow: 0 2px 3px #000;
 	}
 
-	.modifier-options
-	{
+	.modifier-options {
 		flex-direction: row;
 		gap: 12px;
 	}
 
-	.modifier-card
-	{
+	.modifier-card {
 		position: relative;
 		width: 250px;
 		min-height: 110px;
@@ -145,22 +139,19 @@ GameHUD
 		pointer-events: all;
 		cursor: pointer;
 
-		&:hover
-		{
+		&:hover {
 			background-color: #2a4938;
 			border-color: #fff;
 		}
 	}
 
-	.modifier-name
-	{
+	.modifier-name {
 		font-size: 18px;
 		color: #4de38a;
 		margin-bottom: 10px;
 	}
 
-	.modifier-key
-	{
+	.modifier-key {
 		position: absolute;
 		top: 8px;
 		right: 8px;
@@ -175,14 +166,34 @@ GameHUD
 		color: #fff;
 	}
 
-	.modifier-description
-	{
+	.modifier-description {
 		font-size: 13px;
 		color: #fff;
 	}
 
-	.title
-	{
+	.dead-banner {
+		position: absolute;
+		top: 90px;
+		left: 0;
+		right: 0;
+		flex-direction: column;
+		align-items: center;
+		text-shadow: 0 0 6px #000;
+
+		.dead-title {
+			font-size: 54px;
+			font-family: Orbitron;
+			color: #ff5a4d;
+		}
+
+		.dead-hint {
+			margin-top: 8px;
+			font-size: 20px;
+			color: #fff;
+		}
+	}
+
+	.title {
 		position: absolute;
 		top: 24px;
 		left: 0;
@@ -193,8 +204,7 @@ GameHUD
 		color: #fff;
 	}
 
-	.experience
-	{
+	.experience {
 		position: absolute;
 		left: 24px;
 		right: 24px;
@@ -207,8 +217,7 @@ GameHUD
 		align-items: center;
 		justify-content: center;
 
-		.fill
-		{
+		.fill {
 			position: absolute;
 			top: 0;
 			bottom: 0;
@@ -217,8 +226,7 @@ GameHUD
 			transition: width 0.15s ease-out;
 		}
 
-		.label
-		{
+		.label {
 			font-size: 14px;
 			font-family: Orbitron;
 			color: #fff;

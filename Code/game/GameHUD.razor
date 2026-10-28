@@ -31,6 +31,7 @@
 				<div>Range: @(LocalSurvivor.EffectiveAttackRange.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)) units</div>
 				<div>Bullets / shot: @(LocalSurvivor.EquippedWeapon?.BulletsPerShot ?? 0)</div>
 				<div>B: Toggle debug</div>
+				<div>K: Kill self</div>
 			</div>
 		}
 		<div class="experience">
@@ -38,9 +39,17 @@
 			<div class="label">Lv @LocalSurvivor.Level</div>
 		</div>
 
-		@if (NearbyWeapon.IsValid())
+		@if (NearbyWeapon.IsValid() && !LocalSurvivor.IsDead)
 		{
 			<div class="weapon-prompt">E: Replace @(LocalSurvivor.EquippedWeapon?.DisplayName ?? "weapon") with @NearbyWeapon.DisplayName</div>
+		}
+
+		@if (LocalSurvivor.IsDead)
+		{
+			<div class="dead-banner">
+				<div class="dead-title">YOU DIED</div>
+				<div class="dead-hint">Fly with WASD. Stay alive until a teammate fires a flare, then fly through it to return.</div>
+			</div>
 		}
 
 		@if (LocalSurvivor.PendingModifierChoices > 0)
@@ -134,7 +143,7 @@
 		var survivor = LocalSurvivor;
 		return System.HashCode.Combine(CountdownTime, survivor, survivor?.Level, ExperiencePercent,
 			survivor?.PendingModifierChoices, survivor?.ModifierOfferId,
-			(DebugEnabled, survivor?.ShowAttackDebug, NearbyWeapon), System.HashCode.Combine(survivor?.EffectiveAttackInterval, survivor?.EffectiveAttackRange,
+			(DebugEnabled, survivor?.ShowAttackDebug, NearbyWeapon, survivor?.IsDead), System.HashCode.Combine(survivor?.EffectiveAttackInterval, survivor?.EffectiveAttackRange,
 				survivor?.AttackSpeedStacks, survivor?.AttackRangeStacks, survivor?.VitalityStacks, survivor?.EquippedWeapon,
 				survivor?.EquippedWeapon?.BulletsPerShot));
 	}
