@@ -7,6 +7,7 @@ public sealed class SurvivorController : Entity
 	[Property, Range( 0.1f, 10f )] public float PunchInterval { get; set; } = 1f;
 	[Property, Range( 1f, 200f )] public float PunchRange { get; set; } = 64f;
 	[Property, Range( 1f, 100f )] public float PunchDamage { get; set; } = 10f;
+	[Property, Group( "Debug" )] public bool ShowAttackDebug { get; set; } = true;
 
 	[Group( "Experience" )]
 	[Property, Range( 1, 1000 )] public int BaseExperienceToLevel { get; set; } = 5;
@@ -58,6 +59,8 @@ public sealed class SurvivorController : Entity
 			return;
 
 		Mouse.Visibility = MouseVisibility.Visible;
+		if (ShowAttackDebug)
+			DrawAttackRange();
 
 		var camera = Scene.Camera;
 		if (!camera.IsValid())
@@ -125,6 +128,20 @@ public sealed class SurvivorController : Entity
 			NextPunchTime = Time.Now + EffectivePunchInterval;
 			PlayPunch();
 			Punch<Enemy>(Controller, EffectivePunchRange, PunchDamage);
+		}
+	}
+
+	private void DrawAttackRange()
+	{
+		const int segments = 64;
+		var center = WorldPosition + Vector3.Up * 2f;
+		var previous = center + Vector3.Forward * EffectivePunchRange;
+		for (var i = 1; i <= segments; i++)
+		{
+			var angle = i * (System.MathF.PI * 2f / segments);
+			var point = center + new Vector3(System.MathF.Cos(angle), System.MathF.Sin(angle), 0f) * EffectivePunchRange;
+			DebugOverlay.Line(previous, point, Color.Yellow, 0f);
+			previous = point;
 		}
 	}
 

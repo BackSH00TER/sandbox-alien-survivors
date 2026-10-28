@@ -9,6 +9,20 @@ GameHUD
 	font-weight: bold;
 	pointer-events: none;
 
+	.attack-debug
+	{
+		position: absolute;
+		top: 24px;
+		left: 24px;
+		padding: 12px;
+		flex-direction: column;
+		background-color: #101218cc;
+		border-radius: 4px;
+		font-family: Orbitron;
+		font-size: 16px;
+		color: #fff;
+	}
+
 	.modifier-picker
 	{
 		position: absolute;

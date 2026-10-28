@@ -8,6 +8,7 @@
 	{
 		<div class="bar" style="left: @(Percent(_screenPosition.x)); top: @(Percent(_screenPosition.y));">
 			<div class="fill" style="width: @(HealthPercent.ToString(System.Globalization.CultureInfo.InvariantCulture))%;"></div>
+			<div class="value">@HealthText</div>
 		</div>
 	}
 </root>
@@ -41,6 +42,10 @@
 		? (Survivor.Health / Survivor.MaxHealth).Clamp(0f, 1f) * 100f
 		: 0f;
 
+	private string HealthText => Survivor.IsValid()
+		? $"{Survivor.Health.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)} / {Survivor.MaxHealth.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)}"
+		: "";
+
 	protected override int BuildHash() => System.HashCode.Combine(
-		_visible, _screenPosition, HealthPercent);
+		_visible, _screenPosition, HealthPercent, HealthText);
 }
