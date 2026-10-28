@@ -177,9 +177,23 @@ public sealed class SurvivorController : Entity
 
 	private void FireWeapon()
 	{
+		var heldWeapon = GetComponent<HeldWeaponModel>();
+		if (!heldWeapon.IsValid())
+		{
+			Log.Error("SurvivorController requires a held weapon model to fire.");
+			return;
+		}
+
+		if (!heldWeapon.TryGetMuzzlePosition(out var muzzlePosition))
+			return;
+
 		var forward = Controller.EyeAngles.ToRotation().Forward;
 		forward = new Vector3(forward.x, forward.y, 0f).Normal;
-		var origin = WorldPosition + Vector3.Up * 36f;
+		var clearance = Scene.Trace.Sphere(EquippedWeapon.ProjectileRadius,
+				WorldPosition + Vector3.Up * 36f, muzzlePosition)
+			.IgnoreGameObjectHierarchy(GameObject)
+			.Run();
+		var origin = clearance.Hit || clearance.StartedSolid ? clearance.EndPosition : muzzlePosition;
 		for (var i = 0; i < EquippedWeapon.BulletsPerShot; i++)
 		{
 			var angle = EquippedWeapon.BulletsPerShot == 1 ? 0f

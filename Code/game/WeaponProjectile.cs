@@ -2,11 +2,14 @@ using Sandbox;
 
 public sealed class WeaponProjectile : Component
 {
+	public const float CollisionHeight = 36f;
 	[Sync(SyncFlags.FromHost)] public SurvivorController Shooter { get; private set; }
 	[Sync(SyncFlags.FromHost)] public Vector3 Direction { get; private set; }
 	[Sync(SyncFlags.FromHost)] public float Speed { get; private set; }
 	[Sync(SyncFlags.FromHost)] public float Radius { get; private set; }
 	[Sync(SyncFlags.FromHost)] public bool ShowHitbox { get; private set; }
+	[Sync(SyncFlags.FromHost)] public Vector3 CollisionOffset { get; private set; }
+	public Vector3 CollisionPosition => WorldPosition + CollisionOffset;
 
 	private float _damage;
 	private float _remainingRange;
@@ -29,6 +32,16 @@ public sealed class WeaponProjectile : Component
 		projectile.Speed = weapon.ProjectileSpeed;
 		projectile.Radius = weapon.ProjectileRadius;
 		projectile.ShowHitbox = shooter.ShowAttackHitboxes;
+		// Keep the visible shot at the muzzle while gameplay collision travels at waist height.
+		projectile.CollisionOffset = Vector3.Up * (shooter.WorldPosition.z + CollisionHeight - position.z);
+		var collisionOrigin = position + projectile.CollisionOffset;
+		var clearance = shooter.Scene.Trace.Sphere(weapon.ProjectileRadius,
+				shooter.WorldPosition + Vector3.Up * CollisionHeight, collisionOrigin)
+			.IgnoreGameObjectHierarchy(shooter.GameObject)
+			.IgnoreGameObjectHierarchy(bullet)
+			.Run();
+		if (clearance.Hit || clearance.StartedSolid)
+			bullet.WorldPosition = clearance.EndPosition - projectile.CollisionOffset;
 		projectile._damage = weapon.Damage;
 		projectile._remainingRange = range;
 		if (!bullet.NetworkSpawn())
@@ -53,7 +66,7 @@ public sealed class WeaponProjectile : Component
 	protected override void OnUpdate()
 	{
 		if (ShowHitbox && GameHUD.IsDebugEnabled(Scene))
-			DebugOverlay.Sphere(new Sphere(WorldPosition, Radius), Color.Yellow, 0f);
+			DebugOverlay.Sphere(new Sphere(CollisionPosition, Radius), Color.Yellow, 0f);
 	}
 
 	protected override void OnFixedUpdate()
@@ -69,7 +82,7 @@ public sealed class WeaponProjectile : Component
 		}
 
 		var distance = System.MathF.Min(Speed * Time.Delta, _remainingRange);
-		var start = WorldPosition;
+		var start = CollisionPosition;
 		var end = start + Direction * distance;
 		var trace = Scene.Trace.Sphere(Radius, start, end)
 			.IgnoreGameObjectHierarchy(Shooter.GameObject)
@@ -86,7 +99,7 @@ public sealed class WeaponProjectile : Component
 			return;
 		}
 
-		WorldPosition = end;
+		WorldPosition = end - CollisionOffset;
 		_remainingRange -= distance;
 		if (ShowHitbox)
 			DrawTravel(start, end, Color.Yellow);
