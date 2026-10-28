@@ -22,11 +22,54 @@
           "__guid": "ce74eed4-b190-4de4-a7c3-c9d220280674",
           "__enabled": true,
           "Flags": 0,
+          "__version": 1,
+          "AnimationCurve": [
+            {
+              "x": 0,
+              "y": 0,
+              "in": 0,
+              "out": 0,
+              "mode": "Mirrored"
+            },
+            {
+              "x": 0.5,
+              "y": 1,
+              "in": 0,
+              "out": 0,
+              "mode": "Mirrored"
+            },
+            {
+              "x": 1,
+              "y": 0,
+              "in": 0,
+              "out": 0,
+              "mode": "Mirrored"
+            }
+          ],
+          "AnimationDuration": 2,
+          "AnimationEnabled": false,
+          "AnimationGradient": {
+            "blend": "Linear",
+            "color": [
+              {
+                "t": 0.5,
+                "c": "1,1,1,1"
+              }
+            ],
+            "alpha": []
+          },
+          "AnimationPattern": "Flicker",
+          "AnimationSpeed": 1,
+          "AnimationTimeOffset": 0,
+          "BakeLightIndex": -1,
           "ContactShadows": true,
           "Contribution": "Diffuse, Specular, Transmissive",
           "FogMode": "Enabled",
           "FogStrength": 1,
+          "IncludeStaticShadowCasters": false,
+          "Intensity": 1,
           "LightColor": "0.94419,0.97767,1,1",
+          "MixedShadows": false,
           "OnComponentDestroy": null,
           "OnComponentDisabled": null,
           "OnComponentEnabled": null,
@@ -39,6 +82,7 @@
           "ShadowHardness": 0,
           "Shadows": true,
           "SkyColor": "0.2532,0.32006,0.35349,1",
+          "Temperature": 6500,
           "Visualizer": {}
         }
       ],
@@ -372,6 +416,7 @@
               "component_type": "SpawnPoint"
             }
           ],
+          "NameplateHeight": 80,
           "OnComponentDestroy": null,
           "OnComponentDisabled": null,
           "OnComponentEnabled": null,
@@ -567,180 +612,6 @@
       ]
     },
     {
-      "__guid": "e5c012ee-17d2-42e3-9a11-36f609a862e5",
-      "__version": 2,
-      "Flags": 0,
-      "Name": "Sprite",
-      "Position": "-122.380882,71.9999466,13.7405605",
-      "Rotation": "0,0,0,1",
-      "Scale": "3.40000105,3.40000105,3.40000105",
-      "Tags": "",
-      "Enabled": true,
-      "NetworkMode": 2,
-      "NetworkFlags": 0,
-      "NetworkOrphaned": 0,
-      "NetworkTransmit": true,
-      "OwnerTransfer": 1,
-      "Components": [
-        {
-          "__type": "Sandbox.SpriteRenderer",
-          "__guid": "784a9747-2975-4e0b-98c6-434ea9e4d3b3",
-          "__enabled": true,
-          "Flags": 0,
-          "__version": 2,
-          "Additive": false,
-          "AlphaCutoff": 0.5,
-          "Billboard": "Always",
-          "CameraFadeFar": 0,
-          "CameraFadeNear": 0,
-          "Color": "1,1,1,1",
-          "DepthFeather": 0,
-          "FlipHorizontal": false,
-          "FlipVertical": false,
-          "FogStrength": 1,
-          "IsSorted": false,
-          "Lighting": false,
-          "OnAnimationEnd": null,
-          "OnAnimationStart": null,
-          "OnBroadcastMessage": null,
-          "OnComponentDestroy": null,
-          "OnComponentDisabled": null,
-          "OnComponentEnabled": null,
-          "OnComponentFixedUpdate": null,
-          "OnComponentStart": null,
-          "OnComponentUpdate": null,
-          "Opaque": false,
-          "OverlayColor": "1,1,1,0",
-          "PlaybackSpeed": 1,
-          "RenderOptions": {
-            "GameLayer": true,
-            "OverlayLayer": false,
-            "BloomLayer": false,
-            "AfterUILayer": false
-          },
-          "Shadows": false,
-          "Size": "10,10",
-          "Sprite": {
-            "$compiler": "embed",
-            "$source": null,
-            "data": {
-              "Animations": [
-                {
-                  "Name": "Default",
-                  "FrameRate": 15,
-                  "Origin": "0.5,0.5",
-                  "LoopMode": "Loop",
-                  "LoopStart": -1,
-                  "LoopEnd": -1,
-                  "Frames": [
-                    {
-                      "Texture": {
-                        "Id": "41ef0fb2-fcde-4a3f-ac83-e1e6b07e0c89",
-                        "Path": "textures/shapes/bean1.vtex"
-                      },
-                      "BroadcastMessages": []
-                    }
-                  ]
-                }
-              ],
-              "__references": null
-            },
-            "compiled": null
-          },
-          "StartingAnimationName": "Default",
-          "TextureFilter": "Bilinear"
-        }
-      ],
-      "Children": []
-    },
-    {
-      "__guid": "3f2dc1f1-6607-46d3-9d51-b77f83896c7f",
-      "__version": 2,
-      "Flags": 0,
-      "Name": "Sprite (1)",
-      "Position": "-122.380882,-86.2129898,13.7405605",
-      "Rotation": "0,0,0,1",
-      "Scale": "3.40000105,3.40000105,3.40000105",
-      "Tags": "",
-      "Enabled": true,
-      "NetworkMode": 2,
-      "NetworkFlags": 0,
-      "NetworkOrphaned": 0,
-      "NetworkTransmit": true,
-      "OwnerTransfer": 1,
-      "Components": [
-        {
-          "__type": "Sandbox.SpriteRenderer",
-          "__guid": "756b0b10-ee9c-4077-8828-f064a8455818",
-          "__enabled": true,
-          "Flags": 0,
-          "__version": 2,
-          "Additive": false,
-          "AlphaCutoff": 0.5,
-          "Billboard": "Always",
-          "CameraFadeFar": 0,
-          "CameraFadeNear": 0,
-          "Color": "1,1,1,1",
-          "DepthFeather": 0,
-          "FlipHorizontal": false,
-          "FlipVertical": false,
-          "FogStrength": 1,
-          "IsSorted": false,
-          "Lighting": false,
-          "OnAnimationEnd": null,
-          "OnAnimationStart": null,
-          "OnBroadcastMessage": null,
-          "OnComponentDestroy": null,
-          "OnComponentDisabled": null,
-          "OnComponentEnabled": null,
-          "OnComponentFixedUpdate": null,
-          "OnComponentStart": null,
-          "OnComponentUpdate": null,
-          "Opaque": false,
-          "OverlayColor": "1,1,1,0",
-          "PlaybackSpeed": 1,
-          "RenderOptions": {
-            "GameLayer": true,
-            "OverlayLayer": false,
-            "BloomLayer": false,
-            "AfterUILayer": false
-          },
-          "Shadows": false,
-          "Size": "10,10",
-          "Sprite": {
-            "$compiler": "embed",
-            "$source": null,
-            "data": {
-              "Animations": [
-                {
-                  "Name": "Default",
-                  "FrameRate": 15,
-                  "Origin": "0.5,0.5",
-                  "LoopMode": "Loop",
-                  "LoopStart": -1,
-                  "LoopEnd": -1,
-                  "Frames": [
-                    {
-                      "Texture": {
-                        "Id": "e57485b1-bd7c-400e-b9ed-4257c81f1b5b",
-                        "Path": "textures/shapes/money2.vtex"
-                      },
-                      "BroadcastMessages": []
-                    }
-                  ]
-                }
-              ],
-              "__references": null
-            },
-            "compiled": null
-          },
-          "StartingAnimationName": "Default",
-          "TextureFilter": "Bilinear"
-        }
-      ],
-      "Children": []
-    },
-    {
       "__guid": "7a3c9e52-1b4d-4f60-9a8e-5d2c6b1f0e47",
       "__version": 2,
       "Flags": 0,
@@ -772,10 +643,11 @@
           "Scale": 1,
           "ScaleStrategy": "ConsistentHeight",
           "TargetCamera": null,
+          "Timing": "AfterPostProcess",
           "ZIndex": 100
         },
         {
-          "__type": "LobbyReadyButton",
+          "__type": "Sandbox.LobbyReadyButton",
           "__guid": "e5b2a8d3-6f91-4c07-b3a4-18d9f0c7e265",
           "__enabled": true,
           "Flags": 0,

@@ -29,6 +29,71 @@ LobbyPlayerNameplate {
         background-color: rgba(0, 0, 0, 0.55);
         border-radius: 40px;
         overflow: hidden;
+        pointer-events: all;
+        transition: background-color 0.12s ease;
+
+        &.can-kick {
+            cursor: pointer;
+        }
+
+        &.can-kick:hover {
+            background-color: rgba(200, 60, 50, 0.9);
+        }
+    }
+
+    .avatar-slot {
+        position: relative;
+        width: 52px;
+        height: 52px;
+        min-width: 52px;
+        flex-shrink: 0;
+    }
+
+    .kick-x {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 52px;
+        height: 52px;
+        justify-content: center;
+        align-items: center;
+        font-size: 30px;
+        font-weight: 700;
+        border-radius: 50%;
+        background-color: rgba(120, 20, 15, 0.9);
+        opacity: 0;
+    }
+
+    .name-slot {
+        position: relative;
+        margin-left: 12px;
+        min-width: 100px;
+    }
+
+    .kick-text {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        justify-content: center;
+        align-items: center;
+        font-size: 32px;
+        font-weight: 700;
+        opacity: 0;
+    }
+
+    .plate.can-kick:hover {
+
+        .avatar,
+        .name {
+            opacity: 0;
+        }
+
+        .kick-x,
+        .kick-text {
+            opacity: 1;
+        }
     }
 
     .avatar {
@@ -41,7 +106,6 @@ LobbyPlayerNameplate {
     }
 
     .name {
-        margin-left: 12px;
         font-size: 32px;
         font-weight: 600;
         white-space: nowrap;
