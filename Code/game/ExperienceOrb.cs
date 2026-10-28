@@ -2,10 +2,10 @@ using Sandbox;
 
 public sealed class ExperienceOrb : Component
 {
-	[Property, Range( 1, 1000 )] public int Amount { get; set; } = 1;
-	[Property, Range( 0f, 1000f )] public float MagnetRange { get; set; } = 150f;
-	[Property, Range( 1f, 200f )] public float PickupRange { get; set; } = 24f;
-	[Property, Range( 1f, 2000f )] public float MagnetSpeed { get; set; } = 100f;
+	[Property, Range(1, 1000)] public int Amount { get; set; } = 1;
+	[Property, Range(0f, 1000f)] public float MagnetRange { get; set; } = 150f;
+	[Property, Range(1f, 200f)] public float PickupRange { get; set; } = 24f;
+	[Property, Range(1f, 2000f)] public float MagnetSpeed { get; set; } = 100f;
 
 	private static readonly Color OrbColor = new Color(0.3f, 1f, 0.55f);
 	private GameObject _visual;

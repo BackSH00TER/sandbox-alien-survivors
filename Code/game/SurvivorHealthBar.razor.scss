@@ -1,5 +1,4 @@
-SurvivorHealthBar
-{
+SurvivorHealthBar {
 	position: absolute;
 	top: 0;
 	right: 0;
@@ -7,8 +6,7 @@ SurvivorHealthBar
 	left: 0;
 	pointer-events: none;
 
-	.bar
-	{
+	.bar {
 		position: absolute;
 		width: 120px;
 		height: 22px;
@@ -21,8 +19,7 @@ SurvivorHealthBar
 		justify-content: center;
 	}
 
-	.fill
-	{
+	.fill {
 		position: absolute;
 		left: 0;
 		top: 0;
@@ -30,8 +27,7 @@ SurvivorHealthBar
 		background-color: #56d97b;
 	}
 
-	.value
-	{
+	.value {
 		font-family: Orbitron;
 		font-size: 13px;
 		font-weight: bold;

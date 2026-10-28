@@ -3,34 +3,34 @@ using Sandbox;
 public sealed class SurvivorController : Entity
 {
 	[Property, RequireComponent] public PlayerController Controller { get; set; }
-	[Property, Range( 0.25f, 4f )] public float Zoom { get; set; } = 1.5f;
+	[Property, Range(0.25f, 4f)] public float Zoom { get; set; } = 1.5f;
 	[Property, Group("Spectate"), Range(0f, 2000f), Description("Height above the death position that the UAV flies at.")]
 	public float UavAltitude { get; set; } = 300f;
 	[Property, Group("Spectate"), Range(100f, 3000f)] public float UavSpeed { get; set; } = 900f;
 	[Property, Group("Spectate"), Description("Camera offset from the UAV. Higher and steeper than the alive camera.")]
 	public Vector3 UavCameraOffset { get; set; } = new Vector3(-350f, 0f, 1000f);
-	[Property, Group( "Weapon" ), Description("Weapon equipped on spawn. If unassigned, uses weapons/pistol.weapon.")]
+	[Property, Group("Weapon"), Description("Weapon equipped on spawn. If unassigned, uses weapons/pistol.weapon.")]
 	public WeaponDefinition StartingWeapon { get; set; }
-	[Sync( SyncFlags.FromHost )] public WeaponDefinition EquippedWeapon { get; private set; }
-	[Property, Group( "Debug" )] public bool ShowAttackDebug { get; set; } = true;
+	[Sync(SyncFlags.FromHost)] public WeaponDefinition EquippedWeapon { get; private set; }
+	[Property, Group("Debug")] public bool ShowAttackDebug { get; set; } = true;
 
-	[Group( "Experience" )]
-	[Property, Range( 1, 1000 )] public int BaseExperienceToLevel { get; set; } = 5;
-	[Group( "Experience" )]
-	[Property, Range( 0, 1000 )] public int ExperienceGrowthPerLevel { get; set; } = 5;
+	[Group("Experience")]
+	[Property, Range(1, 1000)] public int BaseExperienceToLevel { get; set; } = 5;
+	[Group("Experience")]
+	[Property, Range(0, 1000)] public int ExperienceGrowthPerLevel { get; set; } = 5;
 
-	[Sync( SyncFlags.FromHost )] public int Level { get; private set; } = 1;
-	[Sync( SyncFlags.FromHost )] public int Experience { get; private set; }
+	[Sync(SyncFlags.FromHost)] public int Level { get; private set; } = 1;
+	[Sync(SyncFlags.FromHost)] public int Experience { get; private set; }
 	public int ExperienceToNextLevel => System.Math.Max(1, BaseExperienceToLevel + ExperienceGrowthPerLevel * (Level - 1));
 
-	[Sync( SyncFlags.FromHost )] public int PendingModifierChoices { get; private set; }
-	[Sync( SyncFlags.FromHost )] public int ModifierOfferId { get; private set; }
-	[Sync( SyncFlags.FromHost )] public Modifier ModifierOptionOne { get; private set; }
-	[Sync( SyncFlags.FromHost )] public Modifier ModifierOptionTwo { get; private set; }
-	[Sync( SyncFlags.FromHost )] public Modifier ModifierOptionThree { get; private set; }
-	[Sync( SyncFlags.FromHost )] public int AttackSpeedStacks { get; private set; }
-	[Sync( SyncFlags.FromHost )] public int AttackRangeStacks { get; private set; }
-	[Sync( SyncFlags.FromHost )] public int VitalityStacks { get; private set; }
+	[Sync(SyncFlags.FromHost)] public int PendingModifierChoices { get; private set; }
+	[Sync(SyncFlags.FromHost)] public int ModifierOfferId { get; private set; }
+	[Sync(SyncFlags.FromHost)] public Modifier ModifierOptionOne { get; private set; }
+	[Sync(SyncFlags.FromHost)] public Modifier ModifierOptionTwo { get; private set; }
+	[Sync(SyncFlags.FromHost)] public Modifier ModifierOptionThree { get; private set; }
+	[Sync(SyncFlags.FromHost)] public int AttackSpeedStacks { get; private set; }
+	[Sync(SyncFlags.FromHost)] public int AttackRangeStacks { get; private set; }
+	[Sync(SyncFlags.FromHost)] public int VitalityStacks { get; private set; }
 
 	public float EffectiveAttackInterval => EquippedWeapon == null ? 0f
 		: System.MathF.Max(0.1f, 1f / (EquippedWeapon.FireRate * (1f + AttackSpeedStacks)));
@@ -40,7 +40,7 @@ public sealed class SurvivorController : Entity
 	public bool IsDead => Health <= 0f;
 	public override bool CanTakeDamage => !IsDead;
 
-	[Sync( SyncFlags.FromHost )] private float NextAttackTime { get; set; }
+	[Sync(SyncFlags.FromHost)] private float NextAttackTime { get; set; }
 
 	private static readonly Vector3 BaseCameraOffset = new Vector3(-500f, 0f, 800f);
 	private bool _missingCameraLogged;
@@ -239,9 +239,23 @@ public sealed class SurvivorController : Entity
 
 	private void FireWeapon()
 	{
+		var heldWeapon = GetComponent<HeldWeaponModel>();
+		if (!heldWeapon.IsValid())
+		{
+			Log.Error("SurvivorController requires a held weapon model to fire.");
+			return;
+		}
+
+		if (!heldWeapon.TryGetMuzzlePosition(out var muzzlePosition))
+			return;
+
 		var forward = Controller.EyeAngles.ToRotation().Forward;
 		forward = new Vector3(forward.x, forward.y, 0f).Normal;
-		var origin = WorldPosition + Vector3.Up * 36f;
+		var clearance = Scene.Trace.Sphere(EquippedWeapon.ProjectileRadius,
+				WorldPosition + Vector3.Up * 36f, muzzlePosition)
+			.IgnoreGameObjectHierarchy(GameObject)
+			.Run();
+		var origin = clearance.Hit || clearance.StartedSolid ? clearance.EndPosition : muzzlePosition;
 		for (var i = 0; i < EquippedWeapon.BulletsPerShot; i++)
 		{
 			var angle = EquippedWeapon.BulletsPerShot == 1 ? 0f
@@ -317,7 +331,7 @@ public sealed class SurvivorController : Entity
 		ModifierOfferId++;
 	}
 
-	[Rpc.Host( NetFlags.OwnerOnly )]
+	[Rpc.Host(NetFlags.OwnerOnly)]
 	public void SelectModifier(int offerId, Modifier modifier)
 	{
 		var gameManager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
@@ -355,7 +369,7 @@ public sealed class SurvivorController : Entity
 			ModifierOfferId++;
 	}
 
-	[Rpc.Broadcast( NetFlags.HostOnly )]
+	[Rpc.Broadcast(NetFlags.HostOnly)]
 	private void PlayFire(int holdType)
 	{
 		if (!Controller.Renderer.IsValid())
