@@ -8,6 +8,15 @@ public sealed class SurvivorController : Entity
 	[Property, Range( 1f, 200f )] public float PunchRange { get; set; } = 64f;
 	[Property, Range( 1f, 100f )] public float PunchDamage { get; set; } = 10f;
 
+	[Group( "Experience" )]
+	[Property, Range( 1, 1000 )] public int BaseExperienceToLevel { get; set; } = 5;
+	[Group( "Experience" )]
+	[Property, Range( 0, 1000 )] public int ExperienceGrowthPerLevel { get; set; } = 5;
+
+	[Sync( SyncFlags.FromHost )] public int Level { get; private set; } = 1;
+	[Sync( SyncFlags.FromHost )] public int Experience { get; private set; }
+	public int ExperienceToNextLevel => System.Math.Max(1, BaseExperienceToLevel + ExperienceGrowthPerLevel * (Level - 1));
+
 	[Sync( SyncFlags.FromHost )] private float NextPunchTime { get; set; }
 
 	private static readonly Vector3 BaseCameraOffset = new Vector3(-500f, 0f, 800f);
@@ -102,6 +111,34 @@ public sealed class SurvivorController : Entity
 			PlayPunch();
 			Punch<Enemy>(Controller, PunchRange, PunchDamage);
 		}
+	}
+
+	public void AddExperience(int amount)
+	{
+		if (!Networking.IsHost)
+		{
+			Log.Error("Experience must be granted on the host.");
+			return;
+		}
+
+		if (amount <= 0)
+		{
+			Log.Error("Experience must be a positive amount.");
+			return;
+		}
+
+		Experience += amount;
+		while (Experience >= ExperienceToNextLevel)
+		{
+			Experience -= ExperienceToNextLevel;
+			Level++;
+			OnLevelUp();
+		}
+	}
+
+	private void OnLevelUp()
+	{
+		// TODO: level-up rewards.
 	}
 
 	[Rpc.Broadcast( NetFlags.HostOnly )]

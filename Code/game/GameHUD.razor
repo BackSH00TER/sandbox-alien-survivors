@@ -5,11 +5,37 @@
 
 <root>
 	<div class="title">Time: @CountdownTime</div>
+
+	@if (LocalSurvivor.IsValid())
+	{
+		<div class="experience">
+			<div class="fill" style="width: @(ExperiencePercent.ToString(System.Globalization.CultureInfo.InvariantCulture))%;"></div>
+			<div class="label">Lv @LocalSurvivor.Level</div>
+		</div>
+	}
 </root>
 
 @code
 {
 	private int CountdownTime => Scene.GetAllComponents<GameManager>().FirstOrDefault()?.CountdownTime ?? 0;
 
-	protected override int BuildHash() => System.HashCode.Combine( CountdownTime );
+	private SurvivorController LocalSurvivor => Scene.GetAllComponents<SurvivorController>().FirstOrDefault(x => !x.IsProxy);
+
+	private float ExperiencePercent
+	{
+		get
+		{
+			var survivor = LocalSurvivor;
+			if (!survivor.IsValid())
+				return 0f;
+
+			return ((float)survivor.Experience / survivor.ExperienceToNextLevel).Clamp(0f, 1f) * 100f;
+		}
+	}
+
+	protected override int BuildHash()
+	{
+		var survivor = LocalSurvivor;
+		return System.HashCode.Combine(CountdownTime, survivor, survivor?.Level, ExperiencePercent);
+	}
 }
