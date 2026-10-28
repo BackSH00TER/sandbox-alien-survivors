@@ -2,7 +2,7 @@ using Sandbox;
 
 public abstract class Entity : Component
 {
-	[Property, Range( 1f, 1000f )] public float MaxHealth { get; set; } = 100f;
+	[Property, Range( 1f, 1000f ), Sync( SyncFlags.FromHost )] public float MaxHealth { get; set; } = 100f;
 	[Property, Range( 0.01f, 1f )] public float HitFlashDuration { get; set; } = 0.12f;
 	[Sync( SyncFlags.FromHost )] public float Health { get; private set; } = 100f;
 	public virtual bool CanTakeDamage => true;
@@ -47,6 +47,19 @@ public abstract class Entity : Component
 
 	protected virtual void OnHealthDepleted()
 	{
+	}
+
+	protected void IncreaseMaxHealth(float amount)
+	{
+		if (!Networking.IsHost || !float.IsFinite(amount) || amount <= 0f)
+		{
+			Log.Error("Maximum health increases require a finite positive amount on the host.");
+			return;
+		}
+
+		MaxHealth += amount;
+		if (Health > 0f)
+			Health = System.MathF.Min(MaxHealth, Health + amount);
 	}
 
 	protected virtual void OnDamaged(Vector3 hitDirection)

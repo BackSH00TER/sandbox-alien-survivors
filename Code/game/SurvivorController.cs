@@ -17,6 +17,18 @@ public sealed class SurvivorController : Entity
 	[Sync( SyncFlags.FromHost )] public int Experience { get; private set; }
 	public int ExperienceToNextLevel => System.Math.Max(1, BaseExperienceToLevel + ExperienceGrowthPerLevel * (Level - 1));
 
+	[Sync( SyncFlags.FromHost )] public int PendingModifierChoices { get; private set; }
+	[Sync( SyncFlags.FromHost )] public int ModifierOfferId { get; private set; }
+	[Sync( SyncFlags.FromHost )] public Modifier ModifierOptionOne { get; private set; }
+	[Sync( SyncFlags.FromHost )] public Modifier ModifierOptionTwo { get; private set; }
+	[Sync( SyncFlags.FromHost )] public Modifier ModifierOptionThree { get; private set; }
+	[Sync( SyncFlags.FromHost )] public int AttackSpeedStacks { get; private set; }
+	[Sync( SyncFlags.FromHost )] public int AttackRangeStacks { get; private set; }
+	[Sync( SyncFlags.FromHost )] public int VitalityStacks { get; private set; }
+
+	public float EffectivePunchInterval => System.MathF.Max(0.1f, PunchInterval / (1f + AttackSpeedStacks));
+	public float EffectivePunchRange => PunchRange * (1f + AttackRangeStacks);
+
 	[Sync( SyncFlags.FromHost )] private float NextPunchTime { get; set; }
 
 	private static readonly Vector3 BaseCameraOffset = new Vector3(-500f, 0f, 800f);
@@ -33,7 +45,10 @@ public sealed class SurvivorController : Entity
 		Controller.RunSpeed = Controller.WalkSpeed;
 
 		if (Networking.IsHost)
-			NextPunchTime = Time.Now + System.MathF.Max(0.1f, PunchInterval);
+		{
+			NextPunchTime = Time.Now + EffectivePunchInterval;
+			QueueModifierChoice();
+		}
 	}
 
 	protected override void OnUpdate()
@@ -107,9 +122,9 @@ public sealed class SurvivorController : Entity
 
 		if (Time.Now >= NextPunchTime)
 		{
-			NextPunchTime = Time.Now + System.MathF.Max(0.1f, PunchInterval);
+			NextPunchTime = Time.Now + EffectivePunchInterval;
 			PlayPunch();
-			Punch<Enemy>(Controller, PunchRange, PunchDamage);
+			Punch<Enemy>(Controller, EffectivePunchRange, PunchDamage);
 		}
 	}
 
@@ -138,7 +153,67 @@ public sealed class SurvivorController : Entity
 
 	private void OnLevelUp()
 	{
-		// TODO: level-up rewards.
+		QueueModifierChoice();
+	}
+
+	private void QueueModifierChoice()
+	{
+		PendingModifierChoices++;
+		if (PendingModifierChoices == 1)
+			RollModifierOffer();
+	}
+
+	private void RollModifierOffer()
+	{
+		var options = System.Enum.GetValues<Modifier>();
+		for (var i = options.Length - 1; i > 0; i--)
+		{
+			var other = Game.Random.Int(0, i);
+			(options[i], options[other]) = (options[other], options[i]);
+		}
+
+		ModifierOptionOne = options[0];
+		ModifierOptionTwo = options[1];
+		ModifierOptionThree = options[2];
+		ModifierOfferId++;
+	}
+
+	[Rpc.Host( NetFlags.OwnerOnly )]
+	public void SelectModifier(int offerId, Modifier modifier)
+	{
+		var gameManager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
+		if (!Active || (gameManager != null && gameManager.State != GameState.InProgress)
+			|| PendingModifierChoices <= 0 || offerId != ModifierOfferId
+			|| (modifier != ModifierOptionOne && modifier != ModifierOptionTwo && modifier != ModifierOptionThree))
+		{
+			Log.Warning("Rejected an unavailable or outdated modifier choice.");
+			return;
+		}
+
+		switch (modifier)
+		{
+			case Modifier.AttackSpeed:
+				AttackSpeedStacks++;
+				NextPunchTime = System.MathF.Min(NextPunchTime, Time.Now + EffectivePunchInterval);
+				break;
+			case Modifier.AttackRange:
+				AttackRangeStacks++;
+				break;
+			case Modifier.Vitality:
+				VitalityStacks++;
+				IncreaseMaxHealth(100f);
+				break;
+			default:
+				Log.Error($"Unknown modifier: {modifier}");
+				return;
+		}
+
+		PendingModifierChoices--;
+		// Invalidate the consumed offer so duplicate clicks cannot spend the next queued choice.
+		if (PendingModifierChoices > 0)
+			RollModifierOffer();
+		else
+			ModifierOfferId++;
 	}
 
 	[Rpc.Broadcast( NetFlags.HostOnly )]

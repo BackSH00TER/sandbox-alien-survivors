@@ -9,6 +9,69 @@ GameHUD
 	font-weight: bold;
 	pointer-events: none;
 
+	.modifier-picker
+	{
+		position: absolute;
+		left: 0;
+		right: 0;
+		bottom: 70px;
+		align-items: center;
+		flex-direction: column;
+		font-family: Orbitron;
+		color: #fff;
+	}
+
+	.modifier-heading
+	{
+		font-size: 24px;
+		text-shadow: 0 2px 3px #000;
+	}
+
+	.modifier-hint
+	{
+		font-size: 13px;
+		margin: 8px 0;
+		text-shadow: 0 2px 3px #000;
+	}
+
+	.modifier-options
+	{
+		flex-direction: row;
+		gap: 12px;
+	}
+
+	.modifier-card
+	{
+		width: 250px;
+		min-height: 110px;
+		padding: 18px;
+		flex-direction: column;
+		background-color: #18251ff5;
+		border: 2px solid #4de38a;
+		border-radius: 8px;
+		pointer-events: all;
+		cursor: pointer;
+
+		&:hover
+		{
+			background-color: #2a4938;
+			border-color: #fff;
+		}
+	}
+
+	.modifier-name
+	{
+		font-size: 18px;
+		color: #4de38a;
+		margin-bottom: 10px;
+	}
+
+	.modifier-description
+	{
+		font-size: 13px;
+		color: #fff;
+	}
+
 	.title
 	{
 		position: absolute;
