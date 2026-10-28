@@ -5,29 +5,29 @@ public sealed class Enemy : Entity
 	public override bool CanTakeDamage => Health > 0f && !IsDescending;
 
 	[Property, RequireComponent] public PlayerController Controller { get; set; }
-	[Property, Range( 1f, 200f )] public float PunchRange { get; set; } = 64f;
-	[Property, Range( 0.1f, 10f )] public float PunchInterval { get; set; } = 1f;
-	[Property, Range( 0f, 2f )] public float PunchWindup { get; set; } = 0.35f;
-	[Property, Range( 0f, 2f )] public float PunchRecovery { get; set; } = 0.4f;
-	[Property, Range( 1f, 100f )] public float PunchDamage { get; set; } = 10f;
-	[Property, Range( 50f, 1000f )] public float SpawnHeight { get; set; } = 300f;
-	[Property, Range( 0.1f, 10f )] public float SpawnDuration { get; set; } = 2f;
-	[Property, Range( 0, 100 )] public int ExperienceDrop { get; set; } = 1;
-	[Property, Group( "Hit Reaction" ), Range( 0f, 1f )] public float HitReactionStrength { get; set; } = 0.6f;
-	[Property, Group( "Hit Reaction" ), Range( 0f, 2f )] public float HitStaggerDuration { get; set; } = 0.2f;
+	[Property, Range(1f, 200f)] public float PunchRange { get; set; } = 64f;
+	[Property, Range(0.1f, 10f)] public float PunchInterval { get; set; } = 1f;
+	[Property, Range(0f, 2f)] public float PunchWindup { get; set; } = 0.35f;
+	[Property, Range(0f, 2f)] public float PunchRecovery { get; set; } = 0.4f;
+	[Property, Range(1f, 100f)] public float PunchDamage { get; set; } = 10f;
+	[Property, Range(50f, 1000f)] public float SpawnHeight { get; set; } = 300f;
+	[Property, Range(0.1f, 10f)] public float SpawnDuration { get; set; } = 2f;
+	[Property, Range(0, 100)] public int ExperienceDrop { get; set; } = 1;
+	[Property, Group("Hit Reaction"), Range(0f, 1f)] public float HitReactionStrength { get; set; } = 0.6f;
+	[Property, Group("Hit Reaction"), Range(0f, 2f)] public float HitStaggerDuration { get; set; } = 0.2f;
 
-	[Sync( SyncFlags.FromHost )] private bool IsDescending { get; set; } = true;
-	[Sync( SyncFlags.FromHost )] private Vector3 LandingPosition { get; set; }
-	[Sync( SyncFlags.FromHost )] private float DescentStartTime { get; set; }
+	[Sync(SyncFlags.FromHost)] private bool IsDescending { get; set; } = true;
+	[Sync(SyncFlags.FromHost)] private Vector3 LandingPosition { get; set; }
+	[Sync(SyncFlags.FromHost)] private float DescentStartTime { get; set; }
 	private LineRenderer _spawnBeam;
 	private bool _descentVisualsActive;
 
-	[Sync( SyncFlags.FromHost )] private float NextPunchTime { get; set; }
-	[Sync( SyncFlags.FromHost )] private bool IsWindingUp { get; set; }
-	[Sync( SyncFlags.FromHost )] private float WindupEndTime { get; set; }
-	[Sync( SyncFlags.FromHost )] private float MovementUnlockTime { get; set; }
-	[Sync( SyncFlags.FromHost )] private bool IsTargetInPunchRange { get; set; }
-	[Sync( SyncFlags.FromHost )] private float StaggerEndTime { get; set; }
+	[Sync(SyncFlags.FromHost)] private float NextPunchTime { get; set; }
+	[Sync(SyncFlags.FromHost)] private bool IsWindingUp { get; set; }
+	[Sync(SyncFlags.FromHost)] private float WindupEndTime { get; set; }
+	[Sync(SyncFlags.FromHost)] private float MovementUnlockTime { get; set; }
+	[Sync(SyncFlags.FromHost)] private bool IsTargetInPunchRange { get; set; }
+	[Sync(SyncFlags.FromHost)] private float StaggerEndTime { get; set; }
 
 	protected override void OnStart()
 	{
@@ -253,7 +253,7 @@ public sealed class Enemy : Entity
 		PlayHitReaction(hitDirection);
 	}
 
-	[Rpc.Broadcast( NetFlags.HostOnly )]
+	[Rpc.Broadcast(NetFlags.HostOnly)]
 	private void PlayHitReaction(Vector3 hitDirection)
 	{
 		var renderer = Controller.Renderer;
@@ -298,7 +298,7 @@ public sealed class Enemy : Entity
 		GameObject.Destroy();
 	}
 
-	[Rpc.Broadcast( NetFlags.HostOnly )]
+	[Rpc.Broadcast(NetFlags.HostOnly)]
 	private void PlayPunch()
 	{
 		if (!Controller.Renderer.IsValid())

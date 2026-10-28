@@ -2,14 +2,14 @@ using Sandbox;
 
 public sealed class EnemySpawner : Component
 {
-	[Group( "Enemy Spawning" )]
+	[Group("Enemy Spawning")]
 	[Property] public GameObject EnemyPrefab { get; set; }
 
-	[Group( "Enemy Spawning" )]
-	[Property, Range( 0.1f, 60f )] public float SpawnInterval { get; set; } = 3f;
+	[Group("Enemy Spawning")]
+	[Property, Range(0.1f, 60f)] public float SpawnInterval { get; set; } = 3f;
 
-	[Group( "Enemy Spawning" )]
-	[Property, Range( 0f, 1000f )] public float SpawnRadius { get; set; } = 400f;
+	[Group("Enemy Spawning")]
+	[Property, Range(0f, 1000f)] public float SpawnRadius { get; set; } = 400f;
 
 	private readonly System.Random _random = new();
 	private float _spawnTimer;
@@ -60,7 +60,7 @@ public sealed class EnemySpawner : Component
 		}
 
 		var angle = (float)(_random.NextDouble() * System.MathF.PI * 2f);
-		var distance = System.MathF.Max( 0f, SpawnRadius ) * System.MathF.Sqrt((float)_random.NextDouble());
+		var distance = System.MathF.Max(0f, SpawnRadius) * System.MathF.Sqrt((float)_random.NextDouble());
 		var spawnPosition = WorldPosition + new Vector3(
 			System.MathF.Cos(angle) * distance,
 			System.MathF.Sin(angle) * distance,

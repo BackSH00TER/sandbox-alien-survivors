@@ -8,11 +8,11 @@ public enum GameState
 
 public sealed class GameManager : Component
 {
-	[Group( "Game Settings" )]
-	[Property, Sync( SyncFlags.FromHost )] public int CountdownTime { get; set; } = 60;
-	[Sync( SyncFlags.FromHost )] public GameState State { get; set; } = GameState.InProgress;
+	[Group("Game Settings")]
+	[Property, Sync(SyncFlags.FromHost)] public int CountdownTime { get; set; } = 60;
+	[Sync(SyncFlags.FromHost)] public GameState State { get; set; } = GameState.InProgress;
 
-	[Group( "Scene Transition" )]
+	[Group("Scene Transition")]
 	[Property] public string LobbyScene { get; set; }
 
 	private float _countdownAccumulator;

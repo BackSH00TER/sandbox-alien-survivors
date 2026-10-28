@@ -20,10 +20,10 @@ public sealed class PlayerOutfit : Component
     private async Task ApplyOutfitAsync()
     {
         Dresser dresser = Dresser ?? GetComponent<Dresser>();
-        if ( dresser == null ) return;
+        if (dresser == null) return;
 
-        await Task.DelayRealtimeSeconds( StartDelay );
-        if ( !this.IsValid() ) return;
+        await Task.DelayRealtimeSeconds(StartDelay);
+        if (!this.IsValid()) return;
 
         await dresser.Apply();
     }

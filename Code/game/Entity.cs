@@ -2,10 +2,10 @@ using Sandbox;
 
 public abstract class Entity : Component
 {
-	[Property, Range( 1f, 1000f ), Sync( SyncFlags.FromHost )] public float MaxHealth { get; set; } = 100f;
-	[Property, Range( 0.01f, 1f )] public float HitFlashDuration { get; set; } = 0.12f;
-	[Sync( SyncFlags.FromHost )] public float Health { get; private set; } = 100f;
-	[Property, Group( "Debug" )] public bool ShowAttackHitboxes { get; set; } = true;
+	[Property, Range(1f, 1000f), Sync(SyncFlags.FromHost)] public float MaxHealth { get; set; } = 100f;
+	[Property, Range(0.01f, 1f)] public float HitFlashDuration { get; set; } = 0.12f;
+	[Sync(SyncFlags.FromHost)] public float Health { get; private set; } = 100f;
+	[Property, Group("Debug")] public bool ShowAttackHitboxes { get; set; } = true;
 	public virtual bool CanTakeDamage => true;
 
 	private const float PunchFacingThreshold = 0.5f;
@@ -118,7 +118,7 @@ public abstract class Entity : Component
 			target.TakeDamage(damage, (target.WorldPosition - WorldPosition).Normal);
 	}
 
-	[Rpc.Broadcast( NetFlags.HostOnly )]
+	[Rpc.Broadcast(NetFlags.HostOnly)]
 	private void DrawPunchHitbox(Vector3 origin, Vector3 forward, float range, bool hit, Vector3 targetPosition)
 	{
 		if (!ShowAttackHitboxes || !GameHUD.IsDebugEnabled(Scene))
@@ -172,7 +172,7 @@ public abstract class Entity : Component
 				targetPosition + Vector3.Up * PunchTraceHeight, Color.Yellow, duration);
 	}
 
-	[Rpc.Broadcast( NetFlags.HostOnly )]
+	[Rpc.Broadcast(NetFlags.HostOnly)]
 	private void FlashHit()
 	{
 		_flashMaterial ??= Material.Create("entity_hit_flash", "shaders/hit_flash.shader");

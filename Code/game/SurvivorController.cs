@@ -3,36 +3,36 @@ using Sandbox;
 public sealed class SurvivorController : Entity
 {
 	[Property, RequireComponent] public PlayerController Controller { get; set; }
-	[Property, Range( 0.25f, 4f )] public float Zoom { get; set; } = 1.5f;
-	[Property, Group( "Weapon" ), Description("Weapon equipped on spawn. If unassigned, uses weapons/pistol.weapon.")]
+	[Property, Range(0.25f, 4f)] public float Zoom { get; set; } = 1.5f;
+	[Property, Group("Weapon"), Description("Weapon equipped on spawn. If unassigned, uses weapons/pistol.weapon.")]
 	public WeaponDefinition StartingWeapon { get; set; }
-	[Sync( SyncFlags.FromHost )] public WeaponDefinition EquippedWeapon { get; private set; }
-	[Property, Group( "Debug" )] public bool ShowAttackDebug { get; set; } = true;
+	[Sync(SyncFlags.FromHost)] public WeaponDefinition EquippedWeapon { get; private set; }
+	[Property, Group("Debug")] public bool ShowAttackDebug { get; set; } = true;
 
-	[Group( "Experience" )]
-	[Property, Range( 1, 1000 )] public int BaseExperienceToLevel { get; set; } = 5;
-	[Group( "Experience" )]
-	[Property, Range( 0, 1000 )] public int ExperienceGrowthPerLevel { get; set; } = 5;
+	[Group("Experience")]
+	[Property, Range(1, 1000)] public int BaseExperienceToLevel { get; set; } = 5;
+	[Group("Experience")]
+	[Property, Range(0, 1000)] public int ExperienceGrowthPerLevel { get; set; } = 5;
 
-	[Sync( SyncFlags.FromHost )] public int Level { get; private set; } = 1;
-	[Sync( SyncFlags.FromHost )] public int Experience { get; private set; }
+	[Sync(SyncFlags.FromHost)] public int Level { get; private set; } = 1;
+	[Sync(SyncFlags.FromHost)] public int Experience { get; private set; }
 	public int ExperienceToNextLevel => System.Math.Max(1, BaseExperienceToLevel + ExperienceGrowthPerLevel * (Level - 1));
 
-	[Sync( SyncFlags.FromHost )] public int PendingModifierChoices { get; private set; }
-	[Sync( SyncFlags.FromHost )] public int ModifierOfferId { get; private set; }
-	[Sync( SyncFlags.FromHost )] public Modifier ModifierOptionOne { get; private set; }
-	[Sync( SyncFlags.FromHost )] public Modifier ModifierOptionTwo { get; private set; }
-	[Sync( SyncFlags.FromHost )] public Modifier ModifierOptionThree { get; private set; }
-	[Sync( SyncFlags.FromHost )] public int AttackSpeedStacks { get; private set; }
-	[Sync( SyncFlags.FromHost )] public int AttackRangeStacks { get; private set; }
-	[Sync( SyncFlags.FromHost )] public int VitalityStacks { get; private set; }
+	[Sync(SyncFlags.FromHost)] public int PendingModifierChoices { get; private set; }
+	[Sync(SyncFlags.FromHost)] public int ModifierOfferId { get; private set; }
+	[Sync(SyncFlags.FromHost)] public Modifier ModifierOptionOne { get; private set; }
+	[Sync(SyncFlags.FromHost)] public Modifier ModifierOptionTwo { get; private set; }
+	[Sync(SyncFlags.FromHost)] public Modifier ModifierOptionThree { get; private set; }
+	[Sync(SyncFlags.FromHost)] public int AttackSpeedStacks { get; private set; }
+	[Sync(SyncFlags.FromHost)] public int AttackRangeStacks { get; private set; }
+	[Sync(SyncFlags.FromHost)] public int VitalityStacks { get; private set; }
 
 	public float EffectiveAttackInterval => EquippedWeapon == null ? 0f
 		: System.MathF.Max(0.1f, 1f / (EquippedWeapon.FireRate * (1f + AttackSpeedStacks)));
 	public float EffectiveAttackRange => EquippedWeapon == null ? 0f
 		: EquippedWeapon.Range * (1f + AttackRangeStacks);
 
-	[Sync( SyncFlags.FromHost )] private float NextAttackTime { get; set; }
+	[Sync(SyncFlags.FromHost)] private float NextAttackTime { get; set; }
 
 	private static readonly Vector3 BaseCameraOffset = new Vector3(-500f, 0f, 800f);
 	private bool _missingCameraLogged;
@@ -269,7 +269,7 @@ public sealed class SurvivorController : Entity
 		ModifierOfferId++;
 	}
 
-	[Rpc.Host( NetFlags.OwnerOnly )]
+	[Rpc.Host(NetFlags.OwnerOnly)]
 	public void SelectModifier(int offerId, Modifier modifier)
 	{
 		var gameManager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
@@ -307,7 +307,7 @@ public sealed class SurvivorController : Entity
 			ModifierOfferId++;
 	}
 
-	[Rpc.Broadcast( NetFlags.HostOnly )]
+	[Rpc.Broadcast(NetFlags.HostOnly)]
 	private void PlayFire(int holdType)
 	{
 		if (!Controller.Renderer.IsValid())
