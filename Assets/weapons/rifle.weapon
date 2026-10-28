@@ -1,0 +1,14 @@
+{
+  "DisplayName": "Rifle",
+  "FireRate": 4,
+  "BulletsPerShot": 1,
+  "SpreadDegrees": 0,
+  "Damage": 8,
+  "Range": 800,
+  "ProjectileSpeed": 650,
+  "ProjectileRadius": 2,
+  "HoldType": "Rifle",
+  "WorldModel": null,
+  "__references": [],
+  "__version": 0
+}

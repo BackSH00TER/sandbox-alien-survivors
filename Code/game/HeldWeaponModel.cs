@@ -55,7 +55,19 @@ public sealed class HeldWeaponModel : Component
 			return;
 		}
 
-		// A simple pistol silhouette until an authored world model is assigned.
+		if (_weapon.HoldType is Sandbox.Citizen.CitizenAnimationHelper.HoldTypes.Rifle
+			or Sandbox.Citizen.CitizenAnimationHelper.HoldTypes.Shotgun)
+		{
+			var color = _weapon.HoldType == Sandbox.Citizen.CitizenAnimationHelper.HoldTypes.Rifle
+				? new Color(0.2f, 0.35f, 0.45f) : new Color(0.45f, 0.28f, 0.12f);
+			AddPart("Receiver", new Vector3(8f, 0f, 3f), new Vector3(20f, 4f, 5f), color);
+			AddPart("Barrel", new Vector3(24f, 0f, 4f), new Vector3(12f, 2f, 2f), new Color(0.18f, 0.2f, 0.23f));
+			AddPart("Stock", new Vector3(-8f, 0f, 1f), new Vector3(12f, 4f, 7f), color);
+			AddPart("Grip", new Vector3(0f, 0f, -2f), new Vector3(3f, 3f, 6f), color);
+			return;
+		}
+
+		// Simple silhouettes until authored world models are assigned.
 		AddPart("Slide", new Vector3(3f, 0f, 3f), new Vector3(10f, 3f, 3f), new Color(0.18f, 0.2f, 0.23f));
 		AddPart("Grip", new Vector3(-0.5f, 0f, -0.5f), new Vector3(3f, 2.5f, 6f), new Color(0.07f, 0.08f, 0.09f));
 	}

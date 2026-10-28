@@ -52,6 +52,21 @@ public abstract class Entity : Component
 	{
 	}
 
+	public bool RestoreHealth(float amount)
+	{
+		if (!Networking.IsHost || !float.IsFinite(amount) || amount <= 0f)
+		{
+			Log.Error("Healing requires a finite positive amount on the host.");
+			return false;
+		}
+
+		if (Health <= 0f || Health >= MaxHealth)
+			return false;
+
+		Health = System.MathF.Min(MaxHealth, Health + amount);
+		return true;
+	}
+
 	protected void IncreaseMaxHealth(float amount)
 	{
 		if (!Networking.IsHost || !float.IsFinite(amount) || amount <= 0f)

@@ -1,0 +1,14 @@
+{
+  "DisplayName": "Shotgun",
+  "FireRate": 0.8,
+  "BulletsPerShot": 6,
+  "SpreadDegrees": 28,
+  "Damage": 8,
+  "Range": 450,
+  "ProjectileSpeed": 400,
+  "ProjectileRadius": 2,
+  "HoldType": "Shotgun",
+  "WorldModel": null,
+  "__references": [],
+  "__version": 0
+}

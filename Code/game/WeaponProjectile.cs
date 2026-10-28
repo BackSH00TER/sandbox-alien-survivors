@@ -77,12 +77,12 @@ public sealed class WeaponProjectile : Component
 			.Run();
 		if (trace.Hit || trace.StartedSolid)
 		{
-			var enemy = trace.GameObject.IsValid() ? trace.GameObject.GetComponentInParent<Enemy>() : null;
-			var hitEnemy = enemy.IsValid() && enemy.CanTakeDamage;
-			DrawTravel(start, trace.EndPosition, hitEnemy ? Color.Green : Color.Red);
+			var target = trace.GameObject.IsValid() ? trace.GameObject.GetComponentInParent<Entity>() : null;
+			var canDamage = target.IsValid() && target.CanTakeDamage && (target is Enemy || target is SupplyCrate);
+			DrawTravel(start, trace.EndPosition, canDamage ? Color.Green : Color.Red);
 			Finish();
-			if (hitEnemy)
-				enemy.TakeDamage(_damage, Direction);
+			if (canDamage)
+				target.TakeDamage(_damage, Direction);
 			return;
 		}
 

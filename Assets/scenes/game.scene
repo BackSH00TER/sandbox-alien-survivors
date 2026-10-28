@@ -175,11 +175,54 @@
               "__guid": "9ea7b4c3-f964-4c42-8dc1-23ba84dbb9aa",
               "__enabled": true,
               "Flags": 0,
+              "__version": 1,
+              "AnimationCurve": [
+                {
+                  "x": 0,
+                  "y": 0,
+                  "in": 0,
+                  "out": 0,
+                  "mode": "Mirrored"
+                },
+                {
+                  "x": 0.5,
+                  "y": 1,
+                  "in": 0,
+                  "out": 0,
+                  "mode": "Mirrored"
+                },
+                {
+                  "x": 1,
+                  "y": 0,
+                  "in": 0,
+                  "out": 0,
+                  "mode": "Mirrored"
+                }
+              ],
+              "AnimationDuration": 2,
+              "AnimationEnabled": false,
+              "AnimationGradient": {
+                "blend": "Linear",
+                "color": [
+                  {
+                    "t": 0.5,
+                    "c": "1,1,1,1"
+                  }
+                ],
+                "alpha": []
+              },
+              "AnimationPattern": "Flicker",
+              "AnimationSpeed": 1,
+              "AnimationTimeOffset": 0,
+              "BakeLightIndex": -1,
               "ContactShadows": true,
               "Contribution": "Diffuse, Specular, Transmissive",
               "FogMode": "Enabled",
               "FogStrength": 1,
+              "IncludeStaticShadowCasters": false,
+              "Intensity": 1,
               "LightColor": "0.94419,0.97767,1,1",
+              "MixedShadows": false,
               "OnComponentDestroy": null,
               "OnComponentDisabled": null,
               "OnComponentEnabled": null,
@@ -192,6 +235,7 @@
               "ShadowHardness": 0,
               "Shadows": true,
               "SkyColor": "0.2532,0.32006,0.35349,1",
+              "Temperature": 6500,
               "Visualizer": {}
             }
           ],
@@ -478,6 +522,29 @@
           "OnComponentFixedUpdate": null,
           "OnComponentStart": null,
           "OnComponentUpdate": null
+        },
+        {
+          "__type": "CrateSpawner",
+          "__guid": "ee46b061-aa0d-486b-8f5f-d670d0eb6172",
+          "__enabled": true,
+          "Flags": 0,
+          "MaxCrates": 5,
+          "OnComponentDestroy": null,
+          "OnComponentDisabled": null,
+          "OnComponentEnabled": null,
+          "OnComponentFixedUpdate": null,
+          "OnComponentStart": null,
+          "OnComponentUpdate": null,
+          "RespawnDelay": 10,
+          "Rifle": {
+            "Id": "1b6a0f0a-1941-495c-9b54-70a6e0d68912",
+            "Path": "weapons/rifle.weapon"
+          },
+          "Shotgun": {
+            "Id": "8b68b320-0ea6-478d-b3e6-c2ad535a48c5",
+            "Path": "weapons/shotgun.weapon"
+          },
+          "SpawnRadius": 900
         }
       ],
       "Children": []

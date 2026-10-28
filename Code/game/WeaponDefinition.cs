@@ -13,7 +13,9 @@ public sealed class WeaponDefinition : GameResource
 	[Property, Range(1f, 10000f)] public float Range { get; set; } = 600f;
 	[Property, Range(1f, 10000f)] public float ProjectileSpeed { get; set; } = 450f;
 	[Property, Range(0.1f, 16f)] public float ProjectileRadius { get; set; } = 2f;
-	[Property, Description("Optional model aligned to hold_R. Leave empty for the prototype pistol model.")]
+	[Property] public Sandbox.Citizen.CitizenAnimationHelper.HoldTypes HoldType { get; set; }
+		= Sandbox.Citizen.CitizenAnimationHelper.HoldTypes.Pistol;
+	[Property, Description("Optional model aligned to hold_R. Leave empty for a prototype model matching the hold type.")]
 	public Model WorldModel { get; set; }
 
 	public bool Validate()

@@ -38,6 +38,11 @@
 			<div class="label">Lv @LocalSurvivor.Level</div>
 		</div>
 
+		@if (NearbyWeapon.IsValid())
+		{
+			<div class="weapon-prompt">E: Replace @(LocalSurvivor.EquippedWeapon?.DisplayName ?? "weapon") with @NearbyWeapon.DisplayName</div>
+		}
+
 		@if (LocalSurvivor.PendingModifierChoices > 0)
 		{
 			var survivor = LocalSurvivor;
@@ -75,6 +80,7 @@
 	private int CountdownTime => Scene.GetAllComponents<GameManager>().FirstOrDefault()?.CountdownTime ?? 0;
 
 	private SurvivorController LocalSurvivor => Scene.GetAllComponents<SurvivorController>().FirstOrDefault(x => !x.IsProxy);
+	private LootPickup NearbyWeapon => LootPickup.FindNearestWeapon(LocalSurvivor);
 
 	protected override void OnUpdate()
 	{
@@ -128,7 +134,7 @@
 		var survivor = LocalSurvivor;
 		return System.HashCode.Combine(CountdownTime, survivor, survivor?.Level, ExperiencePercent,
 			survivor?.PendingModifierChoices, survivor?.ModifierOfferId,
-			(DebugEnabled, survivor?.ShowAttackDebug), System.HashCode.Combine(survivor?.EffectiveAttackInterval, survivor?.EffectiveAttackRange,
+			(DebugEnabled, survivor?.ShowAttackDebug, NearbyWeapon), System.HashCode.Combine(survivor?.EffectiveAttackInterval, survivor?.EffectiveAttackRange,
 				survivor?.AttackSpeedStacks, survivor?.AttackRangeStacks, survivor?.VitalityStacks, survivor?.EquippedWeapon,
 				survivor?.EquippedWeapon?.BulletsPerShot));
 	}

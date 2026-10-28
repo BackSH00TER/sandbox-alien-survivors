@@ -63,6 +63,13 @@ public sealed class SurvivorController : Entity
 			return;
 
 		Mouse.Visibility = MouseVisibility.Visible;
+		if (Input.Pressed("Use"))
+		{
+			var pickup = LootPickup.FindNearestWeapon(this);
+			if (pickup.IsValid())
+				PickupWeapon(pickup);
+		}
+
 		if (ShowAttackDebug && GameHUD.IsDebugEnabled(Scene))
 			DrawAttackRange();
 
@@ -156,6 +163,18 @@ public sealed class SurvivorController : Entity
 		NextAttackTime = Time.Now + EffectiveAttackInterval;
 	}
 
+	[Rpc.Host(NetFlags.OwnerOnly)]
+	public void PickupWeapon(LootPickup pickup)
+	{
+		if (!pickup.IsValid() || pickup.Scene != Scene)
+		{
+			Log.Warning("Rejected a missing weapon pickup.");
+			return;
+		}
+
+		pickup.TryEquip(this);
+	}
+
 	private void FireWeapon()
 	{
 		var forward = Controller.EyeAngles.ToRotation().Forward;
@@ -169,7 +188,7 @@ public sealed class SurvivorController : Entity
 			WeaponProjectile.Spawn(this, EquippedWeapon, origin, direction, EffectiveAttackRange);
 		}
 
-		PlayFire();
+		PlayFire((int)EquippedWeapon.HoldType);
 	}
 
 	private void DrawAttackRange()
@@ -275,7 +294,7 @@ public sealed class SurvivorController : Entity
 	}
 
 	[Rpc.Broadcast( NetFlags.HostOnly )]
-	private void PlayFire()
+	private void PlayFire(int holdType)
 	{
 		if (!Controller.Renderer.IsValid())
 		{
@@ -283,7 +302,7 @@ public sealed class SurvivorController : Entity
 			return;
 		}
 
-		Controller.Renderer.Set("holdtype", (int)Sandbox.Citizen.CitizenAnimationHelper.HoldTypes.Pistol);
+		Controller.Renderer.Set("holdtype", holdType);
 		Controller.Renderer.Set("b_attack", true);
 	}
 
@@ -293,7 +312,7 @@ public sealed class SurvivorController : Entity
 		{
 			Controller.Renderer.WorldRotation = Controller.EyeAngles.ToRotation();
 			if (EquippedWeapon != null)
-				Controller.Renderer.Set("holdtype", (int)Sandbox.Citizen.CitizenAnimationHelper.HoldTypes.Pistol);
+				Controller.Renderer.Set("holdtype", (int)EquippedWeapon.HoldType);
 		}
 	}
 
