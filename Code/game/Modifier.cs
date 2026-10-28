@@ -7,6 +7,14 @@ public enum Modifier
 
 public static class ModifierCatalog
 {
+	public static string Icon(Modifier modifier) => modifier switch
+	{
+		Modifier.AttackSpeed => "bolt",
+		Modifier.AttackRange => "open_with",
+		Modifier.Vitality => "favorite",
+		_ => throw new System.ArgumentOutOfRangeException(nameof(modifier))
+	};
+
 	public static string Name(Modifier modifier) => modifier switch
 	{
 		Modifier.AttackSpeed => "Rapid Strikes",
