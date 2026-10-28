@@ -13,6 +13,8 @@ public sealed class Enemy : Entity
 	[Property, Range( 50f, 1000f )] public float SpawnHeight { get; set; } = 300f;
 	[Property, Range( 0.1f, 10f )] public float SpawnDuration { get; set; } = 2f;
 	[Property, Range( 0, 100 )] public int ExperienceDrop { get; set; } = 1;
+	[Property, Group( "Hit Reaction" ), Range( 0f, 1f )] public float HitReactionStrength { get; set; } = 0.6f;
+	[Property, Group( "Hit Reaction" ), Range( 0f, 2f )] public float HitStaggerDuration { get; set; } = 0.2f;
 
 	[Sync( SyncFlags.FromHost )] private bool IsDescending { get; set; } = true;
 	[Sync( SyncFlags.FromHost )] private Vector3 LandingPosition { get; set; }
@@ -25,6 +27,7 @@ public sealed class Enemy : Entity
 	[Sync( SyncFlags.FromHost )] private float WindupEndTime { get; set; }
 	[Sync( SyncFlags.FromHost )] private float MovementUnlockTime { get; set; }
 	[Sync( SyncFlags.FromHost )] private bool IsTargetInPunchRange { get; set; }
+	[Sync( SyncFlags.FromHost )] private float StaggerEndTime { get; set; }
 
 	protected override void OnStart()
 	{
@@ -32,6 +35,7 @@ public sealed class Enemy : Entity
 		Controller.UseInputControls = false;
 		Controller.UseLookControls = false;
 		Controller.UseCameraControls = false;
+		Controller.RunByDefault = true;
 		Controller.Enabled = false;
 		Controller.Body.MotionEnabled = false;
 		_descentVisualsActive = true;
@@ -71,7 +75,7 @@ public sealed class Enemy : Entity
 		base.OnUpdate();
 		if (Controller.Renderer.IsValid())
 		{
-			var punching = !IsDescending && Health > 0f
+			var punching = !IsDescending && Health > 0f && Time.Now >= StaggerEndTime
 				&& (IsTargetInPunchRange || IsWindingUp || Time.Now < MovementUnlockTime);
 			Controller.Renderer.Set("holdtype", (int)(punching
 				? Sandbox.Citizen.CitizenAnimationHelper.HoldTypes.Punch
@@ -152,6 +156,12 @@ public sealed class Enemy : Entity
 			return;
 		}
 
+		if (Time.Now < StaggerEndTime)
+		{
+			StopAttackMovement();
+			return;
+		}
+
 		PlayerController target = null;
 		var nearestDistanceSquared = float.PositiveInfinity;
 
@@ -216,7 +226,7 @@ public sealed class Enemy : Entity
 		if (direction.LengthSquared <= stoppingDistance * stoppingDistance)
 			return;
 
-		Controller.WishVelocity = direction.Normal * Controller.WalkSpeed;
+		Controller.WishVelocity = direction.Normal * Controller.RunSpeed;
 	}
 
 	private void StopAttackMovement()
@@ -227,6 +237,39 @@ public sealed class Enemy : Entity
 			var velocity = Controller.Body.Velocity;
 			Controller.Body.Velocity = new Vector3(0f, 0f, velocity.z);
 		}
+	}
+
+	protected override void OnDamaged(Vector3 hitDirection)
+	{
+		if (Health <= 0f || IsDescending)
+			return;
+
+		IsWindingUp = false;
+		IsTargetInPunchRange = false;
+		StaggerEndTime = Time.Now + HitStaggerDuration;
+		MovementUnlockTime = System.MathF.Max(MovementUnlockTime, StaggerEndTime);
+		NextPunchTime = System.MathF.Max(NextPunchTime, StaggerEndTime);
+		StopAttackMovement();
+		PlayHitReaction(hitDirection);
+	}
+
+	[Rpc.Broadcast( NetFlags.HostOnly )]
+	private void PlayHitReaction(Vector3 hitDirection)
+	{
+		var renderer = Controller.Renderer;
+		if (!renderer.IsValid())
+		{
+			Log.Error("Enemy requires an animated renderer for hit reactions.");
+			return;
+		}
+
+		var bone = renderer.GetClosestBone(WorldPosition + Vector3.Up * 48f);
+		renderer.Set("hit_bone", bone.Index);
+		renderer.Set("hit_offset", Vector3.Zero);
+		renderer.Set("hit_direction", hitDirection.LengthSquared > 0.001f
+			? hitDirection.Normal : -Controller.EyeAngles.ToRotation().Forward);
+		renderer.Set("hit_strength", HitReactionStrength);
+		renderer.Set("hit", true);
 	}
 
 	protected override void OnHealthDepleted()

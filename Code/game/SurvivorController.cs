@@ -4,9 +4,9 @@ public sealed class SurvivorController : Entity
 {
 	[Property, RequireComponent] public PlayerController Controller { get; set; }
 	[Property, Range( 0.25f, 4f )] public float Zoom { get; set; } = 1.5f;
-	[Property, Range( 0.1f, 10f )] public float PunchInterval { get; set; } = 1f;
-	[Property, Range( 1f, 200f )] public float PunchRange { get; set; } = 64f;
-	[Property, Range( 1f, 100f )] public float PunchDamage { get; set; } = 10f;
+	[Property, Group( "Weapon" ), Description("Weapon equipped on spawn. If unassigned, uses weapons/pistol.weapon.")]
+	public WeaponDefinition StartingWeapon { get; set; }
+	[Sync( SyncFlags.FromHost )] public WeaponDefinition EquippedWeapon { get; private set; }
 	[Property, Group( "Debug" )] public bool ShowAttackDebug { get; set; } = true;
 
 	[Group( "Experience" )]
@@ -27,10 +27,12 @@ public sealed class SurvivorController : Entity
 	[Sync( SyncFlags.FromHost )] public int AttackRangeStacks { get; private set; }
 	[Sync( SyncFlags.FromHost )] public int VitalityStacks { get; private set; }
 
-	public float EffectivePunchInterval => System.MathF.Max(0.1f, PunchInterval / (1f + AttackSpeedStacks));
-	public float EffectivePunchRange => PunchRange * (1f + AttackRangeStacks);
+	public float EffectiveAttackInterval => EquippedWeapon == null ? 0f
+		: System.MathF.Max(0.1f, 1f / (EquippedWeapon.FireRate * (1f + AttackSpeedStacks)));
+	public float EffectiveAttackRange => EquippedWeapon == null ? 0f
+		: EquippedWeapon.Range * (1f + AttackRangeStacks);
 
-	[Sync( SyncFlags.FromHost )] private float NextPunchTime { get; set; }
+	[Sync( SyncFlags.FromHost )] private float NextAttackTime { get; set; }
 
 	private static readonly Vector3 BaseCameraOffset = new Vector3(-500f, 0f, 800f);
 	private bool _missingCameraLogged;
@@ -38,6 +40,8 @@ public sealed class SurvivorController : Entity
 	protected override void OnStart()
 	{
 		base.OnStart();
+		var heldWeapon = GameObject.GetOrAddComponent<HeldWeaponModel>();
+		heldWeapon.Flags |= ComponentFlags.NotNetworked | ComponentFlags.NotSaved;
 		Controller.UseCameraControls = false;
 		Controller.UseLookControls = false;
 		Controller.UseInputControls = false;
@@ -47,7 +51,7 @@ public sealed class SurvivorController : Entity
 
 		if (Networking.IsHost)
 		{
-			NextPunchTime = Time.Now + EffectivePunchInterval;
+			EquipWeapon(StartingWeapon ?? ResourceLibrary.Get<WeaponDefinition>("weapons/pistol.weapon"));
 			QueueModifierChoice();
 		}
 	}
@@ -59,7 +63,7 @@ public sealed class SurvivorController : Entity
 			return;
 
 		Mouse.Visibility = MouseVisibility.Visible;
-		if (ShowAttackDebug)
+		if (ShowAttackDebug && GameHUD.IsDebugEnabled(Scene))
 			DrawAttackRange();
 
 		var camera = Scene.Camera;
@@ -123,23 +127,60 @@ public sealed class SurvivorController : Entity
 		if (gameManager != null && gameManager.State != GameState.InProgress)
 			return;
 
-		if (Time.Now >= NextPunchTime)
+		if (Health > 0f && EquippedWeapon != null && Time.Now >= NextAttackTime)
 		{
-			NextPunchTime = Time.Now + EffectivePunchInterval;
-			PlayPunch();
-			Punch<Enemy>(Controller, EffectivePunchRange, PunchDamage);
+			NextAttackTime = Time.Now + EffectiveAttackInterval;
+			FireWeapon();
 		}
+	}
+
+	/// <summary>Equip a weapon on the host while preserving the player's modifier stacks.</summary>
+	public void EquipWeapon(WeaponDefinition weapon)
+	{
+		if (!Networking.IsHost)
+		{
+			Log.Error("Weapons must be equipped on the host.");
+			return;
+		}
+
+		if (weapon == null)
+		{
+			Log.Error("Cannot equip a missing weapon definition.");
+			return;
+		}
+
+		if (!weapon.Validate())
+			return;
+
+		EquippedWeapon = weapon;
+		NextAttackTime = Time.Now + EffectiveAttackInterval;
+	}
+
+	private void FireWeapon()
+	{
+		var forward = Controller.EyeAngles.ToRotation().Forward;
+		forward = new Vector3(forward.x, forward.y, 0f).Normal;
+		var origin = WorldPosition + Vector3.Up * 36f;
+		for (var i = 0; i < EquippedWeapon.BulletsPerShot; i++)
+		{
+			var angle = EquippedWeapon.BulletsPerShot == 1 ? 0f
+				: -EquippedWeapon.SpreadDegrees * 0.5f + EquippedWeapon.SpreadDegrees * i / (EquippedWeapon.BulletsPerShot - 1);
+			var direction = Rotation.FromYaw(angle) * forward;
+			WeaponProjectile.Spawn(this, EquippedWeapon, origin, direction, EffectiveAttackRange);
+		}
+
+		PlayFire();
 	}
 
 	private void DrawAttackRange()
 	{
 		const int segments = 64;
 		var center = WorldPosition + Vector3.Up * 2f;
-		var previous = center + Vector3.Forward * EffectivePunchRange;
+		var previous = center + Vector3.Forward * EffectiveAttackRange;
 		for (var i = 1; i <= segments; i++)
 		{
 			var angle = i * (System.MathF.PI * 2f / segments);
-			var point = center + new Vector3(System.MathF.Cos(angle), System.MathF.Sin(angle), 0f) * EffectivePunchRange;
+			var point = center + new Vector3(System.MathF.Cos(angle), System.MathF.Sin(angle), 0f) * EffectiveAttackRange;
 			DebugOverlay.Line(previous, point, Color.Yellow, 0f);
 			previous = point;
 		}
@@ -211,7 +252,7 @@ public sealed class SurvivorController : Entity
 		{
 			case Modifier.AttackSpeed:
 				AttackSpeedStacks++;
-				NextPunchTime = System.MathF.Min(NextPunchTime, Time.Now + EffectivePunchInterval);
+				NextAttackTime = System.MathF.Min(NextAttackTime, Time.Now + EffectiveAttackInterval);
 				break;
 			case Modifier.AttackRange:
 				AttackRangeStacks++;
@@ -234,22 +275,26 @@ public sealed class SurvivorController : Entity
 	}
 
 	[Rpc.Broadcast( NetFlags.HostOnly )]
-	private void PlayPunch()
+	private void PlayFire()
 	{
 		if (!Controller.Renderer.IsValid())
 		{
-			Log.Error("SurvivorController requires an animated renderer to punch.");
+			Log.Error("SurvivorController requires an animated renderer to fire.");
 			return;
 		}
 
-		Controller.Renderer.Set("holdtype", (int)Sandbox.Citizen.CitizenAnimationHelper.HoldTypes.Punch);
+		Controller.Renderer.Set("holdtype", (int)Sandbox.Citizen.CitizenAnimationHelper.HoldTypes.Pistol);
 		Controller.Renderer.Set("b_attack", true);
 	}
 
 	protected override void OnPreRender()
 	{
 		if (Controller.Renderer.IsValid())
+		{
 			Controller.Renderer.WorldRotation = Controller.EyeAngles.ToRotation();
+			if (EquippedWeapon != null)
+				Controller.Renderer.Set("holdtype", (int)Sandbox.Citizen.CitizenAnimationHelper.HoldTypes.Pistol);
+		}
 	}
 
 	protected override void OnDisabled()
