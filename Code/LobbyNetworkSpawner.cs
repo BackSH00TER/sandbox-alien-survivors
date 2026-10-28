@@ -130,9 +130,9 @@ public sealed class LobbyNetworkSpawner : Component, Component.INetworkListener
         nameplateObject.SetParent( playerObject );
         nameplateObject.LocalPosition = Vector3.Up * NameplateHeight;
 
-        // 0.05 world units per pixel. World panels also scale UI 2x, so CSS space is half of PanelSize (460 x 80).
+        // 0.05 world units per pixel. World panels also scale UI 2x, so CSS space is half of PanelSize (460 x 130).
         WorldPanel worldPanel = nameplateObject.Components.Create<WorldPanel>();
-        worldPanel.PanelSize = new Vector2( 920f, 160f );
+        worldPanel.PanelSize = new Vector2( 920f, 260f );
         worldPanel.VerticalAlign = WorldPanel.VAlignment.Bottom;
         worldPanel.LookAtCamera = true;
 

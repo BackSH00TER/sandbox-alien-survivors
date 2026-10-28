@@ -5,11 +5,13 @@
 
 @{
     Connection owner = ResolveOwner();
+    bool isReady = IsOwnerReady();
 }
 
 <root>
     @if ( owner != null )
     {
+        <div class="ready-label @(isReady ? "is-ready" : "")">@(isReady ? "Ready" : "Not Ready")</div>
         <div class="plate">
             <img class="avatar" src="avatar:@(owner.SteamId)" />
             <div class="name">@owner.DisplayName</div>
@@ -30,9 +32,15 @@
         return !player.Network.IsProxy ? Connection.Local : null;
     }
 
+    private bool IsOwnerReady()
+    {
+        PlayerReadyState state = GameObject.Parent?.Components.Get<PlayerReadyState>();
+        return state != null && state.IsReady;
+    }
+
     protected override int BuildHash()
     {
         Connection owner = GameObject.Parent?.Network?.Owner;
-        return System.HashCode.Combine( owner?.Id, owner?.DisplayName );
+        return System.HashCode.Combine( owner?.Id, owner?.DisplayName, IsOwnerReady() );
     }
 }

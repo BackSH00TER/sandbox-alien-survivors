@@ -1,0 +1,73 @@
+LobbyReadyButton {
+    width: 100%;
+    height: 100%;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    padding-bottom: 80px;
+    font-family: Poppins;
+
+    .start-button {
+        pointer-events: all;
+        cursor: pointer;
+        justify-content: center;
+        align-items: center;
+        min-width: 260px;
+        margin-bottom: 14px;
+        padding: 14px 40px;
+        font-size: 26px;
+        font-weight: 700;
+        color: white;
+        background-color: rgba(50, 110, 200, 0.9);
+        border-radius: 40px;
+        transition: background-color 0.15s ease, transform 0.1s ease;
+
+        &:hover {
+            background-color: rgba(70, 135, 230, 1);
+            transform: scale(1.05);
+        }
+
+        &.is-disabled {
+            background-color: rgba(70, 70, 70, 0.7);
+            color: rgba(255, 255, 255, 0.45);
+            cursor: default;
+
+            &:hover {
+                background-color: rgba(70, 70, 70, 0.7);
+                transform: none;
+            }
+        }
+    }
+
+    .ready-button {
+        pointer-events: all;
+        cursor: pointer;
+        justify-content: center;
+        align-items: center;
+        min-width: 260px;
+        padding: 18px 48px;
+        font-size: 32px;
+        font-weight: 700;
+        color: white;
+        background-color: rgba(40, 140, 70, 0.9);
+        border-radius: 40px;
+        transition: background-color 0.15s ease, transform 0.1s ease;
+
+        &:hover {
+            background-color: rgba(55, 170, 90, 1);
+            transform: scale(1.05);
+        }
+
+        &:active {
+            transform: scale(0.97);
+        }
+
+        &.is-ready {
+            background-color: rgba(170, 60, 50, 0.9);
+
+            &:hover {
+                background-color: rgba(200, 75, 65, 1);
+            }
+        }
+    }
+}

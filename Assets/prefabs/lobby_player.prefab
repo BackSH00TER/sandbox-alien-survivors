@@ -204,6 +204,19 @@
         "ShouldMoveArms": true,
         "Smoothing": 8,
         "WristBend": 2
+      },
+      {
+        "__type": "PlayerReadyState",
+        "__guid": "d4a71c38-5e92-4b0f-a6c3-82f9e1b05d7a",
+        "__enabled": true,
+        "Flags": 0,
+        "IsReady": false,
+        "OnComponentDestroy": null,
+        "OnComponentDisabled": null,
+        "OnComponentEnabled": null,
+        "OnComponentFixedUpdate": null,
+        "OnComponentStart": null,
+        "OnComponentUpdate": null
       }
     ],
     "Children": [

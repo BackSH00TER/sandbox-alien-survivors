@@ -327,6 +327,7 @@
           "__guid": "0cc5fdc3-f60e-4fa3-b7fd-caa651472241",
           "__enabled": true,
           "Flags": 0,
+          "GameScene": "scenes/game.scene",
           "OnComponentDestroy": null,
           "OnComponentDisabled": null,
           "OnComponentEnabled": null,
@@ -735,6 +736,55 @@
           },
           "StartingAnimationName": "Default",
           "TextureFilter": "Bilinear"
+        }
+      ],
+      "Children": []
+    },
+    {
+      "__guid": "7a3c9e52-1b4d-4f60-9a8e-5d2c6b1f0e47",
+      "__version": 2,
+      "Flags": 0,
+      "Name": "ReadyButton",
+      "Position": "0,0,0",
+      "Rotation": "0,0,0,1",
+      "Scale": "1,1,1",
+      "Tags": "",
+      "Enabled": true,
+      "NetworkMode": 2,
+      "NetworkFlags": 0,
+      "NetworkOrphaned": 0,
+      "NetworkTransmit": true,
+      "OwnerTransfer": 1,
+      "Components": [
+        {
+          "__type": "Sandbox.ScreenPanel",
+          "__guid": "c81d4f7a-3e29-4b56-8f10-a9e7d2b6c453",
+          "__enabled": true,
+          "Flags": 0,
+          "AutoScreenScale": true,
+          "OnComponentDestroy": null,
+          "OnComponentDisabled": null,
+          "OnComponentEnabled": null,
+          "OnComponentFixedUpdate": null,
+          "OnComponentStart": null,
+          "OnComponentUpdate": null,
+          "Opacity": 1,
+          "Scale": 1,
+          "ScaleStrategy": "ConsistentHeight",
+          "TargetCamera": null,
+          "ZIndex": 100
+        },
+        {
+          "__type": "LobbyReadyButton",
+          "__guid": "e5b2a8d3-6f91-4c07-b3a4-18d9f0c7e265",
+          "__enabled": true,
+          "Flags": 0,
+          "OnComponentDestroy": null,
+          "OnComponentDisabled": null,
+          "OnComponentEnabled": null,
+          "OnComponentFixedUpdate": null,
+          "OnComponentStart": null,
+          "OnComponentUpdate": null
         }
       ],
       "Children": []
