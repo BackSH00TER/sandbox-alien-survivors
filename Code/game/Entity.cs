@@ -67,6 +67,22 @@ public abstract class Entity : Component
 		return true;
 	}
 
+	/// <summary>Host only. Brings a dead entity back with the given health. Does nothing if it is already alive.</summary>
+	public bool Revive(float health)
+	{
+		if (!Networking.IsHost || !float.IsFinite(health) || health <= 0f)
+		{
+			Log.Error("Reviving requires a finite positive amount on the host.");
+			return false;
+		}
+
+		if (Health > 0f)
+			return false;
+
+		Health = System.MathF.Min(MaxHealth, health);
+		return true;
+	}
+
 	protected void IncreaseMaxHealth(float amount)
 	{
 		if (!Networking.IsHost || !float.IsFinite(amount) || amount <= 0f)

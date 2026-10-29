@@ -9,6 +9,10 @@ public sealed class SurvivorController : Entity
 	[Property, Group("Spectate"), Range(100f, 3000f)] public float UavSpeed { get; set; } = 900f;
 	[Property, Group("Spectate"), Description("Camera offset from the UAV. Higher and steeper than the alive camera.")]
 	public Vector3 UavCameraOffset { get; set; } = new Vector3(-350f, 0f, 1000f);
+	[Property, Group("Revive"), Range(0.05f, 1f), Description("Fraction of max health a revived survivor comes back with.")]
+	public float ReviveHealthFraction { get; set; } = 0.5f;
+	[Property, Group("Revive"), Range(0f, 10f), Description("Seconds a revived survivor cannot take damage.")]
+	public float ReviveInvulnerableSeconds { get; set; } = 3f;
 	[Property, Group("Weapon"), Description("Weapon equipped on spawn. If unassigned, uses weapons/pistol.weapon.")]
 	public WeaponDefinition StartingWeapon { get; set; }
 	[Sync(SyncFlags.FromHost)] public WeaponDefinition EquippedWeapon { get; private set; }
@@ -38,13 +42,17 @@ public sealed class SurvivorController : Entity
 		: EquippedWeapon.Range * (1f + AttackRangeStacks);
 
 	public bool IsDead => Health <= 0f;
-	public override bool CanTakeDamage => !IsDead;
+	public override bool CanTakeDamage => !IsDead && Time.Now >= _invulnerableUntil;
+
+	/// <summary>Host only: when this survivor died, used to raise the flare drop chance the longer they stay dead.</summary>
+	public float DeathTime { get; private set; }
 
 	[Sync(SyncFlags.FromHost)] private float NextAttackTime { get; set; }
 
 	private static readonly Vector3 BaseCameraOffset = new Vector3(-500f, 0f, 800f);
 	private bool _missingCameraLogged;
 	private bool _wasDead;
+	private float _invulnerableUntil;
 
 	protected override void OnStart()
 	{
@@ -81,6 +89,9 @@ public sealed class SurvivorController : Entity
 
 		if (GameHUD.IsDebugEnabled(Scene) && Input.Keyboard.Pressed("K"))
 			DebugKill();
+
+		if (GameHUD.IsDebugEnabled(Scene) && Input.Keyboard.Pressed("G"))
+			DebugSpawnFlareGun();
 
 		if (Input.Pressed("Use"))
 		{
@@ -223,6 +234,40 @@ public sealed class SurvivorController : Entity
 			return;
 
 		TakeDamage(Health);
+	}
+
+	[Rpc.Host(NetFlags.OwnerOnly)]
+	public void DebugSpawnFlareGun()
+	{
+		LootPickup.Spawn(WorldPosition + Controller.EyeAngles.ToRotation().Forward * 80f, LootKind.Flare);
+	}
+
+	protected override void OnHealthDepleted()
+	{
+		DeathTime = Time.Now;
+	}
+
+	/// <summary>Host only. Revives a dead survivor at the given ground position with partial health and a short grace period.</summary>
+	public bool ReviveAt(Vector3 groundPosition)
+	{
+		if (!Networking.IsHost || !IsDead)
+			return false;
+
+		if (!Revive(MaxHealth * ReviveHealthFraction))
+			return false;
+
+		_invulnerableUntil = Time.Now + ReviveInvulnerableSeconds;
+		TeleportTo(groundPosition);
+		return true;
+	}
+
+	// A player's position is owned by their client, so the host asks the owner to move them.
+	[Rpc.Owner]
+	private void TeleportTo(Vector3 position)
+	{
+		WorldPosition = position;
+		if (Controller.Body.IsValid())
+			Controller.Body.Velocity = Vector3.Zero;
 	}
 
 	[Rpc.Host(NetFlags.OwnerOnly)]

@@ -69,7 +69,7 @@ public sealed class HeldWeaponModel : Component
 		if (_survivor.IsDead)
 		{
 			_model.Enabled = false;
-			return;
+			return false;
 		}
 
 		var hand = _survivor.Controller.Renderer.GetAttachment("hold_R");
