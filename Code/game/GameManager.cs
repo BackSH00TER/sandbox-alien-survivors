@@ -10,7 +10,7 @@ public sealed class GameManager : Component
 {
 	[Group("Game Settings")]
 	[Property, Sync(SyncFlags.FromHost)] public int CountdownTime { get; set; } = 60;
-	[Group("Game Settings"), Description("Ends the game as soon as every survivor is dead. Off while debugging revives.")]
+	[Group("Game Settings"), Description("Ends the game as soon as every survivor is dead, since nobody is left to fire a revive flare. Turn off while debugging revives.")]
 	[Property] public bool ShouldEndWhenAllDead { get; set; } = false;
 	[Sync(SyncFlags.FromHost)] public GameState State { get; set; } = GameState.InProgress;
 

@@ -27,11 +27,11 @@
 			<div class="attack-debug">
 				<div>Weapon: @(LocalSurvivor.EquippedWeapon?.DisplayName ?? "None")</div>
 				<div>Attack rate: @((LocalSurvivor.EffectiveAttackInterval > 0f ? 1f / LocalSurvivor.EffectiveAttackInterval :
-								0f).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)) / sec</div>
+													0f).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)) / sec</div>
 					<div>Interval: @(LocalSurvivor.EffectiveAttackInterval.ToString("0.###",
-									System.Globalization.CultureInfo.InvariantCulture)) sec</div>
+															System.Globalization.CultureInfo.InvariantCulture)) sec</div>
 						<div>Range: @(LocalSurvivor.EffectiveAttackRange.ToString("0.#",
-										System.Globalization.CultureInfo.InvariantCulture)) units</div>
+																	System.Globalization.CultureInfo.InvariantCulture)) units</div>
 							<div>Bullets / shot: @(LocalSurvivor.EquippedWeapon?.BulletsPerShot ?? 0)</div>
 							<div>B: Toggle debug</div>
 							<div>K: Kill self</div>
@@ -60,33 +60,44 @@
 							</div>
 						}
 
-						@if (LocalSurvivor.PendingModifierChoices > 0)
+						@if (_flareVisible)
 						{
-							var survivor = LocalSurvivor;
-							var offerId = survivor.ModifierOfferId;
-							<div class="modifier-picker">
-								<div class="modifier-heading">Choose an upgrade</div>
-								<div class="modifier-hint">Press 1, 2, or 3, or click a card. Upgrades stack. Gameplay continues.</div>
-								<div class="modifier-options">
-									@for (var index = 0; index < 3; index++)
+							<div class="flare-marker"
+								 style="left: @(Percent(_flareMarkerPosition.x)); top: @(Percent(_flareMarkerPosition.y));">
+								<div class="flare-arrow-icon"
+									 style="transform: rotate(@(_flareArrowAngle.ToString("0", System.Globalization.CultureInfo.InvariantCulture))deg);">
+									arrow_forward</div>
+									<div class="flare-distance">@(_flareDistance)m</div>
+								</div>
+							}
+
+							@if (LocalSurvivor.PendingModifierChoices > 0)
+							{
+								var survivor = LocalSurvivor;
+								var offerId = survivor.ModifierOfferId;
+								<div class="modifier-picker">
+									<div class="modifier-heading">Choose an upgrade</div>
+									<div class="modifier-hint">Press 1, 2, or 3, or click a card. Upgrades stack. Gameplay continues.</div>
+									<div class="modifier-options">
+										@for (var index = 0; index < 3; index++)
+										{
+											var option = ModifierOption(survivor, index);
+											<button class="modifier-card" @onclick="@(() => survivor.SelectModifier(offerId, option))">
+												<div class="modifier-key">@(index + 1)</div>
+												<div class="modifier-icon">@ModifierCatalog.Icon(option)</div>
+												<div class="modifier-name">@ModifierCatalog.Name(option)</div>
+												<div class="modifier-description">@ModifierCatalog.Description(option)</div>
+											</button>
+										}
+									</div>
+									@if (survivor.PendingModifierChoices > 1)
 									{
-										var option = ModifierOption(survivor, index);
-										<button class="modifier-card" @onclick="@(() => survivor.SelectModifier(offerId, option))">
-											<div class="modifier-key">@(index + 1)</div>
-											<div class="modifier-icon">@ModifierCatalog.Icon(option)</div>
-											<div class="modifier-name">@ModifierCatalog.Name(option)</div>
-											<div class="modifier-description">@ModifierCatalog.Description(option)</div>
-										</button>
+										<div class="modifier-hint">@survivor.PendingModifierChoices upgrades waiting</div>
 									}
 								</div>
-								@if (survivor.PendingModifierChoices > 1)
-								{
-									<div class="modifier-hint">@survivor.PendingModifierChoices upgrades waiting</div>
-								}
-							</div>
+							}
 						}
-					}
-				</root>
+					</root>
 
 @code
 {
@@ -100,10 +111,64 @@
 !x.IsProxy);
 	private LootPickup NearbyWeapon => LootPickup.FindNearestWeapon(LocalSurvivor);
 
+	// Dead players get an arrow pointing at the nearest flare: pinned to the screen edge when it is off-screen,
+	// or hovering just above the flare when it is in view.
+	private const float UnitsPerMeter = 40f;
+	private const float MarkerEdgeX = 0.44f;
+	private const float MarkerEdgeY = 0.42f;
+	private bool _flareVisible;
+	private Vector2 _flareMarkerPosition;
+	private float _flareArrowAngle;
+	private int _flareDistance;
+
+	private static string Percent(float value) =>
+		(value * 100f).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + "%";
+
+	private void UpdateFlareMarker()
+	{
+		_flareVisible = false;
+		var survivor = LocalSurvivor;
+		var camera = Scene.Camera;
+		if (!survivor.IsValid() || !survivor.IsDead || !camera.IsValid())
+			return;
+
+		var flare = Scene.GetAllComponents<ReviveFlare>()
+			.OrderBy(x => (x.WorldPosition - survivor.WorldPosition).LengthSquared)
+			.FirstOrDefault();
+		if (!flare.IsValid())
+			return;
+
+		_flareVisible = true;
+		_flareDistance = (int)((flare.WorldPosition - survivor.WorldPosition).WithZ(0f).Length / UnitsPerMeter);
+
+		var screen = camera.PointToScreenNormal(flare.WorldPosition);
+		var inFront = (flare.WorldPosition - camera.WorldPosition).Dot(camera.WorldRotation.Forward) > 0f;
+		var offset = new Vector2(screen.x - 0.5f, screen.y - 0.5f);
+		if (!inFront)
+			offset = -offset;
+
+		var onScreen = inFront && System.MathF.Abs(offset.x) <= MarkerEdgeX && System.MathF.Abs(offset.y) <= MarkerEdgeY;
+		if (onScreen)
+		{
+			_flareMarkerPosition = new Vector2(screen.x, screen.y - 0.07f);
+			_flareArrowAngle = 90f;
+			return;
+		}
+
+		var scale = System.MathF.Max(System.MathF.Abs(offset.x) / MarkerEdgeX, System.MathF.Abs(offset.y) / MarkerEdgeY);
+		if (scale < 0.0001f)
+			scale = 1f;
+
+		_flareMarkerPosition = new Vector2(0.5f + offset.x / scale, 0.5f + offset.y / scale);
+		_flareArrowAngle = System.MathF.Atan2(offset.y, offset.x) * 180f / System.MathF.PI;
+	}
+
 	protected override void OnUpdate()
 	{
 		if (Input.Pressed("ToggleDebug"))
 			DebugEnabled = !DebugEnabled;
+
+		UpdateFlareMarker();
 
 		var survivor = LocalSurvivor;
 		if (!survivor.IsValid() || survivor.PendingModifierChoices <= 0)
@@ -155,6 +220,9 @@
 			(DebugEnabled, survivor?.ShowAttackDebug, NearbyWeapon, survivor?.IsDead, survivor?.GodMode),
 System.HashCode.Combine(survivor?.EffectiveAttackInterval, survivor?.EffectiveAttackRange,
 				survivor?.AttackSpeedStacks, survivor?.AttackRangeStacks, survivor?.VitalityStacks, survivor?.EquippedWeapon,
-				survivor?.EquippedWeapon?.BulletsPerShot));
+				survivor?.EquippedWeapon?.BulletsPerShot, FlareMarkerHash));
 	}
+
+	private int FlareMarkerHash => System.HashCode.Combine(_flareVisible, (int)(_flareMarkerPosition.x * 500f),
+		(int)(_flareMarkerPosition.y * 500f), (int)_flareArrowAngle / 2, _flareDistance);
 }
