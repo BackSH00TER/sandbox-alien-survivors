@@ -33,6 +33,8 @@ public sealed class SurvivorController : Entity
 		: EquippedWeapon.Range * (1f + AttackRangeStacks);
 
 	[Sync(SyncFlags.FromHost)] private float NextAttackTime { get; set; }
+	[Sync] private Vector3 CursorRayOrigin { get; set; }
+	[Sync] private Vector3 CursorRayDirection { get; set; }
 
 	private static readonly Vector3 BaseCameraOffset = new Vector3(-500f, 0f, 800f);
 	private bool _missingCameraLogged;
@@ -90,32 +92,32 @@ public sealed class SurvivorController : Entity
 		camera.WorldRotation = Rotation.LookAt(-BaseCameraOffset, Vector3.Up);
 
 		var ray = camera.ScreenPixelToRay(Mouse.Position);
-		var result = Scene.Trace
-			.Ray(ray, 10000f)
-			.IgnoreGameObjectHierarchy(GameObject)
-			.Run();
+		CursorRayOrigin = ray.Position;
+		CursorRayDirection = ray.Forward;
 
-		Vector3 aimPosition;
-		if (result.Hit)
-		{
-			aimPosition = result.EndPosition;
-		}
-		else
-		{
-			if (System.MathF.Abs(ray.Forward.z) < 0.0001f)
-				return;
-
-			var distance = (WorldPosition.z - ray.Position.z) / ray.Forward.z;
-			if (distance < 0f)
-				return;
-
-			aimPosition = ray.Position + ray.Forward * distance;
-		}
-
-		var offset = aimPosition - WorldPosition;
-		var direction = new Vector3(offset.x, offset.y, 0f);
-		if (direction.LengthSquared > 0.001f)
+		if (TryGetAimDirection(WorldPosition + Vector3.Up * WeaponProjectile.CollisionHeight, out var direction))
 			Controller.EyeAngles = Rotation.LookAt(direction, Vector3.Up).Angles();
+	}
+
+	private bool TryGetAimDirection(Vector3 origin, out Vector3 direction)
+	{
+		direction = default;
+		if (System.MathF.Abs(CursorRayDirection.z) < 0.0001f)
+			return false;
+
+		// Intersect the cursor ray at shot height, without snapping to scene geometry.
+		var distance = (origin.z - CursorRayOrigin.z) / CursorRayDirection.z;
+		if (distance < 0f)
+			return false;
+
+		var aimPosition = CursorRayOrigin + CursorRayDirection * distance;
+		var offset = aimPosition - origin;
+		var horizontal = new Vector3(offset.x, offset.y, 0f);
+		if (horizontal.LengthSquared <= 0.001f)
+			return false;
+
+		direction = horizontal.Normal;
+		return true;
 	}
 
 	protected override void OnFixedUpdate()
@@ -187,13 +189,14 @@ public sealed class SurvivorController : Entity
 		if (!heldWeapon.TryGetMuzzlePosition(out var muzzlePosition))
 			return;
 
-		var forward = Controller.EyeAngles.ToRotation().Forward;
-		forward = new Vector3(forward.x, forward.y, 0f).Normal;
 		var clearance = Scene.Trace.Sphere(EquippedWeapon.ProjectileRadius,
 				WorldPosition + Vector3.Up * 36f, muzzlePosition)
 			.IgnoreGameObjectHierarchy(GameObject)
 			.Run();
 		var origin = clearance.Hit || clearance.StartedSolid ? clearance.EndPosition : muzzlePosition;
+		if (!TryGetAimDirection(origin, out var forward))
+			return;
+
 		for (var i = 0; i < EquippedWeapon.BulletsPerShot; i++)
 		{
 			var angle = EquippedWeapon.BulletsPerShot == 1 ? 0f
