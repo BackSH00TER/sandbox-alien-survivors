@@ -5,6 +5,10 @@ public sealed class Enemy : Entity
 	public override bool CanTakeDamage => Health > 0f && !IsDescending;
 
 	[Property, RequireComponent] public PlayerController Controller { get; set; }
+	[Property, Group("Movement"), Range(0f, 1000f), Description("Pursuit speed for melee and exploding enemies, in world units per second.")]
+	public float MoveSpeed { get; set; } = 100f;
+	[Property, Group("Movement"), Range(0f, 1000f), Description("Pursuit and wandering speed for ranged enemies, in world units per second.")]
+	public float RangedMoveSpeed { get; set; } = 77f;
 	[Property, Range(1f, 200f)] public float PunchRange { get; set; } = 64f;
 	[Property, Range(0.1f, 10f)] public float PunchInterval { get; set; } = 1f;
 	[Property, Range(0f, 2f)] public float PunchWindup { get; set; } = 0.35f;
@@ -150,6 +154,7 @@ public sealed class Enemy : Entity
 		var gameManager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
 		if (gameManager != null && gameManager.State != GameState.InProgress)
 		{
+			GetComponent<RangedEnemy>()?.CancelAttack();
 			IsWindingUp = false;
 			IsTargetInPunchRange = false;
 			MovementUnlockTime = 0f;
@@ -158,6 +163,7 @@ public sealed class Enemy : Entity
 
 		if (Time.Now < StaggerEndTime)
 		{
+			GetComponent<RangedEnemy>()?.CancelAttack();
 			StopAttackMovement();
 			return;
 		}
@@ -169,6 +175,9 @@ public sealed class Enemy : Entity
 		{
 			if (!player.Active || player.GameObject.GetComponent<Enemy>() != null)
 				continue;
+			var survivor = player.GetComponent<SurvivorController>();
+			if (survivor.IsValid() && survivor.Health <= 0f)
+				continue;
 
 			var distanceSquared = (player.WorldPosition - WorldPosition).LengthSquared;
 			if (distanceSquared < nearestDistanceSquared)
@@ -176,6 +185,34 @@ public sealed class Enemy : Entity
 				target = player;
 				nearestDistanceSquared = distanceSquared;
 			}
+		}
+
+		var ranged = GetComponent<RangedEnemy>();
+		if (ranged.IsValid())
+		{
+			if (target == null)
+			{
+				ranged.CancelAttack();
+				StopAttackMovement();
+				return;
+			}
+
+			var aim = target.WorldPosition - WorldPosition;
+			var horizontal = new Vector3(aim.x, aim.y, 0f);
+			if (horizontal.LengthSquared > 0.001f)
+				Controller.EyeAngles = Rotation.LookAt(horizontal).Angles();
+
+			var rangedStoppingDistance = Controller.BodyRadius + target.BodyRadius;
+			if (ranged.TryAttack(this, target, out var combatVelocity))
+			{
+				if (combatVelocity.LengthSquared <= 0.001f)
+					StopAttackMovement();
+				else
+					Controller.WishVelocity = combatVelocity;
+			}
+			else if (horizontal.LengthSquared > rangedStoppingDistance * rangedStoppingDistance)
+				Controller.WishVelocity = horizontal.Normal * RangedMoveSpeed;
+			return;
 		}
 
 		IsTargetInPunchRange = target != null && PunchRange > 0f
@@ -226,7 +263,7 @@ public sealed class Enemy : Entity
 		if (direction.LengthSquared <= stoppingDistance * stoppingDistance)
 			return;
 
-		Controller.WishVelocity = direction.Normal * Controller.RunSpeed;
+		Controller.WishVelocity = direction.Normal * MoveSpeed;
 	}
 
 	private void StopAttackMovement()
@@ -246,6 +283,7 @@ public sealed class Enemy : Entity
 
 		IsWindingUp = false;
 		IsTargetInPunchRange = false;
+		GetComponent<RangedEnemy>()?.CancelAttack();
 		StaggerEndTime = Time.Now + HitStaggerDuration;
 		MovementUnlockTime = System.MathF.Max(MovementUnlockTime, StaggerEndTime);
 		NextPunchTime = System.MathF.Max(NextPunchTime, StaggerEndTime);
@@ -274,6 +312,7 @@ public sealed class Enemy : Entity
 
 	protected override void OnHealthDepleted()
 	{
+		GetComponent<RangedEnemy>()?.CancelAttack();
 		IsWindingUp = false;
 		IsTargetInPunchRange = false;
 		StopAttackMovement();

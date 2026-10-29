@@ -15,6 +15,10 @@ public sealed class EnemySpawner : Component
 	[Property, Range(0f, 100f), Description("Percentage of spawns that explode after a short death fuse.")]
 	public float ExplodingEnemyChance { get; set; } = 5f;
 
+	[Group("Enemy Spawning")]
+	[Property, Range(0f, 100f), Description("Percentage of spawns that shoot projectiles. Exploders take priority if the total exceeds 100%.")]
+	public float RangedEnemyChance { get; set; } = 10f;
+
 	private readonly System.Random _random = new();
 	private float _spawnTimer;
 	private bool _missingPrefabLogged;
@@ -73,8 +77,12 @@ public sealed class EnemySpawner : Component
 
 		var enemy = EnemyPrefab.Clone(spawnPosition);
 		enemy.GetOrAddComponent<Enemy>();
-		if (_random.NextDouble() * 100f < ExplodingEnemyChance.Clamp(0f, 100f))
+		var variantRoll = _random.NextDouble() * 100f;
+		var explodingChance = ExplodingEnemyChance.Clamp(0f, 100f);
+		if (variantRoll < explodingChance)
 			enemy.GetOrAddComponent<ExplodingEnemy>();
+		else if (variantRoll < explodingChance + RangedEnemyChance.Clamp(0f, 100f))
+			enemy.GetOrAddComponent<RangedEnemy>();
 
 		if (!enemy.NetworkSpawn())
 		{

@@ -132,6 +132,7 @@
           "OnComponentFixedUpdate": null,
           "OnComponentStart": null,
           "OnComponentUpdate": null,
+          "RangedEnemyChance": 10,
           "SpawnInterval": 1,
           "SpawnRadius": 400
         }
