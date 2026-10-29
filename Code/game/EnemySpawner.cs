@@ -11,6 +11,14 @@ public sealed class EnemySpawner : Component
 	[Group("Enemy Spawning")]
 	[Property, Range(0f, 1000f)] public float SpawnRadius { get; set; } = 400f;
 
+	[Group("Enemy Spawning")]
+	[Property, Range(0f, 100f), Description("Percentage of spawns that explode after a short death fuse.")]
+	public float ExplodingEnemyChance { get; set; } = 5f;
+
+	[Group("Enemy Spawning")]
+	[Property, Range(0f, 100f), Description("Percentage of spawns that shoot projectiles. Exploders take priority if the total exceeds 100%.")]
+	public float RangedEnemyChance { get; set; } = 10f;
+
 	private readonly System.Random _random = new();
 	private float _spawnTimer;
 	private bool _missingPrefabLogged;
@@ -48,6 +56,22 @@ public sealed class EnemySpawner : Component
 
 	private void SpawnEnemy()
 	{
+		SpawnEnemy(false);
+	}
+
+	public Enemy SpawnBoss()
+	{
+		if (!Networking.IsHost)
+		{
+			Log.Error("Only the host can spawn the boss.");
+			return null;
+		}
+
+		return SpawnEnemy(true);
+	}
+
+	private Enemy SpawnEnemy(bool isBoss)
+	{
 		if (EnemyPrefab == null)
 		{
 			if (!_missingPrefabLogged)
@@ -56,7 +80,7 @@ public sealed class EnemySpawner : Component
 				_missingPrefabLogged = true;
 			}
 
-			return;
+			return null;
 		}
 
 		var angle = (float)(_random.NextDouble() * System.MathF.PI * 2f);
@@ -67,13 +91,42 @@ public sealed class EnemySpawner : Component
 			0f
 		);
 
+		if (isBoss)
+		{
+			var ground = Scene.Trace.FromTo(spawnPosition + Vector3.Up * 64f,
+				spawnPosition - Vector3.Up * 2000f).Run();
+			if (!ground.Hit)
+			{
+				Log.Error("Cannot spawn boss without ground beneath its spawn position.");
+				return null;
+			}
+			spawnPosition = ground.EndPosition;
+		}
+
 		var enemy = EnemyPrefab.Clone(spawnPosition);
-		enemy.GetOrAddComponent<Enemy>();
+		var component = enemy.GetOrAddComponent<Enemy>();
+		if (isBoss)
+		{
+			enemy.Name = "Boss";
+			enemy.GetOrAddComponent<BossEnemy>().Configure(component);
+		}
+		else
+		{
+			var variantRoll = _random.NextDouble() * 100f;
+			var explodingChance = ExplodingEnemyChance.Clamp(0f, 100f);
+			if (variantRoll < explodingChance)
+				enemy.GetOrAddComponent<ExplodingEnemy>();
+			else if (variantRoll < explodingChance + RangedEnemyChance.Clamp(0f, 100f))
+				enemy.GetOrAddComponent<RangedEnemy>();
+		}
 
 		if (!enemy.NetworkSpawn())
 		{
 			enemy.Destroy();
 			Log.Error("Failed to network-spawn enemy.");
+			return null;
 		}
+
+		return component;
 	}
 }

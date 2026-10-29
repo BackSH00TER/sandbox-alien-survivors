@@ -63,6 +63,8 @@ public sealed class SurvivorController : Entity
 	[Sync(SyncFlags.FromHost)] private float NextAttackTime { get; set; }
 	[Sync] private Vector3 CursorRayOrigin { get; set; }
 	[Sync] private Vector3 CursorRayDirection { get; set; }
+	[Sync(SyncFlags.FromHost)] private float StunEndTime { get; set; }
+	public bool IsStunned => Time.Now < StunEndTime;
 
 	private static readonly Vector3 BaseCameraOffset = new Vector3(-500f, 0f, 800f);
 	private bool _missingCameraLogged;
@@ -163,7 +165,11 @@ public sealed class SurvivorController : Entity
 
 	protected override void OnFixedUpdate()
 	{
-		if (!IsProxy && !IsDead)
+		if (IsStunned)
+		{
+			StopStunnedMovement();
+		}
+		else if (!IsProxy && !IsDead)
 		{
 			var cameraRotation = Rotation.LookAt(-BaseCameraOffset, Vector3.Up);
 			var movementRotation = Rotation.FromYaw(cameraRotation.Angles().yaw);
@@ -187,6 +193,30 @@ public sealed class SurvivorController : Entity
 		}
 	}
 
+	public void ApplyStun(float duration)
+	{
+		if (!Networking.IsHost || !float.IsFinite(duration) || duration <= 0f)
+		{
+			Log.Error("Applying a stun requires the host and a finite positive duration.");
+			return;
+		}
+
+		if (!Active || Health <= 0f)
+			return;
+
+		StunEndTime = System.MathF.Max(StunEndTime, Time.Now + duration);
+		StopStunnedMovement();
+	}
+
+	private void StopStunnedMovement()
+	{
+		Controller.WishVelocity = Vector3.Zero;
+		if (Controller.Body.IsValid())
+		{
+			var velocity = Controller.Body.Velocity;
+			Controller.Body.Velocity = new Vector3(0f, 0f, velocity.z);
+		}
+	}
 	// Runs on every client so everyone hides the dead player's body and the owner takes off as a UAV.
 	private void UpdateDeadState()
 	{

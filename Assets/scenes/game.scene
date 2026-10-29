@@ -125,13 +125,15 @@
             "_type": "gameobject",
             "prefab": "prefabs/enemy.prefab"
           },
+          "ExplodingEnemyChance": 30,
           "OnComponentDestroy": null,
           "OnComponentDisabled": null,
           "OnComponentEnabled": null,
           "OnComponentFixedUpdate": null,
           "OnComponentStart": null,
           "OnComponentUpdate": null,
-          "SpawnInterval": 3,
+          "RangedEnemyChance": 10,
+          "SpawnInterval": 1,
           "SpawnRadius": 400
         }
       ],

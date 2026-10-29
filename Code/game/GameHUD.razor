@@ -4,7 +4,7 @@
 @namespace Sandbox
 
 <root>
-	<div class="title">Time: @CountdownTime</div>
+	<div class="title">@MatchStatus@(LocalSurvivor?.IsStunned == true ? " | STUNNED" : "")</div>
 
 	@if (LocalSurvivor.IsValid())
 	{
@@ -103,6 +103,19 @@
 	public static bool IsDebugEnabled(Scene scene) => scene.GetAllComponents<GameHUD>().Any(x => x.DebugEnabled);
 
 	private int CountdownTime => Scene.GetAllComponents<GameManager>().FirstOrDefault()?.CountdownTime ?? 0;
+	private string MatchStatus
+	{
+		get
+		{
+			var manager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
+			if (manager?.BossSpawned != true)
+				return $"Boss in: {CountdownTime}";
+
+			return manager.Boss.IsValid()
+				? $"Boss: {manager.Boss.Health:0} / {manager.Boss.MaxHealth:0}"
+				: "Boss defeated";
+		}
+	}
 
 	private SurvivorController LocalSurvivor => Scene.GetAllComponents<SurvivorController>().FirstOrDefault(x =>
 !x.IsProxy);
@@ -212,9 +225,9 @@
 	protected override int BuildHash()
 	{
 		var survivor = LocalSurvivor;
-		return System.HashCode.Combine(CountdownTime, survivor, survivor?.Level, ExperiencePercent,
+		return System.HashCode.Combine(MatchStatus, survivor, survivor?.Level, ExperiencePercent,
 			survivor?.PendingModifierChoices, survivor?.ModifierOfferId,
-			(DebugEnabled, survivor?.ShowAttackDebug, NearbyWeapon, survivor?.IsDead, survivor?.GodMode),
+			(DebugEnabled, survivor?.ShowAttackDebug, NearbyWeapon, survivor?.IsStunned, survivor?.IsDead, survivor?.GodMode),
 System.HashCode.Combine(survivor?.EffectiveAttackInterval, survivor?.EffectiveAttackRange,
 				survivor?.AttackSpeedStacks, survivor?.AttackRangeStacks, survivor?.VitalityStacks, survivor?.EquippedWeapon,
 				survivor?.EquippedWeapon?.BulletsPerShot, FlareMarkerHash));
