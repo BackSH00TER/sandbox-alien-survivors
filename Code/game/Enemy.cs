@@ -154,6 +154,7 @@ public sealed class Enemy : Entity
 		var gameManager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
 		if (gameManager != null && gameManager.State != GameState.InProgress)
 		{
+			GetComponent<BossEnemy>()?.CancelStunAttack();
 			GetComponent<RangedEnemy>()?.CancelAttack();
 			IsWindingUp = false;
 			IsTargetInPunchRange = false;
@@ -185,6 +186,15 @@ public sealed class Enemy : Entity
 				target = player;
 				nearestDistanceSquared = distanceSquared;
 			}
+		}
+
+		var boss = GetComponent<BossEnemy>();
+		if (boss.IsValid() && boss.TryStunAttack(target))
+		{
+			IsWindingUp = false;
+			IsTargetInPunchRange = false;
+			StopAttackMovement();
+			return;
 		}
 
 		var ranged = GetComponent<RangedEnemy>();
@@ -316,6 +326,12 @@ public sealed class Enemy : Entity
 		IsWindingUp = false;
 		IsTargetInPunchRange = false;
 		StopAttackMovement();
+		var boss = GetComponent<BossEnemy>();
+		if (boss.IsValid())
+		{
+			boss.Defeated(this);
+			return;
+		}
 		ExperienceOrb.Spawn(Scene, WorldPosition, ExperienceDrop);
 
 		if (!Controller.Renderer.IsValid())

@@ -9,13 +9,17 @@ public enum GameState
 public sealed class GameManager : Component
 {
 	[Group("Game Settings")]
-	[Property, Sync(SyncFlags.FromHost)] public int CountdownTime { get; set; } = 60;
+	[Property, Sync(SyncFlags.FromHost), Description("Seconds until the boss spawns. Defeating the boss ends the match.")]
+	public int CountdownTime { get; set; } = 15;
 	[Sync(SyncFlags.FromHost)] public GameState State { get; set; } = GameState.InProgress;
+	[Sync(SyncFlags.FromHost)] public Enemy Boss { get; private set; }
+	[Sync(SyncFlags.FromHost)] public bool BossSpawned { get; private set; }
 
 	[Group("Scene Transition")]
 	[Property] public string LobbyScene { get; set; }
 
 	private float _countdownAccumulator;
+	private bool _missingSpawnerLogged;
 
 	protected override void OnUpdate()
 	{
@@ -24,14 +28,57 @@ public sealed class GameManager : Component
 
 		_countdownAccumulator += Time.Delta;
 
-		while (_countdownAccumulator >= 1f && CountdownTime > 0)
+		while (_countdownAccumulator >= 1f)
 		{
-			CountdownTime--;
 			_countdownAccumulator -= 1f;
+			if (CountdownTime > 0)
+				CountdownTime--;
+
+			if (CountdownTime <= 0 && !BossSpawned)
+				SpawnBoss();
+		}
+	}
+
+	private void SpawnBoss()
+	{
+		var spawner = Scene.GetAllComponents<EnemySpawner>().FirstOrDefault(x => x.Active);
+		if (!spawner.IsValid())
+		{
+			if (!_missingSpawnerLogged)
+			{
+				Log.Error("GameManager requires an active EnemySpawner to spawn the boss.");
+				_missingSpawnerLogged = true;
+			}
+			return;
 		}
 
-		if (CountdownTime <= 0)
-			EndGame();
+		_missingSpawnerLogged = false;
+		var boss = spawner.SpawnBoss();
+		if (!boss.IsValid())
+			return;
+
+		Boss = boss;
+		BossSpawned = true;
+	}
+
+	public void BossDefeated(Enemy enemy)
+	{
+		if (!Networking.IsHost)
+		{
+			Log.Error("Only the host can end the match after a boss defeat.");
+			return;
+		}
+
+		if (State != GameState.InProgress)
+			return;
+
+		if (!BossSpawned || !enemy.IsValid() || enemy != Boss || enemy.Health > 0f)
+		{
+			Log.Warning("Rejected a boss defeat for an enemy that is not the defeated match boss.");
+			return;
+		}
+
+		EndGame();
 	}
 
 	private void EndGame()
