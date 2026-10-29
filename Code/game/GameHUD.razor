@@ -26,12 +26,9 @@
 		{
 			<div class="attack-debug">
 				<div>Weapon: @(LocalSurvivor.EquippedWeapon?.DisplayName ?? "None")</div>
-				<div>Attack rate: @((LocalSurvivor.EffectiveAttackInterval > 0f ? 1f / LocalSurvivor.EffectiveAttackInterval :
-													0f).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)) / sec</div>
-					<div>Interval: @(LocalSurvivor.EffectiveAttackInterval.ToString("0.###",
-															System.Globalization.CultureInfo.InvariantCulture)) sec</div>
-						<div>Range: @(LocalSurvivor.EffectiveAttackRange.ToString("0.#",
-																	System.Globalization.CultureInfo.InvariantCulture)) units</div>
+				<div>Attack rate: @((LocalSurvivor.EffectiveAttackInterval > 0f ? 1f / LocalSurvivor.EffectiveAttackInterval : 0f).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)) / sec</div>
+					<div>Interval: @(LocalSurvivor.EffectiveAttackInterval.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)) sec</div>
+						<div>Range: @(LocalSurvivor.EffectiveAttackRange.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)) units</div>
 							<div>Bullets / shot: @(LocalSurvivor.EquippedWeapon?.BulletsPerShot ?? 0)</div>
 							<div>B: Toggle debug</div>
 							<div>K: Kill self</div>
