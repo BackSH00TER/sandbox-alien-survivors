@@ -4,6 +4,15 @@ public sealed class SurvivorController : Entity
 {
 	[Property, RequireComponent] public PlayerController Controller { get; set; }
 	[Property, Range(0.25f, 4f)] public float Zoom { get; set; } = 1.5f;
+	[Property, Group("Spectate"), Range(0f, 2000f), Description("Height above the death position that the UAV flies at.")]
+	public float UavAltitude { get; set; } = 600f;
+	[Property, Group("Spectate"), Range(100f, 3000f)] public float UavSpeed { get; set; } = 900f;
+	[Property, Group("Spectate"), Description("Camera offset from the UAV. Higher and steeper than the alive camera.")]
+	public Vector3 UavCameraOffset { get; set; } = new Vector3(-350f, 0f, 800f);
+	[Property, Group("Revive"), Range(0.05f, 1f), Description("Fraction of max health a revived survivor comes back with.")]
+	public float ReviveHealthFraction { get; set; } = 0.5f;
+	[Property, Group("Revive"), Range(0f, 10f), Description("Seconds a revived survivor cannot take damage.")]
+	public float ReviveInvulnerableSeconds { get; set; } = 3f;
 	[Property, Group("Weapon"), Description("Weapon equipped on spawn. If unassigned, uses weapons/pistol.weapon.")]
 	public WeaponDefinition StartingWeapon { get; set; }
 	[Sync(SyncFlags.FromHost)] public WeaponDefinition EquippedWeapon { get; private set; }
@@ -32,18 +41,41 @@ public sealed class SurvivorController : Entity
 	public float EffectiveAttackRange => EquippedWeapon == null ? 0f
 		: EquippedWeapon.Range * (1f + AttackRangeStacks);
 
+	public bool IsDead => Health <= 0f;
+	// Dead, god mode and the post-revive grace period all block damage.
+	public override bool CanTakeDamage => !IsDead && !GodMode && Time.Now >= _invulnerableUntil;
+
+	/// <summary>Debug only: while true this survivor takes no damage.</summary>
+	[Sync(SyncFlags.FromHost)] public bool GodMode { get; private set; }
+
+	/// <summary>
+	/// Missing health that is not shown as blood. Set on revive so a revived survivor comes back clean, then
+	/// shrinks as they heal so blood only appears from damage taken after that.
+	/// </summary>
+	[Sync(SyncFlags.FromHost)] public float BloodOffset { get; private set; }
+
+	// A dead survivor shows no blood, so the UAV drone and the body on revive are clean.
+	public override float BloodAmount => IsDead ? 0f : System.MathF.Max(0f, base.BloodAmount - BloodOffset);
+
+	/// <summary>Host only: when this survivor died, used to raise the flare drop chance the longer they stay dead.</summary>
+	public float DeathTime { get; private set; }
+
 	[Sync(SyncFlags.FromHost)] private float NextAttackTime { get; set; }
 	[Sync] private Vector3 CursorRayOrigin { get; set; }
 	[Sync] private Vector3 CursorRayDirection { get; set; }
 
 	private static readonly Vector3 BaseCameraOffset = new Vector3(-500f, 0f, 800f);
 	private bool _missingCameraLogged;
+	private bool _wasDead;
+	private float _invulnerableUntil; // host clock, only the host checks it
 
 	protected override void OnStart()
 	{
 		base.OnStart();
 		var heldWeapon = GameObject.GetOrAddComponent<HeldWeaponModel>();
 		heldWeapon.Flags |= ComponentFlags.NotNetworked | ComponentFlags.NotSaved;
+		var uavVisual = GameObject.GetOrAddComponent<UavVisual>();
+		uavVisual.Flags |= ComponentFlags.NotNetworked | ComponentFlags.NotSaved;
 		Controller.UseCameraControls = false;
 		Controller.UseLookControls = false;
 		Controller.UseInputControls = false;
@@ -61,10 +93,19 @@ public sealed class SurvivorController : Entity
 	protected override void OnUpdate()
 	{
 		base.OnUpdate();
+		UpdateDeadState();
 		if (IsProxy)
 			return;
 
 		Mouse.Visibility = MouseVisibility.Visible;
+		if (IsDead)
+		{
+			UpdateUav();
+			return;
+		}
+
+		HandleDebugKeys();
+
 		if (Input.Pressed("Use"))
 		{
 			var pickup = LootPickup.FindNearestWeapon(this);
@@ -122,7 +163,7 @@ public sealed class SurvivorController : Entity
 
 	protected override void OnFixedUpdate()
 	{
-		if (!IsProxy)
+		if (!IsProxy && !IsDead)
 		{
 			var cameraRotation = Rotation.LookAt(-BaseCameraOffset, Vector3.Up);
 			var movementRotation = Rotation.FromYaw(cameraRotation.Angles().yaw);
@@ -132,15 +173,53 @@ public sealed class SurvivorController : Entity
 		if (!Networking.IsHost)
 			return;
 
+		if (BloodOffset > base.BloodAmount)
+			BloodOffset = base.BloodAmount;
+
 		var gameManager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
 		if (gameManager != null && gameManager.State != GameState.InProgress)
 			return;
 
-		if (Health > 0f && EquippedWeapon != null && Time.Now >= NextAttackTime)
+		if (!IsDead && EquippedWeapon != null && Time.Now >= NextAttackTime)
 		{
 			NextAttackTime = Time.Now + EffectiveAttackInterval;
 			FireWeapon();
 		}
+	}
+
+	// Runs on every client so everyone hides the dead player's body and the owner takes off as a UAV.
+	private void UpdateDeadState()
+	{
+		bool isDead = IsDead;
+		if (isDead == _wasDead)
+			return;
+
+		_wasDead = isDead;
+		Controller.Enabled = !isDead;
+		if (Controller.Body.IsValid())
+			Controller.Body.MotionEnabled = !isDead;
+
+		if (Controller.Renderer.IsValid())
+			Controller.Renderer.GameObject.Enabled = !isDead;
+
+		if (isDead && !IsProxy)
+			WorldPosition += Vector3.Up * UavAltitude;
+	}
+
+	// Camera-relative WASD flight. The owner moves the object; the host reads its position to detect flare claims.
+	private void UpdateUav()
+	{
+		Rotation cameraRotation = Rotation.LookAt(-UavCameraOffset, Vector3.Up);
+		Rotation movementRotation = Rotation.FromYaw(cameraRotation.Angles().yaw);
+		Vector3 move = movementRotation * Input.AnalogMove.WithZ(0f);
+		WorldPosition += move * UavSpeed * Time.Delta;
+
+		CameraComponent camera = Scene.Camera;
+		if (!camera.IsValid())
+			return;
+
+		camera.WorldPosition = WorldPosition + UavCameraOffset;
+		camera.WorldRotation = cameraRotation;
 	}
 
 	/// <summary>Equip a weapon on the host while preserving the player's modifier stacks.</summary>
@@ -163,6 +242,74 @@ public sealed class SurvivorController : Entity
 
 		EquippedWeapon = weapon;
 		NextAttackTime = Time.Now + EffectiveAttackInterval;
+	}
+
+	// K: kill self, G: drop a flare pickup in front, H: toggle god mode. Only while the debug overlay is on.
+	private void HandleDebugKeys()
+	{
+		if (!GameHUD.IsDebugEnabled(Scene))
+			return;
+
+		if (Input.Keyboard.Pressed("K"))
+			DebugKill();
+
+		if (Input.Keyboard.Pressed("G"))
+			DebugSpawnFlarePickup();
+
+		if (Input.Keyboard.Pressed("H"))
+			DebugToggleGodMode();
+	}
+
+	[Rpc.Host(NetFlags.OwnerOnly)]
+	public void DebugKill()
+	{
+		if (IsDead)
+			return;
+
+		// Killing on purpose wins over god mode, so it is switched off first.
+		GodMode = false;
+		TakeDamage(Health);
+	}
+
+	[Rpc.Host(NetFlags.OwnerOnly)]
+	public void DebugToggleGodMode()
+	{
+		GodMode = !GodMode;
+	}
+
+	[Rpc.Host(NetFlags.OwnerOnly)]
+	public void DebugSpawnFlarePickup()
+	{
+		LootPickup.Spawn(WorldPosition + Controller.EyeAngles.ToRotation().Forward * 80f, LootKind.Flare);
+	}
+
+	protected override void OnHealthDepleted()
+	{
+		DeathTime = Time.Now;
+	}
+
+	/// <summary>Host only. Revives a dead survivor at the given ground position with partial health and a short grace period.</summary>
+	public bool ReviveAt(Vector3 groundPosition)
+	{
+		if (!Networking.IsHost || !IsDead)
+			return false;
+
+		if (!Revive(MaxHealth * ReviveHealthFraction))
+			return false;
+
+		_invulnerableUntil = Time.Now + ReviveInvulnerableSeconds;
+		BloodOffset = base.BloodAmount;
+		TeleportTo(groundPosition);
+		return true;
+	}
+
+	// A player's position is owned by their client, so the host asks the owner to move them.
+	[Rpc.Owner]
+	private void TeleportTo(Vector3 position)
+	{
+		WorldPosition = position;
+		if (Controller.Body.IsValid())
+			Controller.Body.Velocity = Vector3.Zero;
 	}
 
 	[Rpc.Host(NetFlags.OwnerOnly)]

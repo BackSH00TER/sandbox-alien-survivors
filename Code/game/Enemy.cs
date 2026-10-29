@@ -170,6 +170,10 @@ public sealed class Enemy : Entity
 			if (!player.Active || player.GameObject.GetComponent<Enemy>() != null)
 				continue;
 
+			SurvivorController survivor = player.GameObject.GetComponent<SurvivorController>();
+			if (survivor != null && survivor.IsDead)
+				continue;
+
 			var distanceSquared = (player.WorldPosition - WorldPosition).LengthSquared;
 			if (distanceSquared < nearestDistanceSquared)
 			{

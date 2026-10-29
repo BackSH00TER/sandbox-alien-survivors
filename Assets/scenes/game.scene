@@ -515,7 +515,7 @@
           "__enabled": true,
           "Flags": 0,
           "CountdownTime": 60,
-          "LobbyScene": null,
+          "LobbyScene": "scenes/lobby.scene",
           "OnComponentDestroy": null,
           "OnComponentDisabled": null,
           "OnComponentEnabled": null,

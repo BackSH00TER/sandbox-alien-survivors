@@ -49,6 +49,7 @@
         "DuckedHeight": 36,
         "DuckedSpeed": 70,
         "EnableFootstepSounds": true,
+        "EnableJumpBoost": false,
         "EnablePressing": true,
         "EyeDistanceFromTop": 8,
         "FootstepMixer": {
@@ -190,7 +191,7 @@
           "go": "584b711c-7537-4772-ba13-53bbc7b3e538",
           "component_type": "PlayerController"
         },
-        "FullReachDistance": 160,
+        "FullReachDistance": 80,
         "MaxHandReachFraction": 0.95,
         "MaxPitch": 35,
         "MaxYaw": 40,
@@ -210,13 +211,28 @@
         "__guid": "d4a71c38-5e92-4b0f-a6c3-82f9e1b05d7a",
         "__enabled": true,
         "Flags": 0,
-        "IsReady": false,
         "OnComponentDestroy": null,
         "OnComponentDisabled": null,
         "OnComponentEnabled": null,
         "OnComponentFixedUpdate": null,
         "OnComponentStart": null,
         "OnComponentUpdate": null
+      },
+      {
+        "__type": "Sandbox.Movement.MoveModeWalk",
+        "__guid": "bd124ef9-a7e1-43a0-8b43-961ad5e3d4c4",
+        "__enabled": true,
+        "Flags": 0,
+        "GroundAngle": 45,
+        "OnComponentDestroy": null,
+        "OnComponentDisabled": null,
+        "OnComponentEnabled": null,
+        "OnComponentFixedUpdate": null,
+        "OnComponentStart": null,
+        "OnComponentUpdate": null,
+        "Priority": 0,
+        "StepDownHeight": 18,
+        "StepUpHeight": 18
       }
     ],
     "Children": [
@@ -242,7 +258,7 @@
             "__enabled": true,
             "Flags": 0,
             "AnimationGraph": null,
-            "BodyGroups": 5185,
+            "BodyGroups": 20737,
             "BoneMergeTarget": null,
             "CreateAttachments": false,
             "CreateBoneObjects": false,
@@ -287,7 +303,7 @@
         ],
         "Children": [
           {
-            "__guid": "dc8a98cd-ace7-459a-a1d8-b9f4b1da56a3",
+            "__guid": "70fd4f55-ef20-4ebd-be31-68f2f3fbb38c",
             "__version": 2,
             "Flags": 0,
             "Name": "Clothing - y_front_pants_white",
@@ -304,7 +320,7 @@
             "Components": [
               {
                 "__type": "Sandbox.SkinnedModelRenderer",
-                "__guid": "df0ef383-dc18-4610-a5a4-80fc64145123",
+                "__guid": "c6400fbb-7f0c-4f53-98b6-6a3fab82cd84",
                 "__enabled": true,
                 "Flags": 0,
                 "AnimationGraph": null,

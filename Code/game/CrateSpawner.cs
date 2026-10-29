@@ -10,6 +10,12 @@ public sealed class CrateSpawner : Component
 	[Property] public WeaponDefinition Rifle { get; set; }
 	[Property] public WeaponDefinition Shotgun { get; set; }
 
+	[Property, Group("Flare Gun"), Range(0f, 1f), Description("Chance a broken crate drops a flare gun the moment someone dies.")]
+	public float FlareBaseChance { get; set; } = 0.25f;
+	[Property, Group("Flare Gun"), Range(0f, 0.2f), Description("Extra drop chance gained for every second the longest-dead player stays dead.")]
+	public float FlareChanceGainPerSecond { get; set; } = 0.02f;
+	[Property, Group("Flare Gun"), Range(0f, 1f)] public float FlareMaxChance { get; set; } = 0.9f;
+
 	private sealed class Slot
 	{
 		public SupplyCrate Crate;
@@ -79,6 +85,26 @@ public sealed class CrateSpawner : Component
 
 			slot.ReadyAt = Time.Now + 1f;
 		}
+	}
+
+	/// <summary>
+	/// Host only. Zero unless someone is dead and fewer flares (pickups plus flares in the air) exist than dead players.
+	/// Otherwise it rises the longer the longest-dead player has been dead so nobody is stuck waiting forever.
+	/// </summary>
+	public float GetFlareDropChance()
+	{
+		var survivors = Scene.GetAllComponents<SurvivorController>().ToList();
+		var dead = survivors.Where(x => x.IsDead).ToList();
+		if (dead.Count == 0)
+			return 0f;
+
+		var flaresInPlay = Scene.GetAllComponents<ReviveFlare>().Count()
+			+ Scene.GetAllComponents<LootPickup>().Count(x => x.Kind == LootKind.Flare && !x.Claimed);
+		if (flaresInPlay >= dead.Count)
+			return 0f;
+
+		var longestDeadSeconds = dead.Max(x => Time.Now - x.DeathTime);
+		return (FlareBaseChance + FlareChanceGainPerSecond * longestDeadSeconds).Clamp(0f, FlareMaxChance);
 	}
 
 	private bool TryFindPosition(out Vector3 position)

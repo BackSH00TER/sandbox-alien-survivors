@@ -1,6 +1,6 @@
 using Sandbox;
 
-/// <summary>A 30-health shootable crate that drops one equally weighted health, rifle, or shotgun pickup.</summary>
+/// <summary>A 30-health shootable crate that drops one equally weighted health, rifle, or shotgun pickup, or a flare when someone is dead.</summary>
 public sealed class SupplyCrate : Entity
 {
 	[Sync(SyncFlags.FromHost)] public WeaponDefinition Rifle { get; set; }
@@ -53,15 +53,38 @@ public sealed class SupplyCrate : Entity
 		renderer.Tint = color;
 	}
 
+	// Every loot kind except Flare is a normal drop. Built from the enum so new kinds are picked up automatically.
+	private static readonly LootKind[] NormalDrops = System.Enum.GetValues<LootKind>()
+		.Where(x => x != LootKind.Flare).ToArray();
+
+	/// <summary>
+	/// Picks what the crate drops. A flare is rolled first, and only has a chance while someone is dead. Otherwise
+	/// one of the normal drops is chosen with equal weight.
+	/// </summary>
+	private LootKind RollKind()
+	{
+		var spawner = Scene.GetAllComponents<CrateSpawner>().FirstOrDefault();
+		if (spawner != null && Game.Random.Float() < spawner.GetFlareDropChance())
+			return LootKind.Flare;
+
+		return NormalDrops[Game.Random.Int(0, NormalDrops.Length - 1)];
+	}
+
 	protected override void OnHealthDepleted()
 	{
 		if (_opened)
 			return;
 
 		_opened = true;
-		var kind = (LootKind)Game.Random.Int(0, 2);
-		LootPickup.Spawn(WorldPosition - Vector3.Up * 22f, kind,
-			kind == LootKind.Rifle ? Rifle : kind == LootKind.Shotgun ? Shotgun : null);
+		var kind = RollKind();
+		// Only weapon drops need a weapon definition; health and flare pickups have none.
+		WeaponDefinition weapon = kind switch
+		{
+			LootKind.Rifle => Rifle,
+			LootKind.Shotgun => Shotgun,
+			_ => null
+		};
+		LootPickup.Spawn(WorldPosition - Vector3.Up * 22f, kind, weapon);
 		GameObject.Destroy();
 	}
 }
