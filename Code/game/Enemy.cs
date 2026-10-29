@@ -288,6 +288,10 @@ public sealed class Enemy : Entity
 		RestoreMaterials();
 		var ragdoll = Controller.CreateRagdoll("Enemy Ragdoll");
 		ragdoll.AddComponent<BloodiedModel>().Amount = 1f;
+		var exploder = GetComponent<ExplodingEnemy>();
+		if (exploder.IsValid())
+			exploder.ConfigureDeathExplosion(ragdoll);
+
 		if (!ragdoll.NetworkSpawn())
 		{
 			ragdoll.Destroy();
