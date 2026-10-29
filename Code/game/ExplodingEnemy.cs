@@ -4,8 +4,9 @@ using Sandbox;
 public sealed class ExplodingEnemy : Component
 {
 	[Property, Range(0.1f, 5f), Description("Warning time after death, in seconds.")]
-	public float FuseDuration { get; set; } = 1f;
-	[Property, Range(1f, 1000f)] public float BlastRadius { get; set; } = 160f;
+	public float FuseDuration { get; set; } = 3f;
+	[Property, Range(1f, 1000f), Description("Blast radius in world units.")]
+	public float BlastRadius { get; set; } = 100f;
 	[Property, Range(1f, 1000f)] public float BlastDamage { get; set; } = 40f;
 
 	private GameObject _beacon;
