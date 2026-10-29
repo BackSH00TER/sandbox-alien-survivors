@@ -77,8 +77,14 @@ public sealed class SupplyCrate : Entity
 
 		_opened = true;
 		var kind = RollKind();
-		LootPickup.Spawn(WorldPosition - Vector3.Up * 22f, kind,
-			kind == LootKind.Rifle ? Rifle : kind == LootKind.Shotgun ? Shotgun : null);
+		// Only weapon drops need a weapon definition; health and flare pickups have none.
+		WeaponDefinition weapon = kind switch
+		{
+			LootKind.Rifle => Rifle,
+			LootKind.Shotgun => Shotgun,
+			_ => null
+		};
+		LootPickup.Spawn(WorldPosition - Vector3.Up * 22f, kind, weapon);
 		GameObject.Destroy();
 	}
 }

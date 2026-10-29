@@ -12,6 +12,7 @@ public enum LootKind
 public sealed class LootPickup : Component
 {
 	public const float WeaponPickupRange = 72f;
+	private const float ContactRange = 32f; // walk-over range for health and flare pickups
 	/// <summary>How many of the final seconds of <see cref="LifetimeSeconds"/> the pickup blinks as a warning that it is about to disappear.</summary>
 	private const float BlinkSeconds = 8f;
 	[Property, Range(5f, 300f), Description("Total seconds an unclaimed pickup stays before it disappears.")]
@@ -99,7 +100,7 @@ public sealed class LootPickup : Component
 		{
 			_visual.LocalPosition = Vector3.Up * (System.MathF.Sin(Time.Now * 3f) * 3f);
 			_visual.LocalRotation = Rotation.FromYaw(Time.Now * 35f);
-			_visual.Enabled = !IsBlinking || (int)(Time.Now * 6f) % 2 == 0;
+			_visual.Enabled = !IsBlinking || (int)(Time.Now * 6f) % 2 == 0; // blink about 3 times a second
 		}
 	}
 
@@ -134,7 +135,7 @@ public sealed class LootPickup : Component
 	{
 		foreach (var survivor in Scene.GetAllComponents<SurvivorController>())
 		{
-			if (!CanReach(survivor, 32f) || !survivor.RestoreHealth(50f))
+			if (!CanReach(survivor, ContactRange) || !survivor.RestoreHealth(50f))
 				continue;
 
 			Claimed = true;
@@ -152,7 +153,7 @@ public sealed class LootPickup : Component
 
 		foreach (var survivor in survivors)
 		{
-			if (!CanReach(survivor, 32f))
+			if (!CanReach(survivor, ContactRange))
 				continue;
 
 			ReviveFlare.Spawn(survivor.WorldPosition);

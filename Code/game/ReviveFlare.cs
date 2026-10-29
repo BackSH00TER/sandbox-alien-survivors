@@ -26,6 +26,7 @@ public sealed class ReviveFlare : Component
     [Sync(SyncFlags.FromHost)] public Vector3 GroundPosition { get; private set; }
 
     private const float BlinkSeconds = 8f;
+    private const float GlowScale = 0.4f; // sphere model scale of the glowing flare head
     private static readonly Color FlareColor = new Color(1f, 0.15f, 0.1f);
     private ModelRenderer _glow;
     private PointLight _light;
@@ -64,7 +65,7 @@ public sealed class ReviveFlare : Component
         _flickerSeed = Game.Random.Float(0f, 100f);
         var visual = new GameObject(GameObject, true, "Flare Visual");
         visual.Flags |= GameObjectFlags.NotNetworked | GameObjectFlags.NotSaved;
-        visual.LocalScale = 0.4f;
+        visual.LocalScale = GlowScale;
         _glow = visual.AddComponent<ModelRenderer>();
         _glow.Model = Model.Load("models/dev/sphere.vmdl");
         _glow.RenderType = ModelRenderer.ShadowRenderType.Off;
@@ -104,7 +105,7 @@ public sealed class ReviveFlare : Component
         if (_glow.IsValid())
         {
             _glow.Enabled = visible;
-            _glow.GameObject.LocalScale = 0.4f * pulse;
+            _glow.GameObject.LocalScale = GlowScale * pulse;
             _glow.Tint = FlareColor * brightness * flicker;
         }
 

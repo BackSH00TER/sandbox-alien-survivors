@@ -42,6 +42,7 @@ public sealed class SurvivorController : Entity
 		: EquippedWeapon.Range * (1f + AttackRangeStacks);
 
 	public bool IsDead => Health <= 0f;
+	// Dead, god mode and the post-revive grace period all block damage.
 	public override bool CanTakeDamage => !IsDead && !GodMode && Time.Now >= _invulnerableUntil;
 
 	/// <summary>Debug only: while true this survivor takes no damage.</summary>
@@ -64,7 +65,7 @@ public sealed class SurvivorController : Entity
 	private static readonly Vector3 BaseCameraOffset = new Vector3(-500f, 0f, 800f);
 	private bool _missingCameraLogged;
 	private bool _wasDead;
-	private float _invulnerableUntil;
+	private float _invulnerableUntil; // host clock, only the host checks it
 
 	protected override void OnStart()
 	{
@@ -101,14 +102,7 @@ public sealed class SurvivorController : Entity
 			return;
 		}
 
-		if (GameHUD.IsDebugEnabled(Scene) && Input.Keyboard.Pressed("K"))
-			DebugKill();
-
-		if (GameHUD.IsDebugEnabled(Scene) && Input.Keyboard.Pressed("G"))
-			DebugSpawnFlareGun();
-
-		if (GameHUD.IsDebugEnabled(Scene) && Input.Keyboard.Pressed("H"))
-			DebugToggleGodMode();
+		HandleDebugKeys();
 
 		if (Input.Pressed("Use"))
 		{
@@ -184,7 +178,7 @@ public sealed class SurvivorController : Entity
 		if (gameManager != null && gameManager.State != GameState.InProgress)
 			return;
 
-		if (Health > 0f && EquippedWeapon != null && Time.Now >= NextAttackTime)
+		if (!IsDead && EquippedWeapon != null && Time.Now >= NextAttackTime)
 		{
 			NextAttackTime = Time.Now + EffectiveAttackInterval;
 			FireWeapon();
@@ -210,6 +204,7 @@ public sealed class SurvivorController : Entity
 			WorldPosition += Vector3.Up * UavAltitude;
 	}
 
+	// Camera-relative WASD flight. The owner moves the object; the host reads its position to detect flare claims.
 	private void UpdateUav()
 	{
 		Rotation cameraRotation = Rotation.LookAt(-UavCameraOffset, Vector3.Up);
@@ -247,6 +242,22 @@ public sealed class SurvivorController : Entity
 		NextAttackTime = Time.Now + EffectiveAttackInterval;
 	}
 
+	// K: kill self, G: drop a flare pickup in front, H: toggle god mode. Only while the debug overlay is on.
+	private void HandleDebugKeys()
+	{
+		if (!GameHUD.IsDebugEnabled(Scene))
+			return;
+
+		if (Input.Keyboard.Pressed("K"))
+			DebugKill();
+
+		if (Input.Keyboard.Pressed("G"))
+			DebugSpawnFlarePickup();
+
+		if (Input.Keyboard.Pressed("H"))
+			DebugToggleGodMode();
+	}
+
 	[Rpc.Host(NetFlags.OwnerOnly)]
 	public void DebugKill()
 	{
@@ -265,7 +276,7 @@ public sealed class SurvivorController : Entity
 	}
 
 	[Rpc.Host(NetFlags.OwnerOnly)]
-	public void DebugSpawnFlareGun()
+	public void DebugSpawnFlarePickup()
 	{
 		LootPickup.Spawn(WorldPosition + Controller.EyeAngles.ToRotation().Forward * 80f, LootKind.Flare);
 	}

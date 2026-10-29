@@ -18,6 +18,7 @@ public sealed class UavVisual : Component
     private GameObject _shadow;
     private ModelRenderer _beacon;
     private readonly List<GameObject> _rotors = new();
+    private readonly List<GameObject> _skippedForShadow = new(); // reused each frame to avoid allocating
     private bool _isShown;
 
     protected override void OnStart()
@@ -37,11 +38,11 @@ public sealed class UavVisual : Component
         if (!_isShown)
             return;
 
-        _drone.LocalPosition = Vector3.Up * (System.MathF.Sin(Time.Now * 3f) * 3f);
+        _drone.LocalPosition = Vector3.Up * (System.MathF.Sin(Time.Now * 3f) * 3f); // gentle hover bob
 
         for (int i = 0; i < _rotors.Count; i++)
         {
-            float direction = i % 2 == 0 ? 1f : -1f;
+            float direction = i % 2 == 0 ? 1f : -1f; // neighbouring rotors spin opposite ways
             _rotors[i].LocalRotation = Rotation.FromYaw(Time.Now * RotorSpinDegreesPerSecond * direction);
         }
 
@@ -100,13 +101,13 @@ public sealed class UavVisual : Component
     private void UpdateShadow()
     {
         const int MaxSkippedObjects = 8;
-        var skipped = new List<GameObject>();
+        _skippedForShadow.Clear();
         SceneTraceResult ground = default;
         for (int i = 0; i <= MaxSkippedObjects; i++)
         {
             var trace = Scene.Trace.FromTo(WorldPosition, WorldPosition - Vector3.Up * 3000f)
                 .IgnoreGameObjectHierarchy(GameObject);
-            foreach (var skippedObject in skipped)
+            foreach (var skippedObject in _skippedForShadow)
                 trace = trace.IgnoreGameObjectHierarchy(skippedObject);
 
             ground = trace.Run();
@@ -114,7 +115,7 @@ public sealed class UavVisual : Component
             if (!entity.IsValid())
                 break;
 
-            skipped.Add(entity.GameObject);
+            _skippedForShadow.Add(entity.GameObject);
         }
 
         Vector3 groundPosition = ground.Hit ? ground.EndPosition : WorldPosition.WithZ(0f);
