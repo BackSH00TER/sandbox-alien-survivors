@@ -516,7 +516,7 @@
           "__guid": "d337e6df-6276-4092-a13b-07cde021e085",
           "__enabled": true,
           "Flags": 0,
-          "CountdownTime": 15,
+          "CountdownTime": 60,
           "LobbyScene": "scenes/lobby.scene",
           "OnComponentDestroy": null,
           "OnComponentDisabled": null,
