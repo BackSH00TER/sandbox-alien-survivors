@@ -9,11 +9,17 @@ public sealed class ReviveFlare : Component
     [Property, Range(10f, 600f)] public float LifetimeSeconds { get; set; } = 120f;
     [Property, Range(1f, 120f), Description("Seconds before burnout that the flare starts dimming and then blinks.")]
     public float DimSeconds { get; set; } = 30f;
-    [Property, Range(50f, 2000f), Description("Height above the launch point the flare hangs at. Should match the dead player's UAV altitude.")]
-    public float HangHeight { get; set; } = 300f;
+    [Property, Range(50f, 2000f), Description("Height above the launch point the flare hangs at. Kept below the dead player's UAV altitude so the flare shows under the drone.")]
+    public float HangHeight { get; set; } = 400f;
     [Property, Range(100f, 5000f)] public float RiseSpeed { get; set; } = 900f;
-    [Property, Range(10f, 500f), Description("How close a dead player's UAV must get to the flare to claim it.")]
+    [Property, Range(10f, 500f), Description("How close sideways a dead player's UAV must get to the flare to claim it.")]
     public float ClaimRadius { get; set; } = 90f;
+    [Property, Range(0f, 1000f), Description("How far above or below the flare the UAV can be and still claim it.")]
+    public float ClaimHeightTolerance { get; set; } = 300f;
+    [Property, Group("Light"), Range(100f, 2000f), Description("How far the flare's red light reaches at full strength.")]
+    public float LightRadius { get; set; } = 1000f;
+    [Property, Group("Light"), Range(0.1f, 10f), Description("Brightness multiplier of the flare's red light.")]
+    public float LightIntensity { get; set; } = 7.0f;
 
     /// <summary>Seconds until the flare burns out. Counted down by the host and synced to everyone.</summary>
     [Sync(SyncFlags.FromHost)] public float Remaining { get; private set; }
@@ -24,6 +30,7 @@ public sealed class ReviveFlare : Component
     private ModelRenderer _glow;
     private PointLight _light;
     private LineRenderer _beam;
+    private float _flickerSeed;
 
     /// <summary>Host only. Fires a flare straight up from the given ground position.</summary>
     public static ReviveFlare Spawn(Vector3 groundPosition)
@@ -54,6 +61,7 @@ public sealed class ReviveFlare : Component
 
     protected override void OnStart()
     {
+        _flickerSeed = Game.Random.Float(0f, 100f);
         var visual = new GameObject(GameObject, true, "Flare Visual");
         visual.Flags |= GameObjectFlags.NotNetworked | GameObjectFlags.NotSaved;
         visual.LocalScale = 0.4f;
@@ -77,9 +85,19 @@ public sealed class ReviveFlare : Component
         _beam.Lighting = false;
     }
 
+    // Layered sine waves at unrelated speeds give an uneven, crackling flicker instead of a steady pulse.
+    private float Flicker()
+    {
+        var t = Time.Now + _flickerSeed;
+        var flicker = 0.8f + 0.12f * System.MathF.Sin(t * 23f) + 0.08f * System.MathF.Sin(t * 37.3f + 1.7f)
+            + 0.06f * System.MathF.Sin(t * 61f + 4.2f);
+        return flicker.Clamp(0.5f, 1.15f);
+    }
+
     protected override void OnUpdate()
     {
         var brightness = Brightness;
+        var flicker = Flicker();
         var visible = Remaining > BlinkSeconds || (int)(Time.Now * 6f) % 2 == 0;
         var pulse = 1f + System.MathF.Sin(Time.Now * 8f) * 0.08f;
 
@@ -87,13 +105,14 @@ public sealed class ReviveFlare : Component
         {
             _glow.Enabled = visible;
             _glow.GameObject.LocalScale = 0.4f * pulse;
-            _glow.Tint = FlareColor * brightness;
+            _glow.Tint = FlareColor * brightness * flicker;
         }
 
         if (_light.IsValid())
         {
-            _light.LightColor = FlareColor * brightness;
-            _light.Radius = 450f * brightness;
+            _light.Enabled = visible;
+            _light.LightColor = FlareColor * (brightness * flicker * LightIntensity);
+            _light.Radius = LightRadius * brightness * (0.85f + 0.15f * flicker);
         }
 
         if (_beam.IsValid())
@@ -121,16 +140,24 @@ public sealed class ReviveFlare : Component
     }
 
     // The closest dead player's UAV within reach claims the flare. One flare revives one player.
+    // Reach is measured sideways with a height allowance, since the drone flies above the flare.
     private bool TryClaim()
     {
         SurvivorController claimer = Scene.GetAllComponents<SurvivorController>()
-            .Where(x => x.IsDead && (x.WorldPosition - WorldPosition).LengthSquared <= ClaimRadius * ClaimRadius)
-            .OrderBy(x => (x.WorldPosition - WorldPosition).LengthSquared)
+            .Where(x => x.IsDead && CanClaim(x))
+            .OrderBy(x => (x.WorldPosition - WorldPosition).WithZ(0f).LengthSquared)
             .FirstOrDefault();
         if (claimer == null || !claimer.ReviveAt(GroundPosition))
             return false;
 
         GameObject.Destroy();
         return true;
+    }
+
+    private bool CanClaim(SurvivorController uav)
+    {
+        Vector3 offset = uav.WorldPosition - WorldPosition;
+        return offset.WithZ(0f).LengthSquared <= ClaimRadius * ClaimRadius
+            && System.MathF.Abs(offset.z) <= ClaimHeightTolerance;
     }
 }

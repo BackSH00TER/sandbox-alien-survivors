@@ -36,6 +36,7 @@
 							<div>B: Toggle debug</div>
 							<div>K: Kill self</div>
 							<div>G: Spawn flare pickup</div>
+							<div>H: God mode (@(LocalSurvivor.GodMode ? "ON" : "off"))</div>
 						</div>
 					}
 					<div class="experience">
@@ -151,7 +152,7 @@
 		var survivor = LocalSurvivor;
 		return System.HashCode.Combine(CountdownTime, survivor, survivor?.Level, ExperiencePercent,
 			survivor?.PendingModifierChoices, survivor?.ModifierOfferId,
-			(DebugEnabled, survivor?.ShowAttackDebug, NearbyWeapon, survivor?.IsDead),
+			(DebugEnabled, survivor?.ShowAttackDebug, NearbyWeapon, survivor?.IsDead, survivor?.GodMode),
 System.HashCode.Combine(survivor?.EffectiveAttackInterval, survivor?.EffectiveAttackRange,
 				survivor?.AttackSpeedStacks, survivor?.AttackRangeStacks, survivor?.VitalityStacks, survivor?.EquippedWeapon,
 				survivor?.EquippedWeapon?.BulletsPerShot));

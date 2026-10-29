@@ -12,7 +12,7 @@ public sealed class BloodiedModel : Component
 	protected override void OnPreRender()
 	{
 		var entity = GetComponent<Entity>();
-		var target = entity.IsValid() ? 1f - entity.Health / System.MathF.Max(1f, entity.MaxHealth) : Amount;
+		var target = entity.IsValid() ? entity.BloodAmount : Amount;
 		_visibleAmount = float.Lerp(_visibleAmount, target.Clamp(0f, 1f), (Time.Delta * 12f).Clamp(0f, 1f));
 		var amount = entity.IsValid() && entity.IsHitFlashing ? 0f : _visibleAmount;
 		if (amount <= 0.001f && _passes.Count == 0)

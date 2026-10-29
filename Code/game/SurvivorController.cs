@@ -5,10 +5,10 @@ public sealed class SurvivorController : Entity
 	[Property, RequireComponent] public PlayerController Controller { get; set; }
 	[Property, Range(0.25f, 4f)] public float Zoom { get; set; } = 1.5f;
 	[Property, Group("Spectate"), Range(0f, 2000f), Description("Height above the death position that the UAV flies at.")]
-	public float UavAltitude { get; set; } = 300f;
+	public float UavAltitude { get; set; } = 600f;
 	[Property, Group("Spectate"), Range(100f, 3000f)] public float UavSpeed { get; set; } = 900f;
 	[Property, Group("Spectate"), Description("Camera offset from the UAV. Higher and steeper than the alive camera.")]
-	public Vector3 UavCameraOffset { get; set; } = new Vector3(-350f, 0f, 1000f);
+	public Vector3 UavCameraOffset { get; set; } = new Vector3(-350f, 0f, 800f);
 	[Property, Group("Revive"), Range(0.05f, 1f), Description("Fraction of max health a revived survivor comes back with.")]
 	public float ReviveHealthFraction { get; set; } = 0.5f;
 	[Property, Group("Revive"), Range(0f, 10f), Description("Seconds a revived survivor cannot take damage.")]
@@ -42,7 +42,19 @@ public sealed class SurvivorController : Entity
 		: EquippedWeapon.Range * (1f + AttackRangeStacks);
 
 	public bool IsDead => Health <= 0f;
-	public override bool CanTakeDamage => !IsDead && Time.Now >= _invulnerableUntil;
+	public override bool CanTakeDamage => !IsDead && !GodMode && Time.Now >= _invulnerableUntil;
+
+	/// <summary>Debug only: while true this survivor takes no damage.</summary>
+	[Sync(SyncFlags.FromHost)] public bool GodMode { get; private set; }
+
+	/// <summary>
+	/// Missing health that is not shown as blood. Set on revive so a revived survivor comes back clean, then
+	/// shrinks as they heal so blood only appears from damage taken after that.
+	/// </summary>
+	[Sync(SyncFlags.FromHost)] public float BloodOffset { get; private set; }
+
+	// A dead survivor shows no blood, so the UAV drone and the body on revive are clean.
+	public override float BloodAmount => IsDead ? 0f : System.MathF.Max(0f, base.BloodAmount - BloodOffset);
 
 	/// <summary>Host only: when this survivor died, used to raise the flare drop chance the longer they stay dead.</summary>
 	public float DeathTime { get; private set; }
@@ -59,6 +71,8 @@ public sealed class SurvivorController : Entity
 		base.OnStart();
 		var heldWeapon = GameObject.GetOrAddComponent<HeldWeaponModel>();
 		heldWeapon.Flags |= ComponentFlags.NotNetworked | ComponentFlags.NotSaved;
+		var uavVisual = GameObject.GetOrAddComponent<UavVisual>();
+		uavVisual.Flags |= ComponentFlags.NotNetworked | ComponentFlags.NotSaved;
 		Controller.UseCameraControls = false;
 		Controller.UseLookControls = false;
 		Controller.UseInputControls = false;
@@ -92,6 +106,9 @@ public sealed class SurvivorController : Entity
 
 		if (GameHUD.IsDebugEnabled(Scene) && Input.Keyboard.Pressed("G"))
 			DebugSpawnFlareGun();
+
+		if (GameHUD.IsDebugEnabled(Scene) && Input.Keyboard.Pressed("H"))
+			DebugToggleGodMode();
 
 		if (Input.Pressed("Use"))
 		{
@@ -159,6 +176,9 @@ public sealed class SurvivorController : Entity
 
 		if (!Networking.IsHost)
 			return;
+
+		if (BloodOffset > base.BloodAmount)
+			BloodOffset = base.BloodAmount;
 
 		var gameManager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
 		if (gameManager != null && gameManager.State != GameState.InProgress)
@@ -233,7 +253,15 @@ public sealed class SurvivorController : Entity
 		if (IsDead)
 			return;
 
+		// Killing on purpose wins over god mode, so it is switched off first.
+		GodMode = false;
 		TakeDamage(Health);
+	}
+
+	[Rpc.Host(NetFlags.OwnerOnly)]
+	public void DebugToggleGodMode()
+	{
+		GodMode = !GodMode;
 	}
 
 	[Rpc.Host(NetFlags.OwnerOnly)]
@@ -257,6 +285,7 @@ public sealed class SurvivorController : Entity
 			return false;
 
 		_invulnerableUntil = Time.Now + ReviveInvulnerableSeconds;
+		BloodOffset = base.BloodAmount;
 		TeleportTo(groundPosition);
 		return true;
 	}

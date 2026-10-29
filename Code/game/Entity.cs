@@ -8,6 +8,9 @@ public abstract class Entity : Component
 	[Property, Group("Debug")] public bool ShowAttackHitboxes { get; set; } = true;
 	public virtual bool CanTakeDamage => true;
 
+	/// <summary>0 to 1 amount of blood splatter drawn on the model. By default it follows how much health is missing.</summary>
+	public virtual float BloodAmount => 1f - Health / System.MathF.Max(1f, MaxHealth);
+
 	private const float PunchFacingThreshold = 0.5f;
 	private const float PunchTraceHeight = 36f;
 	private readonly Dictionary<ModelRenderer, Material> _originalMaterials = new();
