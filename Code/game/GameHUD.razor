@@ -27,73 +27,74 @@
 			<div class="attack-debug">
 				<div>Weapon: @(LocalSurvivor.EquippedWeapon?.DisplayName ?? "None")</div>
 				<div>Attack rate: @((LocalSurvivor.EffectiveAttackInterval > 0f ? 1f / LocalSurvivor.EffectiveAttackInterval : 0f).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)) / sec</div>
-					<div>Interval: @(LocalSurvivor.EffectiveAttackInterval.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)) sec</div>
-						<div>Range: @(LocalSurvivor.EffectiveAttackRange.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)) units</div>
-							<div>Bullets / shot: @(LocalSurvivor.EquippedWeapon?.BulletsPerShot ?? 0)</div>
-							<div>B: Toggle debug</div>
-							<div>K: Kill self</div>
-							<div>G: Spawn flare pickup</div>
-							<div>H: God mode (@(LocalSurvivor.GodMode ? "ON" : "off"))</div>
-						</div>
-					}
-					<div class="experience">
-						<div class="fill"
-							 style="width: @(ExperiencePercent.ToString(System.Globalization.CultureInfo.InvariantCulture))%;"></div>
-						<div class="label">Lv @LocalSurvivor.Level</div>
-					</div>
+				<div>Interval: @(LocalSurvivor.EffectiveAttackInterval.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)) sec</div>
+				<div>Range: @(LocalSurvivor.EffectiveAttackRange.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)) units</div>
+				<div>Bullets / shot: @(LocalSurvivor.EquippedWeapon?.BulletsPerShot ?? 0)</div>
+				<div>B: Toggle debug</div>
+				<div>K: Kill self</div>
+				<div>G: Spawn flare pickup</div>
+				<div>H: God mode (@(LocalSurvivor.GodMode ? "ON" : "off"))</div>
+			</div>
+		}
 
-					@if (NearbyWeapon.IsValid() && !LocalSurvivor.IsDead)
+		<div class="experience">
+			<div class="fill"
+				 style="width: @(ExperiencePercent.ToString(System.Globalization.CultureInfo.InvariantCulture))%;"></div>
+			<div class="label">Lv @LocalSurvivor.Level</div>
+		</div>
+
+		@if (NearbyWeapon.IsValid() && !LocalSurvivor.IsDead)
+		{
+			<div class="weapon-prompt">E: Replace @(LocalSurvivor.EquippedWeapon?.DisplayName ?? "weapon") with
+				@NearbyWeapon.DisplayName</div>
+		}
+
+		@if (LocalSurvivor.IsDead)
+		{
+			<div class="dead-banner">
+				<div class="dead-title">YOU DIED</div>
+				<div class="dead-hint">Fly with WASD. Stay alive until a teammate fires a flare, then fly through it to return.
+				</div>
+			</div>
+		}
+
+		@if (LocalSurvivor.IsDead)
+		{
+			<FlareMarker />
+		}
+
+		@if (LocalSurvivor.PendingModifierChoices > 0)
+		{
+			var survivor = LocalSurvivor;
+			var offerId = survivor.ModifierOfferId;
+			<div class="modifier-picker">
+				<div class="modifier-heading">Choose an upgrade</div>
+				<div class="modifier-hint">Press 1, 2, or 3, or click a card. Upgrades stack. Gameplay continues.</div>
+				<div class="modifier-options">
+					@for (var index = 0; index < 3; index++)
 					{
-						<div class="weapon-prompt">E: Replace @(LocalSurvivor.EquippedWeapon?.DisplayName ?? "weapon") with
-							@NearbyWeapon.DisplayName</div>
-						}
-
-						@if (LocalSurvivor.IsDead)
-						{
-							<div class="dead-banner">
-								<div class="dead-title">YOU DIED</div>
-								<div class="dead-hint">Fly with WASD. Stay alive until a teammate fires a flare, then fly through it to return.
-								</div>
-							</div>
-						}
-
-						@if (LocalSurvivor.IsDead)
-						{
-							<FlareMarker />
-						}
-
-							@if (LocalSurvivor.PendingModifierChoices > 0)
-							{
-								var survivor = LocalSurvivor;
-								var offerId = survivor.ModifierOfferId;
-								<div class="modifier-picker">
-									<div class="modifier-heading">Choose an upgrade</div>
-									<div class="modifier-hint">Press 1, 2, or 3, or click a card. Upgrades stack. Gameplay continues.</div>
-									<div class="modifier-options">
-										@for (var index = 0; index < 3; index++)
-										{
-											var option = ModifierOption(survivor, index);
-											<button class="modifier-card" @onclick="@(() => survivor.SelectModifier(offerId, option))">
-												<div class="modifier-key">@(index + 1)</div>
-												<div class="modifier-icon">@ModifierCatalog.Icon(option)</div>
-												<div class="modifier-name">@ModifierCatalog.Name(option)</div>
-												<div class="modifier-description">@ModifierCatalog.Description(option)</div>
-											</button>
-										}
-									</div>
-									@if (survivor.PendingModifierChoices > 1)
-									{
-										<div class="modifier-hint">@survivor.PendingModifierChoices upgrades waiting</div>
-									}
-								</div>
-							}
-						}
-
-					@if (PlayerStats.HasRoundEnded(Scene))
-					{
-						<GameStatsScreen />
+						var option = ModifierOption(survivor, index);
+						<button class="modifier-card" @onclick="@(() => survivor.SelectModifier(offerId, option))">
+							<div class="modifier-key">@(index + 1)</div>
+							<div class="modifier-icon">@ModifierCatalog.Icon(option)</div>
+							<div class="modifier-name">@ModifierCatalog.Name(option)</div>
+							<div class="modifier-description">@ModifierCatalog.Description(option)</div>
+						</button>
 					}
-					</root>
+				</div>
+				@if (survivor.PendingModifierChoices > 1)
+				{
+					<div class="modifier-hint">@survivor.PendingModifierChoices upgrades waiting</div>
+				}
+			</div>
+		}
+	}
+
+	@if (PlayerStats.HasRoundEnded(Scene))
+	{
+		<GameStatsScreen />
+	}
+</root>
 
 @code
 {
