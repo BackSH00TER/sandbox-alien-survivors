@@ -8,73 +8,6 @@ GameHUD {
 	font-weight: bold;
 	pointer-events: none;
 
-	.modifier-icon {
-		font-family: Material Icons;
-		font-size: 34px;
-		color: #4de38a;
-	}
-
-	.modifier-inventory {
-		position: absolute;
-		top: 68px;
-		left: 0;
-		right: 0;
-		justify-content: center;
-		gap: 10px;
-	}
-
-	.modifier-item {
-		position: relative;
-		width: 54px;
-		height: 54px;
-		align-items: center;
-		justify-content: center;
-		background-color: #101218e6;
-		border: 2px solid #4de38a;
-		border-radius: 6px;
-
-		&.attackspeed {
-			border-color: #f5ce61;
-
-			.modifier-icon {
-				color: #f5ce61;
-			}
-		}
-
-		&.attackrange {
-			border-color: #69c9ff;
-
-			.modifier-icon {
-				color: #69c9ff;
-			}
-		}
-
-		&.vitality {
-			border-color: #ff7c91;
-
-			.modifier-icon {
-				color: #ff7c91;
-			}
-		}
-	}
-
-	.modifier-count {
-		position: absolute;
-		right: -5px;
-		bottom: -5px;
-		min-width: 22px;
-		height: 22px;
-		padding: 0 4px;
-		align-items: center;
-		justify-content: center;
-		background-color: #101218;
-		border: 1px solid #ffffff66;
-		border-radius: 4px;
-		font-family: Orbitron;
-		font-size: 14px;
-		color: #fff;
-	}
-
 	.attack-debug {
 		position: absolute;
 		top: 24px;
@@ -88,17 +21,6 @@ GameHUD {
 		color: #fff;
 	}
 
-	.modifier-picker {
-		position: absolute;
-		left: 0;
-		right: 0;
-		bottom: 70px;
-		align-items: center;
-		flex-direction: column;
-		font-family: Orbitron;
-		color: #fff;
-	}
-
 	.weapon-prompt {
 		position: absolute;
 		top: 140px;
@@ -109,66 +31,6 @@ GameHUD {
 		font-size: 18px;
 		color: #fff;
 		text-shadow: 0 2px 3px #000;
-	}
-
-	.modifier-heading {
-		font-size: 24px;
-		text-shadow: 0 2px 3px #000;
-	}
-
-	.modifier-hint {
-		font-size: 13px;
-		margin: 8px 0;
-		text-shadow: 0 2px 3px #000;
-	}
-
-	.modifier-options {
-		flex-direction: row;
-		gap: 12px;
-	}
-
-	.modifier-card {
-		position: relative;
-		width: 250px;
-		min-height: 110px;
-		padding: 18px;
-		flex-direction: column;
-		background-color: #18251ff5;
-		border: 2px solid #4de38a;
-		border-radius: 8px;
-		pointer-events: all;
-		cursor: pointer;
-
-		&:hover {
-			background-color: #2a4938;
-			border-color: #fff;
-		}
-	}
-
-	.modifier-name {
-		font-size: 18px;
-		color: #4de38a;
-		margin-bottom: 10px;
-	}
-
-	.modifier-key {
-		position: absolute;
-		top: 8px;
-		right: 8px;
-		width: 24px;
-		height: 24px;
-		align-items: center;
-		justify-content: center;
-		background-color: #101218;
-		border: 1px solid #4de38a;
-		border-radius: 4px;
-		font-size: 15px;
-		color: #fff;
-	}
-
-	.modifier-description {
-		font-size: 13px;
-		color: #fff;
 	}
 
 	.dead-banner {
