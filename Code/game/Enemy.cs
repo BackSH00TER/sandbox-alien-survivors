@@ -176,10 +176,6 @@ public sealed class Enemy : Entity
 		{
 			if (!player.Active || player.GameObject.GetComponent<Enemy>() != null)
 				continue;
-			var survivor = player.GetComponent<SurvivorController>();
-			if (survivor.IsValid() && survivor.Health <= 0f)
-				continue;
-
 			SurvivorController survivor = player.GameObject.GetComponent<SurvivorController>();
 			if (survivor != null && survivor.IsDead)
 				continue;

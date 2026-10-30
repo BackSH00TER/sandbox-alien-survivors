@@ -9,7 +9,7 @@ public enum GameState
 public sealed class GameManager : Component
 {
 	[Group("Game Settings")]
-	[Property, Sync(SyncFlags.FromHost), Description("Seconds until the boss spawns. Defeating the boss ends the match.")]
+	[Property, Description("Seconds until the boss spawns. Defeating the boss ends the match.")]
 	public int CountdownTime { get; set; } = 60;
 	[Group("Game Settings"), Description("Ends the game as soon as every survivor is dead, since nobody is left to fire a revive flare. Turn off while debugging revives.")]
 	[Property] public bool ShouldEndWhenAllDead { get; set; } = false;
@@ -20,8 +20,16 @@ public sealed class GameManager : Component
 	[Group("Scene Transition")]
 	[Property] public string LobbyScene { get; set; }
 
-	private float _countdownAccumulator;
+	private float _countdownEndTime;
+
+	public int RemainingSeconds => System.Math.Max(0, (int)System.MathF.Ceiling(_countdownEndTime - Time.Now));
+
 	private bool _missingSpawnerLogged;
+
+	protected override void OnStart()
+	{
+		_countdownEndTime = Time.Now + CountdownTime;
+	}
 
 	protected override void OnUpdate()
 	{
@@ -34,17 +42,8 @@ public sealed class GameManager : Component
 			return;
 		}
 
-		_countdownAccumulator += Time.Delta;
-
-		while (_countdownAccumulator >= 1f)
-		{
-			_countdownAccumulator -= 1f;
-			if (CountdownTime > 0)
-				CountdownTime--;
-
-			if (CountdownTime <= 0 && !BossSpawned)
-				SpawnBoss();
-		}
+		if (RemainingSeconds <= 0 && !BossSpawned)
+			SpawnBoss();
 	}
 
 	private void SpawnBoss()

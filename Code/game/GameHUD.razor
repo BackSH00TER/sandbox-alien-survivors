@@ -102,17 +102,18 @@
 
 	public static bool IsDebugEnabled(Scene scene) => scene.GetAllComponents<GameHUD>().Any(x => x.DebugEnabled);
 
-	private int CountdownTime => Scene.GetAllComponents<GameManager>().FirstOrDefault()?.CountdownTime ?? 0;
+	private int CountdownTime => Scene.GetAllComponents<GameManager>().FirstOrDefault()?.RemainingSeconds ?? 0;
 	private string MatchStatus
 	{
 		get
 		{
-			var manager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
-			if (manager?.BossSpawned != true)
+			BossEnemy bossEnemy = Scene.GetAllComponents<BossEnemy>().FirstOrDefault();
+			Enemy boss = bossEnemy.IsValid() ? bossEnemy.GetComponent<Enemy>() : null;
+			if (!boss.IsValid())
 				return $"Boss in: {CountdownTime}";
 
-			return manager.Boss.IsValid()
-				? $"Boss: {manager.Boss.Health:0} / {manager.Boss.MaxHealth:0}"
+			return boss.Health > 0f
+				? $"Boss: {boss.Health:0} / {boss.MaxHealth:0}"
 				: "Boss defeated";
 		}
 	}
