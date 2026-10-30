@@ -1,0 +1,81 @@
+@using Sandbox;
+@using Sandbox.UI;
+@inherits Panel
+@namespace Sandbox
+
+<root>
+	<div class="stats-panel">
+		<div class="stats-title">Round Complete</div>
+		<div class="stats-grid">
+			<div class="stats-row stats-header">
+				<div class="stat-label"></div>
+				@foreach (PlayerStats player in _players)
+				{
+					<div class="stat-value @PlayerClass(player)">@player.PlayerName</div>
+				}
+			</div>
+
+			@foreach (StatSection section in StatCatalog.Sections)
+			{
+				List<StatRow> rows = VisibleRows(section);
+				if (rows.Count > 0)
+				{
+					<div class="stats-section">@section.Title</div>
+					@foreach (StatRow row in rows)
+					{
+						<div class="stats-row">
+							<div class="stat-label">@row.Label</div>
+							@foreach (PlayerStats player in _players)
+							{
+								<div class="stat-value @PlayerClass(player)">@player.Get(row.Key).ToString("0")</div>
+							}
+						</div>
+					}
+				}
+			}
+		</div>
+		<div class="stats-actions">
+			@if (Networking.IsHost)
+			{
+				<button class="stats-button" @onclick="@(() => FindGameManager()?.ReturnToLobby())">Return to Lobby</button>
+				<button class="stats-button" @onclick="@(() => FindGameManager()?.StartNewGame())">New Game</button>
+			}
+			else
+			{
+				<div class="stats-waiting">Waiting for the host...</div>
+			}
+		</div>
+	</div>
+</root>
+
+@code
+{
+	private List<PlayerStats> _players = new();
+
+	private static string PlayerClass(PlayerStats player) => player.IsProxy ? "" : "local";
+
+	private static GameManager FindGameManager() => Game.ActiveScene.GetAllComponents<GameManager>().FirstOrDefault();
+
+	private List<StatRow> VisibleRows(StatSection section)
+	{
+		if (!section.ShouldHideEmptyRows)
+			return section.Rows.ToList();
+
+		return section.Rows.Where(row => _players.Any(player => player.Get(row.Key) > 0f)).ToList();
+	}
+
+	// The local player comes first so their column sits next to everyone else's.
+	protected override int BuildHash()
+	{
+		_players = Game.ActiveScene.GetAllComponents<PlayerStats>()
+			.OrderBy(player => player.IsProxy)
+			.ThenByDescending(player => player.Get(StatKeys.DamageDealt))
+			.ToList();
+
+		int hash = _players.Count;
+		foreach (PlayerStats player in _players)
+			hash = System.HashCode.Combine(hash, player.ContentHash());
+
+		return hash;
+	}
+}

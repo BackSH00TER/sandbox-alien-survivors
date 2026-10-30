@@ -94,6 +94,11 @@
 								</div>
 							}
 						}
+
+					@if (PlayerStats.HasRoundEnded(Scene))
+					{
+						<GameStatsScreen />
+					}
 					</root>
 
 @code
@@ -228,7 +233,7 @@
 		var survivor = LocalSurvivor;
 		return System.HashCode.Combine(MatchStatus, survivor, survivor?.Level, ExperiencePercent,
 			survivor?.PendingModifierChoices, survivor?.ModifierOfferId,
-			(DebugEnabled, survivor?.ShowAttackDebug, NearbyWeapon, survivor?.IsStunned, survivor?.IsDead, survivor?.GodMode),
+			(DebugEnabled, survivor?.ShowAttackDebug, NearbyWeapon, survivor?.IsStunned, survivor?.IsDead, survivor?.GodMode, PlayerStats.HasRoundEnded(Scene)),
 System.HashCode.Combine(survivor?.EffectiveAttackInterval, survivor?.EffectiveAttackRange,
 				survivor?.AttackSpeedStacks, survivor?.AttackRangeStacks, survivor?.VitalityStacks, survivor?.EquippedWeapon,
 				survivor?.EquippedWeapon?.BulletsPerShot, FlareMarkerHash));

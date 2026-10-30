@@ -115,7 +115,7 @@ public sealed class EnemyExplosion : Component
 			if (trace.Hit || trace.StartedSolid)
 				continue;
 
-			target.TakeDamage(BlastDamage, offset.LengthSquared > 0.001f ? offset.Normal : Vector3.Up);
+			target.TakeDamage(BlastDamage, offset.LengthSquared > 0.001f ? offset.Normal : Vector3.Up, DamageType.Explosive);
 		}
 	}
 

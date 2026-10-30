@@ -1,0 +1,96 @@
+GameStatsScreen
+{
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	align-items: center;
+	justify-content: center;
+	background-color: #000000b3;
+	font-family: Orbitron;
+	color: #fff;
+
+	.stats-panel {
+		flex-direction: column;
+		min-width: 560px;
+		max-height: 85%;
+		padding: 24px 32px;
+		background-color: #101218f2;
+		border: 2px solid #4de38a;
+		border-radius: 8px;
+	}
+
+	.stats-title {
+		justify-content: center;
+		margin-bottom: 16px;
+		font-size: 32px;
+		color: #4de38a;
+	}
+
+	.stats-grid {
+		flex-direction: column;
+		flex-shrink: 1;
+		overflow-y: scroll;
+	}
+
+	.stats-section {
+		margin-top: 14px;
+		font-size: 14px;
+		color: #f5ce61;
+	}
+
+	.stats-row {
+		flex-direction: row;
+		padding: 4px 0;
+		font-size: 15px;
+		border-bottom: 1px solid #ffffff14;
+
+		&.stats-header {
+			font-size: 16px;
+			border-bottom: 2px solid #ffffff40;
+		}
+	}
+
+	.stats-actions {
+		flex-shrink: 0;
+		justify-content: center;
+		gap: 16px;
+		margin-top: 20px;
+	}
+
+	.stats-button {
+		padding: 10px 24px;
+		font-size: 16px;
+		background-color: #18251f;
+		border: 2px solid #4de38a;
+		border-radius: 6px;
+		pointer-events: all;
+		cursor: pointer;
+
+		&:hover {
+			background-color: #2a4938;
+			border-color: #fff;
+		}
+	}
+
+	.stats-waiting {
+		font-size: 14px;
+		color: #ffffffb3;
+	}
+
+	.stat-label {
+		flex-grow: 1;
+		min-width: 220px;
+	}
+
+	.stat-value {
+		width: 140px;
+		justify-content: flex-end;
+		text-align: right;
+
+		&.local {
+			color: #4de38a;
+		}
+	}
+}
