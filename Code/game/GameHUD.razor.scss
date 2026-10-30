@@ -171,26 +171,6 @@ GameHUD {
 		color: #fff;
 	}
 
-	.flare-marker {
-		position: absolute;
-		flex-direction: column;
-		align-items: center;
-		transform: translate(-50%, -50%);
-		color: #ff5a4d;
-		text-shadow: 0 0 6px #000;
-
-		.flare-arrow-icon {
-			font-family: Material Icons;
-			font-size: 64px;
-		}
-
-		.flare-distance {
-			font-size: 18px;
-			font-family: Orbitron;
-			color: #fff;
-		}
-	}
-
 	.dead-banner {
 		position: absolute;
 		top: 90px;
