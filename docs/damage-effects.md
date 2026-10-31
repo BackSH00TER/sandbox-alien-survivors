@@ -38,6 +38,11 @@ the host checks both the offer ID and eligibility when accepting a pick.
 - A fire bullet is orange-red on every client. Normal player bullets stay yellow;
   enemy bullets stay magenta. All bullets retain their existing physical impact
   damage. Fire adds timed damage only to surviving enemies, not players or crates.
+- Burning enemies show five flickering orange/yellow wisps as placeholder flames.
+  `BurningVisual` builds these locally from the synchronized fire stack count, so
+  bullet ignition and spread use the same visual on every client. The wisps follow
+  the enemy, disappear when fire expires or the enemy dies, and are cleaned up on
+  disable. They have no collision and do not alter blood or hit-flash materials.
 - Each projectile snapshots its effect settings when fired. Later upgrades affect
   future bullets, not in-flight bullets or already burning enemies.
 - Each application has independent expiry and attacker credit. Two stacks deal
@@ -92,6 +97,8 @@ proc thresholds, independent expiries, exact damage, stack replacement, spread c
 source attribution and cleanup.
 
 For gameplay verification, open this worktree's `.sbproj` in s&box, pick Fire Rounds,
-then test fire bullets against enemies and crates. Pick Layered Flames and Spreading
+then test fire bullets against enemies and crates. Burning enemies should display
+the moving orange/yellow wisps, which disappear after the last fire stack expires.
+Pick Layered Flames and Spreading
 Flames to verify stacking and spread; Wildfire must not appear before spread is owned.
 The editor validates networking and rendering as well as the C# compile.

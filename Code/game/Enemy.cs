@@ -41,6 +41,8 @@ public sealed class Enemy : Entity
 	protected override void OnStart()
 	{
 		base.OnStart();
+		var burningVisual = GameObject.GetOrAddComponent<BurningVisual>();
+		burningVisual.Flags |= ComponentFlags.NotNetworked | ComponentFlags.NotSaved;
 		Controller.UseInputControls = false;
 		Controller.UseLookControls = false;
 		Controller.UseCameraControls = false;
