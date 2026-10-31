@@ -45,6 +45,7 @@ public sealed class SurvivorController : Entity
 		_ => EffectModifierStacks.TryGetValue(modifier, out var count) ? count : 0
 	};
 
+	/// <summary>Lets the inventory UI detect changed upgrade counts without depending on dictionary iteration order.</summary>
 	public int ModifierContentHash()
 	{
 		int hash = System.HashCode.Combine(AttackSpeedStacks, AttackRangeStacks, VitalityStacks);

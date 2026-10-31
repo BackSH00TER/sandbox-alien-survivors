@@ -36,7 +36,7 @@ static DamageEffectSettings Settings(int cap = 1, float duration = 10f, float dp
 
 static void Catalog()
 {
-	Check(ModifierCatalog.All.Select(x => x.Id).SequenceEqual(Enum.GetValues<Modifier>()), "Missing or duplicate modifier.");
+	Check(ModifierCatalog.All.Select(modifier => modifier.Id).SequenceEqual(Enum.GetValues<Modifier>()), "Missing or duplicate modifier.");
 	Check(DamageEffectCatalog.All.Count == 1 && DamageEffectCatalog.All[0].Type == DamageType.Fire, "Only fire is implemented.");
 	var picks = new Dictionary<Modifier, int>();
 	int Stacks(Modifier modifier) => picks.GetValueOrDefault(modifier);
@@ -66,21 +66,22 @@ static void Offers()
 		{
 			var offer = ModifierCatalog.RollOffer(Stacks, () => (float)random.NextDouble());
 			Check(offer.Count == 3 && offer.Distinct().Count() == 3, "Offers must have three distinct choices.");
-			Check(offer.All(x => ModifierCatalog.Get(x).IsAvailable(Stacks)), "Offered a locked or capped upgrade.");
+			Check(offer.All(modifier => ModifierCatalog.Get(modifier).IsAvailable(Stacks)), "Offered a locked or capped upgrade.");
 		}
 	}
-	var maxed = ModifierCatalog.All.ToDictionary(x => x.Id, x => x.MaxPicks == int.MaxValue ? 0 : x.MaxPicks);
-	var options = ModifierCatalog.RollOffer(x => maxed[x], () => 1f);
-	Check(options.Count == 3 && options.All(x => ModifierCatalog.Get(x).MaxPicks == int.MaxValue), "Repeatable fallbacks must remain.");
+	var maxed = ModifierCatalog.All.ToDictionary(modifier => modifier.Id,
+		modifier => modifier.MaxPicks == int.MaxValue ? 0 : modifier.MaxPicks);
+	var options = ModifierCatalog.RollOffer(modifier => maxed[modifier], () => 1f);
+	Check(options.Count == 3 && options.All(modifier => ModifierCatalog.Get(modifier).MaxPicks == int.MaxValue), "Repeatable fallbacks must remain.");
 }
 
 static void Weights()
 {
 	var options = new[] { 1, 3 };
-	Check(WeightedDraw.Pick(options, x => x, 0f) == 1, "First weighted bucket.");
-	Check(WeightedDraw.Pick(options, x => x, 0.2499f) == 1, "First bucket upper edge.");
-	Check(WeightedDraw.Pick(options, x => x, 0.25f) == 3, "Second bucket lower edge.");
-	Check(WeightedDraw.Pick(options, x => x, 1f) == 3, "Inclusive RNG endpoint.");
+	Check(WeightedDraw.Pick(options, optionWeight => optionWeight, 0f) == 1, "First weighted bucket.");
+	Check(WeightedDraw.Pick(options, optionWeight => optionWeight, 0.2499f) == 1, "First bucket upper edge.");
+	Check(WeightedDraw.Pick(options, optionWeight => optionWeight, 0.25f) == 3, "Second bucket lower edge.");
+	Check(WeightedDraw.Pick(options, optionWeight => optionWeight, 1f) == 3, "Inclusive RNG endpoint.");
 	bool rejected = false;
 	try { WeightedDraw.Pick(options, _ => 0f, 0f); }
 	catch (ArgumentOutOfRangeException) { rejected = true; }
@@ -154,7 +155,7 @@ static void Replacement()
 	effects.Apply(Settings(2), "middle", 2f);
 	effects.Advance(4f, (_, _) => { });
 	effects.Apply(Settings(2), "newest", 4f);
-	Check(effects.Stacks.Select(x => x.Source).SequenceEqual(new[] { "middle", "newest" }), "Replace only oldest.");
+	Check(effects.Stacks.Select(effectStack => effectStack.Source).SequenceEqual(new[] { "middle", "newest" }), "Replace only oldest.");
 	Near(effects.Stacks[0].ExpiresAt, 12f);
 	Near(effects.Stacks[1].ExpiresAt, 14f);
 	var single = new TimedDamageEffects<string>();

@@ -26,19 +26,28 @@ public sealed class DamageEffectDefinition
 	public float SpreadChance { get; init; }
 	public float SpreadRadius { get; init; }
 
-	public DamageEffectSettings Resolve(Func<Modifier, int> stacks)
+	/// <summary>Builds a shot's immutable effect settings from the base values and the player's upgrade picks.</summary>
+	public DamageEffectSettings Resolve(Func<Modifier, int> getModifierPickCount)
 	{
-		float Bonus(DamageEffectStat stat) => ModifierCatalog.All
-			.Where(x => x.EffectType == Type && x.EffectStat == stat)
-			.Sum(x => x.Amount * stacks(x.Id));
+		// Sum each matching upgrade's increment multiplied by its pick count.
+		// These are player upgrade picks, not the timed effect stacks currently on an enemy.
+		float UpgradeBonus(DamageEffectStat stat) => ModifierCatalog.All
+			.Where(modifier => modifier.EffectType == Type && modifier.EffectStat == stat)
+			.Sum(modifier => modifier.Amount * getModifierPickCount(modifier.Id));
 
-		return new DamageEffectSettings(Type,
-			Math.Clamp(ApplicationChance + Bonus(DamageEffectStat.ApplicationChance), 0f, 1f),
-			Duration + Bonus(DamageEffectStat.Duration),
-			DamagePerSecond + Bonus(DamageEffectStat.DamagePerSecond),
-			MaxStacks + (int)Bonus(DamageEffectStat.MaxStacks),
-			stacks(SpreadUnlock) > 0 ? Math.Clamp(SpreadChance + Bonus(DamageEffectStat.SpreadChance), 0f, 1f) : 0f,
-			SpreadRadius);
+		var spreadUnlocked = getModifierPickCount(SpreadUnlock) > 0;
+		var effectiveSpreadChance = spreadUnlocked
+			? Math.Clamp(SpreadChance + UpgradeBonus(DamageEffectStat.SpreadChance), 0f, 1f)
+			: 0f;
+
+		return new DamageEffectSettings(
+			type: Type,
+			applicationChance: Math.Clamp(ApplicationChance + UpgradeBonus(DamageEffectStat.ApplicationChance), 0f, 1f),
+			duration: Duration + UpgradeBonus(DamageEffectStat.Duration),
+			damagePerSecond: DamagePerSecond + UpgradeBonus(DamageEffectStat.DamagePerSecond),
+			maxStacks: MaxStacks + (int)UpgradeBonus(DamageEffectStat.MaxStacks),
+			spreadChance: effectiveSpreadChance,
+			spreadRadius: SpreadRadius);
 	}
 }
 
@@ -61,16 +70,18 @@ public static class DamageEffectCatalog
 		}
 	};
 
-	public static DamageEffectDefinition Get(DamageType type) => All.First(x => x.Type == type);
+	public static DamageEffectDefinition Get(DamageType type) => All.First(effect => effect.Type == type);
 
-	public static DamageEffectSettings Roll(Func<Modifier, int> stacks, Func<float> random)
+	/// <summary>Chooses one unlocked effect, then rolls its application chance; a failed roll leaves the bullet physical.</summary>
+	public static DamageEffectSettings Roll(Func<Modifier, int> getModifierPickCount, Func<float> random)
 	{
-		var available = All.Where(x => stacks(x.Unlock) > 0).ToList();
-		if (available.Count == 0)
+		var unlockedEffects = All.Where(effect => getModifierPickCount(effect.Unlock) > 0).ToList();
+		if (unlockedEffects.Count == 0)
 			return null;
 
-		var definition = WeightedDraw.Pick(available, x => x.DrawWeight, random());
-		var settings = definition.Resolve(stacks);
+		// Only the chosen type gets a chance check; do not retry another effect when it fails.
+		var definition = WeightedDraw.Pick(unlockedEffects, effect => effect.DrawWeight, random());
+		var settings = definition.Resolve(getModifierPickCount);
 		return settings.ApplicationChance >= 1f || random() < settings.ApplicationChance ? settings : null;
 	}
 }

@@ -20,6 +20,10 @@ Initial fire: 20% bullet chance, 5 seconds, 5 damage/second, one stack.
 Spread starts at 10% per second within 120 world units (s&box units are inches).
 Defaults and bullet color live in `DamageEffectCatalog`; upgrade increments,
 pick caps, prerequisites and offer weights live in `ModifierCatalog`.
+Upgrade factory calls use C# named arguments (`stat:`, `amount:`, `prerequisite:`)
+to identify each value without introducing a separate options object.
+`DamageEffectDefinition.Resolve` adds each matching upgrade's increment multiplied
+by its pick count; these player picks are distinct from effect stacks on a target.
 
 Offers contain three distinct eligible modifiers, drawn by `DrawWeight` without
 replacement. Unlocks and maxed chance upgrades stop appearing. Existing attack speed,
@@ -63,6 +67,9 @@ For another timed effect, add its unlock/spread/upgrade modifier definitions and
 prerequisites, then add a `DamageEffectDefinition`. Shared rolling, stack lifetimes,
 damage attribution and spread logic do not need type-specific branches.
 New effect upgrades use the generic synchronized modifier dictionary.
+`Entity` separates ticking, spread rolls, target eligibility and line-of-sight checks
+into helpers. Its round-manager property caches the scene lookup while the manager
+is valid and reacquires it after removal or a scene change.
 
 Instant explosion damage needs a separate impact behavior (area damage, not a timed
 stack); do not model it as a fake duration. Electricity-specific stuns or other special

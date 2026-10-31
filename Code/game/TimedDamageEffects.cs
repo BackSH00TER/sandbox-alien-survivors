@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+/// <summary>Validated, immutable effect values captured when a projectile fires and reused when its effect spreads.</summary>
 public sealed class DamageEffectSettings
 {
 	public DamageType Type { get; }
@@ -33,11 +34,13 @@ public sealed class DamageEffectSettings
 	}
 }
 
+/// <summary>One application with its own expiry and damage source, independent of other applications of the same type.</summary>
 public sealed class TimedDamageStack<TSource>
 {
 	public DamageEffectSettings Settings { get; }
 	public TSource Source { get; }
 	public float ExpiresAt { get; }
+	// Advances only for time already paid out as damage, leaving partial tick time for the next update.
 	internal float LastDamageTime { get; set; }
 
 	internal TimedDamageStack(DamageEffectSettings settings, TSource source, float now)
@@ -49,47 +52,57 @@ public sealed class TimedDamageStack<TSource>
 	}
 }
 
+/// <summary>
+/// Tracks one target's timed applications, stack caps and damage ticks without depending on the scene or networking.
+/// The caller supplies the clock and damage callback, and clears this state when the target dies or the round ends.
+/// </summary>
 public sealed class TimedDamageEffects<TSource>
 {
 	private readonly List<TimedDamageStack<TSource>> _stacks = new();
 	public IReadOnlyList<TimedDamageStack<TSource>> Stacks => _stacks;
 
 	public int Count(DamageType type, float now) =>
-		_stacks.Count(x => x.Settings.Type == type && x.ExpiresAt > now);
+		_stacks.Count(effectStack => effectStack.Settings.Type == type && effectStack.ExpiresAt > now);
 
+	/// <summary>Spread may fill an available stack slot, but unlike a direct hit it cannot replace a full stack.</summary>
 	public bool CanSpreadTo(DamageEffectSettings settings, float now) =>
 		Count(settings.Type, now) < settings.MaxStacks;
 
+	/// <summary>Adds an independent application, renewing the oldest of the same type when the incoming cap is full.</summary>
+	/// <remarks>Advance with flush enabled first so retiring applications do not lose their pending partial damage.</remarks>
 	public void Apply(DamageEffectSettings settings, TSource source, float now)
 	{
 		if (settings == null || !float.IsFinite(now))
 			throw new ArgumentException("Applying an effect requires settings and a finite time.");
 
-		_stacks.RemoveAll(x => x.ExpiresAt <= now);
-		var sameType = _stacks.Where(x => x.Settings.Type == settings.Type).ToList();
+		_stacks.RemoveAll(effectStack => effectStack.ExpiresAt <= now);
+		var sameTypeStacks = _stacks.Where(effectStack => effectStack.Settings.Type == settings.Type).ToList();
 		// A lower-cap source cannot remove another player's stacks, but can renew the oldest.
-		if (sameType.Count >= settings.MaxStacks)
-			_stacks.Remove(sameType[0]);
+		if (sameTypeStacks.Count >= settings.MaxStacks)
+			_stacks.Remove(sameTypeStacks[0]);
 		_stacks.Add(new TimedDamageStack<TSource>(settings, source, now));
 	}
 
+	/// <summary>Pays whole-second ticks, plus final partial ticks on expiry or when flush is enabled.</summary>
+	/// <remarks>Flushing is used before reapplication and during immunity; the caller can discard damage while immune.</remarks>
 	public void Advance(float now, Action<TimedDamageStack<TSource>, float> dealDamage, bool flush = false)
 	{
 		if (!float.IsFinite(now))
 			throw new ArgumentOutOfRangeException(nameof(now));
 
-		foreach (var stack in _stacks.ToArray())
+		// The damage callback may kill the target and clear the collection while it is being processed.
+		foreach (var effectStack in _stacks.ToArray())
 		{
-			var end = MathF.Min(now, stack.ExpiresAt);
-			var elapsed = MathF.Max(0f, end - stack.LastDamageTime);
+			var damageEndTime = MathF.Min(now, effectStack.ExpiresAt);
+			var elapsedDamageTime = MathF.Max(0f, damageEndTime - effectStack.LastDamageTime);
 			// Whole-second ticks avoid continuous hit reactions; expiry/reapplication pays the remaining fraction.
-			if (!flush && end < stack.ExpiresAt)
-				elapsed = MathF.Floor(elapsed);
-			stack.LastDamageTime += elapsed;
-			if (elapsed > 0f)
-				dealDamage(stack, elapsed * stack.Settings.DamagePerSecond);
+			if (!flush && damageEndTime < effectStack.ExpiresAt)
+				elapsedDamageTime = MathF.Floor(elapsedDamageTime);
+			effectStack.LastDamageTime += elapsedDamageTime;
+			if (elapsedDamageTime > 0f)
+				dealDamage(effectStack, elapsedDamageTime * effectStack.Settings.DamagePerSecond);
 		}
-		_stacks.RemoveAll(x => x.ExpiresAt <= now);
+		_stacks.RemoveAll(effectStack => effectStack.ExpiresAt <= now);
 	}
 
 	public void Clear() => _stacks.Clear();

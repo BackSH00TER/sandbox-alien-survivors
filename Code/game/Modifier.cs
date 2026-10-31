@@ -29,8 +29,8 @@ public sealed class ModifierDefinition
 	public DamageEffectStat? EffectStat { get; init; }
 	public float Amount { get; init; }
 
-	public bool IsAvailable(Func<Modifier, int> stacks) =>
-		stacks(Id) < MaxPicks && Prerequisites.All(x => stacks(x) > 0);
+	public bool IsAvailable(Func<Modifier, int> getModifierPickCount) =>
+		getModifierPickCount(Id) < MaxPicks && Prerequisites.All(prerequisite => getModifierPickCount(prerequisite) > 0);
 }
 
 public static class ModifierCatalog
@@ -46,19 +46,42 @@ public static class ModifierCatalog
 		new ModifierDefinition { Id = Modifier.FireRounds, Icon = "local_fire_department", Name = "Fire Rounds",
 			Description = "20% chance per bullet to ignite enemies: 5 damage/second for 5 seconds. One stack by default.",
 			EffectType = DamageType.Fire, MaxPicks = 1 },
-		FireUpgrade(Modifier.FireApplicationChance, "Ignition Chance", "+10 percentage points fire bullet chance per pick (up to 100%).",
-			DamageEffectStat.ApplicationChance, 0.1f, 8),
-		FireUpgrade(Modifier.FireDuration, "Lasting Flames", "+2 seconds fire duration per pick.",
-			DamageEffectStat.Duration, 2f),
-		FireUpgrade(Modifier.FireDamage, "Hotter Flames", "+5 fire damage/second per stack per pick.",
-			DamageEffectStat.DamagePerSecond, 5f),
-		FireUpgrade(Modifier.FireStacks, "Layered Flames", "+1 maximum simultaneous fire stack per pick. Each application expires separately.",
-			DamageEffectStat.MaxStacks, 1f),
+		FireUpgrade(
+			id: Modifier.FireApplicationChance,
+			name: "Ignition Chance",
+			description: "+10 percentage points fire bullet chance per pick (up to 100%).",
+			stat: DamageEffectStat.ApplicationChance,
+			amount: 0.1f,
+			maxPicks: 8),
+		FireUpgrade(
+			id: Modifier.FireDuration,
+			name: "Lasting Flames",
+			description: "+2 seconds fire duration per pick.",
+			stat: DamageEffectStat.Duration,
+			amount: 2f),
+		FireUpgrade(
+			id: Modifier.FireDamage,
+			name: "Hotter Flames",
+			description: "+5 fire damage/second per stack per pick.",
+			stat: DamageEffectStat.DamagePerSecond,
+			amount: 5f),
+		FireUpgrade(
+			id: Modifier.FireStacks,
+			name: "Layered Flames",
+			description: "+1 maximum simultaneous fire stack per pick. Each application expires separately.",
+			stat: DamageEffectStat.MaxStacks,
+			amount: 1f),
 		new ModifierDefinition { Id = Modifier.FireSpread, Icon = "local_fire_department", Name = "Spreading Flames",
 			Description = "Each burning enemy has a 10% chance/second to spread fire to one enemy within 120 units, including burning enemies below the stack cap.",
 			EffectType = DamageType.Fire, MaxPicks = 1, Prerequisites = new[] { Modifier.FireRounds } },
-		FireUpgrade(Modifier.FireSpreadChance, "Wildfire", "+10 percentage points fire spread chance per pick (up to 100%).",
-			DamageEffectStat.SpreadChance, 0.1f, 9, Modifier.FireSpread)
+		FireUpgrade(
+			id: Modifier.FireSpreadChance,
+			name: "Wildfire",
+			description: "+10 percentage points fire spread chance per pick (up to 100%).",
+			stat: DamageEffectStat.SpreadChance,
+			amount: 0.1f,
+			maxPicks: 9,
+			prerequisite: Modifier.FireSpread)
 	};
 
 	private static ModifierDefinition FireUpgrade(Modifier id, string name, string description,
@@ -71,21 +94,21 @@ public static class ModifierCatalog
 		};
 
 	public static ModifierDefinition Get(Modifier modifier) =>
-		All.FirstOrDefault(x => x.Id == modifier) ?? throw new ArgumentOutOfRangeException(nameof(modifier));
+		All.FirstOrDefault(definition => definition.Id == modifier) ?? throw new ArgumentOutOfRangeException(nameof(modifier));
 	public static string Icon(Modifier modifier) => Get(modifier).Icon;
 	public static string Name(Modifier modifier) => Get(modifier).Name;
 	public static string Description(Modifier modifier) => Get(modifier).Description;
 
-	public static IReadOnlyList<Modifier> RollOffer(Func<Modifier, int> stacks, Func<float> random)
+	public static IReadOnlyList<Modifier> RollOffer(Func<Modifier, int> getModifierPickCount, Func<float> random)
 	{
-		var available = All.Where(x => x.IsAvailable(stacks)).ToList();
+		var available = All.Where(modifier => modifier.IsAvailable(getModifierPickCount)).ToList();
 		if (available.Count < 3)
 			throw new InvalidOperationException("Modifier offers require at least three available upgrades.");
 
 		var result = new List<Modifier>();
 		for (int i = 0; i < 3; i++)
 		{
-			var chosen = WeightedDraw.Pick(available, x => x.DrawWeight, random());
+			var chosen = WeightedDraw.Pick(available, modifier => modifier.DrawWeight, random());
 			result.Add(chosen.Id);
 			available.Remove(chosen);
 		}

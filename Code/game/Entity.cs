@@ -10,6 +10,30 @@ public abstract class Entity : Component
 	[Sync(SyncFlags.FromHost)] public NetDictionary<DamageType, int> EffectStacks { get; private set; } = new();
 	private readonly TimedDamageEffects<Entity> _damageEffects = new();
 	private readonly Dictionary<DamageType, float> _nextSpreadTimes = new();
+	private GameManager _roundManager;
+
+	private GameManager RoundManager
+	{
+		get
+		{
+			// Reuse the scene lookup while the manager is alive; reacquire it if removed or the scene changes.
+			if (!_roundManager.IsValid() || _roundManager.Scene != Scene)
+				_roundManager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
+			return _roundManager;
+		}
+	}
+
+	private bool IsDamageRoundInProgress
+	{
+		get
+		{
+			var roundManager = RoundManager;
+			return !roundManager.IsValid() || roundManager.State == GameState.InProgress;
+		}
+	}
+
+	private bool CanReceiveEffectDamage =>
+		this.IsValid() && Active && CanTakeDamage && Health > 0f && IsDamageRoundInProgress;
 
 	public int EffectStackCount(DamageType type) => EffectStacks.TryGetValue(type, out var count) ? count : 0;
 
@@ -64,15 +88,15 @@ public abstract class Entity : Component
 	public void ApplyDamageEffect(DamageEffectSettings settings, Entity attacker)
 	{
 		if (!Networking.IsHost || settings == null || !attacker.IsValid()
-			|| !DamageEffectCatalog.All.Any(x => x.Type == settings.Type))
+			|| !DamageEffectCatalog.All.Any(effectDefinition => effectDefinition.Type == settings.Type))
 		{
 			Log.Error("Applying a damage effect requires the host, implemented effect settings and a valid attacker.");
 			return;
 		}
 
-		UpdateDamageEffects(false);
-		var manager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
-		if (!Active || !CanTakeDamage || Health <= 0f || (manager != null && manager.State != GameState.InProgress))
+		// Pay any partial tick before replacing an application, so the previous attacker keeps that damage credit.
+		UpdateDamageEffects(allowSpread: false);
+		if (!CanReceiveEffectDamage)
 			return;
 
 		if (_damageEffects.Count(settings.Type, Time.Now) == 0)
@@ -81,55 +105,97 @@ public abstract class Entity : Component
 		SyncEffectStacks();
 	}
 
-	private void UpdateDamageEffects(bool spread)
+	private void UpdateDamageEffects(bool allowSpread)
 	{
 		if (!Networking.IsHost || _damageEffects.Stacks.Count == 0)
 			return;
 
-		var manager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
-		if (!Active || Health <= 0f || (manager != null && manager.State != GameState.InProgress))
+		if (!Active || Health <= 0f || !IsDamageRoundInProgress)
 		{
 			ClearDamageEffects();
 			return;
 		}
 
-		_damageEffects.Advance(Time.Now, (stack, amount) =>
-		{
-			if (this.IsValid() && Active && CanTakeDamage && Health > 0f
-				&& (manager == null || manager.State == GameState.InProgress))
-				TakeDamage(amount, default, stack.Settings.Type, stack.Source.IsValid() ? stack.Source : null);
-		}, flush: !spread || !CanTakeDamage);
-		if (!this.IsValid() || Health <= 0f || (manager != null && manager.State != GameState.InProgress))
+		// Invulnerability consumes effect time without letting damage accumulate for a later tick.
+		_damageEffects.Advance(Time.Now, DealDamageEffectTick, flush: !allowSpread || !CanTakeDamage);
+		if (!this.IsValid() || Health <= 0f || !IsDamageRoundInProgress)
 			return;
 		SyncEffectStacks();
-		if (!spread || this is not Enemy || !CanTakeDamage)
+
+		if (allowSpread && this is Enemy && CanTakeDamage)
+			SpreadDamageEffects();
+	}
+
+	private void DealDamageEffectTick(TimedDamageStack<Entity> effectStack, float amount)
+	{
+		// A previous tick can kill the target or end the round, so check again for every application.
+		if (!CanReceiveEffectDamage)
 			return;
 
-		// One spread roll per type per entity, not per stack. The newest spread-enabled stack supplies stats and credit.
-		foreach (var stack in _damageEffects.Stacks.Where(x => x.Settings.SpreadChance > 0f)
-			.GroupBy(x => x.Settings.Type).Select(x => x.Last()).ToArray())
-		{
-			if (Time.Now < _nextSpreadTimes[stack.Settings.Type])
-				continue;
-			_nextSpreadTimes[stack.Settings.Type] = Time.Now + 1f;
-			if (!stack.Source.IsValid()
-				|| (stack.Settings.SpreadChance < 1f && Game.Random.Float() >= stack.Settings.SpreadChance))
-				continue;
+		var attacker = effectStack.Source.IsValid() ? effectStack.Source : null;
+		TakeDamage(amount, type: effectStack.Settings.Type, attacker: attacker);
+	}
 
-			var settings = stack.Settings;
-			var candidates = Scene.GetAllComponents<Enemy>().Where(x => x != this && x.Active
-				&& x.CanTakeDamage && x.Health > 0f && x._damageEffects.CanSpreadTo(settings, Time.Now)
-				&& (x.WorldPosition - WorldPosition).LengthSquared <= settings.SpreadRadius * settings.SpreadRadius)
-				.Where(x =>
-				{
-					var trace = Scene.Trace.FromTo(WorldPosition + Vector3.Up * WeaponProjectile.CollisionHeight,
-						x.WorldPosition + Vector3.Up * WeaponProjectile.CollisionHeight)
-						.IgnoreGameObjectHierarchy(GameObject).Run();
-					return !trace.Hit || trace.GameObject.GetComponentInParent<Entity>() == x;
-				}).ToList();
-			if (candidates.Count > 0)
-				candidates[Game.Random.Int(0, candidates.Count - 1)].ApplyDamageEffect(settings, stack.Source);
-		}
+	private void SpreadDamageEffects()
+	{
+		var spreadEffectStacks = _damageEffects.Stacks
+			.Where(effectStack => effectStack.Settings.SpreadChance > 0f)
+			.GroupBy(effectStack => effectStack.Settings.Type)
+			.Select(stacksByType => stacksByType.Last())
+			.ToArray();
+
+		// Each effect type gets one chance to spread per second, regardless of stack count.
+		// The newest spread-enabled application supplies the settings and original attacker.
+		foreach (var effectStack in spreadEffectStacks)
+			TrySpreadDamageEffect(effectStack);
+	}
+
+	private void TrySpreadDamageEffect(TimedDamageStack<Entity> effectStack)
+	{
+		var settings = effectStack.Settings;
+		if (Time.Now < _nextSpreadTimes[settings.Type])
+			return;
+		_nextSpreadTimes[settings.Type] = Time.Now + 1f;
+		if (!effectStack.Source.IsValid())
+			return;
+
+		var spreadRollSucceeded = settings.SpreadChance >= 1f || Game.Random.Float() < settings.SpreadChance;
+		if (!spreadRollSucceeded)
+			return;
+
+		var spreadTargets = Scene.GetAllComponents<Enemy>()
+			.Where(enemy => IsEligibleSpreadTarget(enemy, settings))
+			.ToList();
+		if (spreadTargets.Count == 0)
+			return;
+
+		var targetIndex = Game.Random.Int(0, spreadTargets.Count - 1);
+		spreadTargets[targetIndex].ApplyDamageEffect(settings, effectStack.Source);
+	}
+
+	private bool IsEligibleSpreadTarget(Enemy enemy, DamageEffectSettings settings)
+	{
+		if (enemy == this || !enemy.Active || !enemy.CanTakeDamage || enemy.Health <= 0f)
+			return false;
+
+		// Spread can add to burning enemies below the cap, but cannot refresh a full target.
+		if (!enemy._damageEffects.CanSpreadTo(settings, Time.Now))
+			return false;
+		if ((enemy.WorldPosition - WorldPosition).LengthSquared > settings.SpreadRadius * settings.SpreadRadius)
+			return false;
+
+		return HasSpreadLineOfSight(enemy);
+	}
+
+	private bool HasSpreadLineOfSight(Enemy enemy)
+	{
+		// Use bullet collision height so walls block spreading even when an enemy's feet are visible.
+		var collisionHeight = Vector3.Up * WeaponProjectile.CollisionHeight;
+		var trace = Scene.Trace
+			.FromTo(WorldPosition + collisionHeight, enemy.WorldPosition + collisionHeight)
+			.IgnoreGameObjectHierarchy(GameObject)
+			.Run();
+		return !trace.Hit || trace.GameObject.GetComponentInParent<Entity>() == enemy;
 	}
 
 	private void SyncEffectStacks()
@@ -311,7 +377,7 @@ public abstract class Entity : Component
 
 	protected override void OnUpdate()
 	{
-		UpdateDamageEffects(true);
+		UpdateDamageEffects(allowSpread: true);
 		if (_originalMaterials.Count == 0)
 			return;
 
