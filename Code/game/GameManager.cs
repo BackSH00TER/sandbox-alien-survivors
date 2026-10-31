@@ -100,7 +100,7 @@ public sealed class GameManager : Component
 	private void EndGame()
 	{
 		State = GameState.Ended;
-		PlayerStats.EndRound(Scene);
+		GamePlayerStats.EndRound(Scene);
 	}
 
 	public void ReturnToLobby()

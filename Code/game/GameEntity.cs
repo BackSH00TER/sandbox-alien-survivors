@@ -26,7 +26,7 @@ public abstract class GameEntity : Component
 			Health = MaxHealth;
 	}
 
-	public void TakeDamage(float amount, Vector3 hitDirection = default, DamageType type = DamageType.Physical, GameEntity attacker = null)
+	public void TakeDamage(float amount, Vector3 hitDirection = default, GameDamageType type = GameDamageType.Physical, GameEntity attacker = null)
 	{
 		if (!Networking.IsHost)
 		{
@@ -46,7 +46,7 @@ public abstract class GameEntity : Component
 		float previousHealth = Health;
 		Health = System.MathF.Max(0f, Health - amount);
 		bool wasKill = previousHealth > 0f && Health <= 0f;
-		PlayerStats.RecordDamage(attacker, this, previousHealth - Health, type, wasKill);
+		GamePlayerStats.RecordDamage(attacker, this, previousHealth - Health, type, wasKill);
 		FlashHit();
 		OnDamaged(hitDirection);
 		if (wasKill)
@@ -136,7 +136,7 @@ public abstract class GameEntity : Component
 				target != null, target?.WorldPosition ?? WorldPosition);
 
 		if (target != null)
-			target.TakeDamage(damage, (target.WorldPosition - WorldPosition).Normal, DamageType.Physical, this);
+			target.TakeDamage(damage, (target.WorldPosition - WorldPosition).Normal, GameDamageType.Physical, this);
 	}
 
 	[Rpc.Broadcast(NetFlags.HostOnly)]

@@ -8,7 +8,7 @@
 
 	@if (LocalSurvivor.IsValid())
 	{
-		<ModifierInventory />
+		<GameModifierInventory />
 
 		@if (DebugEnabled && LocalSurvivor.ShowAttackDebug)
 		{
@@ -47,10 +47,10 @@
 			<GameFlareMarker />
 		}
 
-		<ModifierPicker />
+		<GameModifierPicker />
 	}
 
-	@if (PlayerStats.HasRoundEnded(Scene))
+	@if (GamePlayerStats.HasRoundEnded(Scene))
 	{
 		<GameStatsScreen />
 	}
@@ -104,7 +104,7 @@
 	{
 		var survivor = LocalSurvivor;
 		return System.HashCode.Combine(MatchStatus, survivor, survivor?.Level, ExperiencePercent,
-			(DebugEnabled, survivor?.ShowAttackDebug, NearbyWeapon, survivor?.IsStunned, survivor?.IsDead, survivor?.GodMode, PlayerStats.HasRoundEnded(Scene)),
+			(DebugEnabled, survivor?.ShowAttackDebug, NearbyWeapon, survivor?.IsStunned, survivor?.IsDead, survivor?.GodMode, GamePlayerStats.HasRoundEnded(Scene)),
 			System.HashCode.Combine(survivor?.EffectiveAttackInterval, survivor?.EffectiveAttackRange,
 				survivor?.EquippedWeapon, survivor?.EquippedWeapon?.BulletsPerShot));
 	}

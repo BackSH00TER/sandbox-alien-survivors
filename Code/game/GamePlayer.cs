@@ -47,7 +47,7 @@ public sealed class GamePlayer : GameEntity
 	{
 		get
 		{
-			PlayerStats stats = GetComponent<PlayerStats>();
+			GamePlayerStats stats = GetComponent<GamePlayerStats>();
 			return stats.IsValid() && stats.IsRoundOver;
 		}
 	}
@@ -340,7 +340,7 @@ public sealed class GamePlayer : GameEntity
 			return false;
 
 		_invulnerableUntil = Time.Now + ReviveInvulnerableSeconds;
-		PlayerStats.Record(this, StatKeys.TimesRevived);
+		GamePlayerStats.Record(this, GameStatKeys.TimesRevived);
 		BloodOffset = base.BloodAmount;
 		TeleportTo(groundPosition);
 		return true;
@@ -492,7 +492,7 @@ public sealed class GamePlayer : GameEntity
 				return;
 		}
 
-		PlayerStats.Record(this, StatKeys.ModifierPicked(modifier));
+		GamePlayerStats.Record(this, GameStatKeys.ModifierPicked(modifier));
 		PendingModifierChoices--;
 		// Invalidate the consumed offer so duplicate clicks cannot spend the next queued choice.
 		if (PendingModifierChoices > 0)

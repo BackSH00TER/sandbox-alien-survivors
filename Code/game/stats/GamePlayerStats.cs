@@ -1,7 +1,7 @@
 using Sandbox;
 
 /// <summary>Per-player round stats. The host records values and every client reads them.</summary>
-public sealed class PlayerStats : Component
+public sealed class GamePlayerStats : Component
 {
     [Sync(SyncFlags.FromHost)] private NetDictionary<string, float> Values { get; set; } = new();
     [Sync(SyncFlags.FromHost)] public bool IsRoundOver { get; private set; }
@@ -40,10 +40,10 @@ public sealed class PlayerStats : Component
     /// <summary>Host only. Adds to a stat of the player that owns the survivor.</summary>
     public static void Record(GamePlayer survivor, string key, float amount = 1f)
     {
-        PlayerStats stats = survivor.GetComponent<PlayerStats>();
+        GamePlayerStats stats = survivor.GetComponent<GamePlayerStats>();
         if (!stats.IsValid())
         {
-            Log.Error("SurvivorController requires a PlayerStats component.");
+            Log.Error("GamePlayer requires a GamePlayerStats component.");
             return;
         }
 
@@ -51,27 +51,27 @@ public sealed class PlayerStats : Component
     }
 
     /// <summary>Host only. Called for every hit that removed health, including the killing blow.</summary>
-    public static void RecordDamage(GameEntity attacker, GameEntity victim, float amount, DamageType type, bool wasKill)
+    public static void RecordDamage(GameEntity attacker, GameEntity victim, float amount, GameDamageType type, bool wasKill)
     {
         if (victim is GamePlayer survivorVictim)
         {
-            Record(survivorVictim, StatKeys.DamageTaken, amount);
-            Record(survivorVictim, StatKeys.DamageTakenByType(type), amount);
+            Record(survivorVictim, GameStatKeys.DamageTaken, amount);
+            Record(survivorVictim, GameStatKeys.DamageTakenByType(type), amount);
             if (wasKill)
-                Record(survivorVictim, StatKeys.Deaths);
+                Record(survivorVictim, GameStatKeys.Deaths);
         }
 
         if (victim is GameEnemy enemy && attacker is GamePlayer survivorAttacker)
         {
-            Record(survivorAttacker, StatKeys.DamageDealt, amount);
-            Record(survivorAttacker, StatKeys.DamageDealtByType(type), amount);
-            Record(survivorAttacker, StatKeys.DamageDealtToEnemy(enemy.Kind), amount);
-            if (enemy.Kind == EnemyKind.Boss)
-                Record(survivorAttacker, StatKeys.DamageDealtToBoss, amount);
+            Record(survivorAttacker, GameStatKeys.DamageDealt, amount);
+            Record(survivorAttacker, GameStatKeys.DamageDealtByType(type), amount);
+            Record(survivorAttacker, GameStatKeys.DamageDealtToEnemy(enemy.Kind), amount);
+            if (enemy.Kind == GameEnemyKind.Boss)
+                Record(survivorAttacker, GameStatKeys.DamageDealtToBoss, amount);
             if (wasKill)
             {
-                Record(survivorAttacker, StatKeys.Kills);
-                Record(survivorAttacker, StatKeys.KillsByEnemy(enemy.Kind));
+                Record(survivorAttacker, GameStatKeys.Kills);
+                Record(survivorAttacker, GameStatKeys.KillsByEnemy(enemy.Kind));
             }
         }
     }
@@ -79,9 +79,9 @@ public sealed class PlayerStats : Component
     /// <summary>Host only. Tells every client the round is over so the results screen can open.</summary>
     public static void EndRound(Scene scene)
     {
-        foreach (PlayerStats stats in scene.GetAllComponents<PlayerStats>())
+        foreach (GamePlayerStats stats in scene.GetAllComponents<GamePlayerStats>())
             stats.IsRoundOver = true;
     }
 
-    public static bool HasRoundEnded(Scene scene) => scene.GetAllComponents<PlayerStats>().Any(x => x.IsRoundOver);
+    public static bool HasRoundEnded(Scene scene) => scene.GetAllComponents<GamePlayerStats>().Any(x => x.IsRoundOver);
 }

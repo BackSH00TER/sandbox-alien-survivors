@@ -107,7 +107,7 @@ public sealed class GameWeaponProjectile : Component
 			DrawTravel(start, trace.EndPosition, canDamage ? Color.Green : Color.Red);
 			Finish();
 			if (canDamage)
-				target.TakeDamage(_damage, Direction, DamageType.Physical, Shooter);
+				target.TakeDamage(_damage, Direction, GameDamageType.Physical, Shooter);
 			return;
 		}
 
