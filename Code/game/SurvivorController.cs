@@ -42,6 +42,15 @@ public sealed class SurvivorController : Entity
 		: EquippedWeapon.Range * (1f + AttackRangeStacks);
 
 	public bool IsDead => Health <= 0f;
+
+	public bool IsRoundOver
+	{
+		get
+		{
+			PlayerStats stats = GetComponent<PlayerStats>();
+			return stats.IsValid() && stats.IsRoundOver;
+		}
+	}
 	// Dead, god mode and the post-revive grace period all block damage.
 	public override bool CanTakeDamage => !IsDead && !GodMode && Time.Now >= _invulnerableUntil;
 
@@ -100,6 +109,9 @@ public sealed class SurvivorController : Entity
 			return;
 
 		Mouse.Visibility = MouseVisibility.Visible;
+		if (IsRoundOver)
+			return;
+
 		if (IsDead)
 		{
 			UpdateUav();
@@ -165,9 +177,9 @@ public sealed class SurvivorController : Entity
 
 	protected override void OnFixedUpdate()
 	{
-		if (IsStunned)
+		if (IsStunned || IsRoundOver)
 		{
-			StopStunnedMovement();
+			StopMovement();
 		}
 		else if (!IsProxy && !IsDead)
 		{
@@ -205,10 +217,10 @@ public sealed class SurvivorController : Entity
 			return;
 
 		StunEndTime = System.MathF.Max(StunEndTime, Time.Now + duration);
-		StopStunnedMovement();
+		StopMovement();
 	}
 
-	private void StopStunnedMovement()
+	private void StopMovement()
 	{
 		Controller.WishVelocity = Vector3.Zero;
 		if (Controller.Body.IsValid())
@@ -328,6 +340,7 @@ public sealed class SurvivorController : Entity
 			return false;
 
 		_invulnerableUntil = Time.Now + ReviveInvulnerableSeconds;
+		PlayerStats.Record(this, StatKeys.TimesRevived);
 		BloodOffset = base.BloodAmount;
 		TeleportTo(groundPosition);
 		return true;
@@ -479,6 +492,7 @@ public sealed class SurvivorController : Entity
 				return;
 		}
 
+		PlayerStats.Record(this, StatKeys.ModifierPicked(modifier));
 		PendingModifierChoices--;
 		// Invalidate the consumed offer so duplicate clicks cannot spend the next queued choice.
 		if (PendingModifierChoices > 0)

@@ -1,0 +1,47 @@
+@using Sandbox;
+@using Sandbox.UI;
+@inherits Panel
+@namespace Sandbox
+
+<root>
+	@foreach (Modifier modifier in System.Enum.GetValues<Modifier>())
+	{
+		int stacks = StacksOf(modifier);
+		if (stacks > 0)
+		{
+			<div class="modifier-item @modifier.ToString().ToLowerInvariant()">
+				<div class="modifier-icon">@ModifierCatalog.Icon(modifier)</div>
+				<div class="modifier-count">@stacks</div>
+			</div>
+		}
+	}
+</root>
+
+@code
+{
+	private SurvivorController _survivor;
+
+	private int StacksOf(Modifier modifier)
+	{
+		if (!_survivor.IsValid())
+			return 0;
+
+		return modifier switch
+		{
+			Modifier.AttackSpeed => _survivor.AttackSpeedStacks,
+			Modifier.AttackRange => _survivor.AttackRangeStacks,
+			Modifier.Vitality => _survivor.VitalityStacks,
+			_ => throw new System.ArgumentOutOfRangeException(nameof(modifier))
+		};
+	}
+
+	protected override int BuildHash()
+	{
+		_survivor = Game.ActiveScene.GetAllComponents<SurvivorController>().FirstOrDefault(x => !x.IsProxy);
+		if (!_survivor.IsValid())
+			return 0;
+
+		return System.HashCode.Combine(_survivor, _survivor.AttackSpeedStacks, _survivor.AttackRangeStacks,
+			_survivor.VitalityStacks);
+	}
+}

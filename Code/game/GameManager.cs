@@ -19,8 +19,11 @@ public sealed class GameManager : Component
 
 	[Group("Scene Transition")]
 	[Property] public string LobbyScene { get; set; }
+	[Group("Scene Transition")]
+	[Property] public string GameScene { get; set; } = "scenes/game.scene";
 
 	private float _countdownEndTime;
+	private bool _isChangingScene;
 
 	public int RemainingSeconds => System.Math.Max(0, (int)System.MathF.Ceiling(_countdownEndTime - Time.Now));
 
@@ -33,7 +36,7 @@ public sealed class GameManager : Component
 
 	protected override void OnUpdate()
 	{
-		if (!Networking.IsHost || State != GameState.InProgress)
+		if (!Networking.IsHost || State == GameState.Ended)
 			return;
 
 		if (ShouldEndWhenAllDead && AreAllSurvivorsDead())
@@ -97,21 +100,48 @@ public sealed class GameManager : Component
 	private void EndGame()
 	{
 		State = GameState.Ended;
+		PlayerStats.EndRound(Scene);
+	}
 
-		if (string.IsNullOrWhiteSpace(LobbyScene))
+	public void ReturnToLobby()
+	{
+		ChangeToScene(LobbyScene, "lobby");
+	}
+
+	public void StartNewGame()
+	{
+		ChangeToScene(GameScene, "game");
+	}
+
+	private void ChangeToScene(string scenePath, string sceneLabel)
+	{
+		if (!Networking.IsHost)
 		{
-			Log.Error("Cannot end game because LobbyScene is not set.");
+			Log.Error("Only the host can change scenes.");
+			return;
+		}
+
+		if (_isChangingScene)
+			return;
+
+		if (string.IsNullOrWhiteSpace(scenePath))
+		{
+			Log.Error($"Cannot change scene because the {sceneLabel} scene is not set.");
 			return;
 		}
 
 		var options = new SceneLoadOptions();
-		if (!options.SetScene(LobbyScene))
+		if (!options.SetScene(scenePath))
 		{
-			Log.Error($"Could not set lobby scene: {LobbyScene}");
+			Log.Error($"Could not set {sceneLabel} scene: {scenePath}");
 			return;
 		}
 
+		_isChangingScene = true;
 		if (!Game.ChangeScene(options))
-			Log.Error($"Could not change to lobby scene: {LobbyScene}");
+		{
+			_isChangingScene = false;
+			Log.Error($"Could not change to {sceneLabel} scene: {scenePath}");
+		}
 	}
 }

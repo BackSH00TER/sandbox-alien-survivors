@@ -4,6 +4,11 @@ public sealed class Enemy : Entity
 {
 	public override bool CanTakeDamage => Health > 0f && !IsDescending;
 
+	public EnemyKind Kind => GetComponent<BossEnemy>().IsValid() ? EnemyKind.Boss
+		: GetComponent<RangedEnemy>().IsValid() ? EnemyKind.Ranged
+		: GetComponent<ExplodingEnemy>().IsValid() ? EnemyKind.Exploding
+		: EnemyKind.Melee;
+
 	[Property, RequireComponent] public PlayerController Controller { get; set; }
 	[Property, Group("Movement"), Range(0f, 1000f), Description("Pursuit speed for melee and exploding enemies, in world units per second.")]
 	public float MoveSpeed { get; set; } = 100f;

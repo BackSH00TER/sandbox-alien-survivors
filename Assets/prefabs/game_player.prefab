@@ -247,6 +247,18 @@
         "OnComponentStart": null,
         "OnComponentUpdate": null,
         "StartDelay": 0.05
+      },
+      {
+        "__type": "PlayerStats",
+        "__guid": "c6f0d6a2-5b0e-4f0b-9a57-3f1c8e2d7a41",
+        "__enabled": true,
+        "Flags": 0,
+        "OnComponentDestroy": null,
+        "OnComponentDisabled": null,
+        "OnComponentEnabled": null,
+        "OnComponentFixedUpdate": null,
+        "OnComponentStart": null,
+        "OnComponentUpdate": null
       }
     ],
     "Children": [
