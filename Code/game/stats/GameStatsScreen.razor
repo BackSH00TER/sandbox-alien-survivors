@@ -9,13 +9,13 @@
 		<div class="stats-grid">
 			<div class="stats-row stats-header">
 				<div class="stat-label"></div>
-				@foreach (PlayerStats player in _players)
+				@foreach (GamePlayerStats player in _players)
 				{
 					<div class="stat-value @PlayerClass(player)">@player.PlayerName</div>
 				}
 			</div>
 
-			@foreach (StatSection section in StatCatalog.Sections)
+			@foreach (StatSection section in GameStatCatalog.Sections)
 			{
 				List<StatRow> rows = VisibleRows(section);
 				if (rows.Count > 0)
@@ -25,7 +25,7 @@
 					{
 						<div class="stats-row">
 							<div class="stat-label">@row.Label</div>
-							@foreach (PlayerStats player in _players)
+							@foreach (GamePlayerStats player in _players)
 							{
 								<div class="stat-value @PlayerClass(player)">@player.Get(row.Key).ToString("0")</div>
 							}
@@ -50,9 +50,9 @@
 
 @code
 {
-	private List<PlayerStats> _players = new();
+	private List<GamePlayerStats> _players = new();
 
-	private static string PlayerClass(PlayerStats player) => player.IsProxy ? "" : "local";
+	private static string PlayerClass(GamePlayerStats player) => player.IsProxy ? "" : "local";
 
 	private static GameManager FindGameManager() => Game.ActiveScene.GetAllComponents<GameManager>().FirstOrDefault();
 
@@ -67,13 +67,13 @@
 	// The local player comes first so their column sits next to everyone else's.
 	protected override int BuildHash()
 	{
-		_players = Game.ActiveScene.GetAllComponents<PlayerStats>()
+		_players = Game.ActiveScene.GetAllComponents<GamePlayerStats>()
 			.OrderBy(player => player.IsProxy)
-			.ThenByDescending(player => player.Get(StatKeys.DamageDealt))
+			.ThenByDescending(player => player.Get(GameStatKeys.DamageDealt))
 			.ToList();
 
 		int hash = _players.Count;
-		foreach (PlayerStats player in _players)
+		foreach (GamePlayerStats player in _players)
 			hash = System.HashCode.Combine(hash, player.ContentHash());
 
 		return hash;
