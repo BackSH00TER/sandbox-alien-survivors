@@ -5,6 +5,31 @@ public abstract class GameEntity : Component
 	[Property, Range(1f, 1000f), Sync(SyncFlags.FromHost)] public float MaxHealth { get; set; } = 100f;
 	[Property, Range(0.01f, 1f)] public float HitFlashDuration { get; set; } = 0.12f;
 	[Sync(SyncFlags.FromHost)] public float Health { get; private set; } = 100f;
+	[Property, Group("Armor"), Range(0, int.MaxValue), Sync(SyncFlags.FromHost), Description("Current armor. Set on creation; the cost of blocking a hit depends on its damage type.")]
+	public int Armor
+	{
+		get => _armor;
+		set
+		{
+			if (value < 0)
+			{
+				Log.Error("Armor must be non-negative.");
+				return;
+			}
+
+			_armor = value;
+		}
+	}
+	[Property, Group("Armor"), Range(1, int.MaxValue), Description("Armor needed to fully block a physical hit.")]
+	public int PhysicalArmorCost { get; set; } = 1;
+	[Property, Group("Armor"), Range(1, int.MaxValue), Description("Armor needed to fully block an explosive hit.")]
+	public int ExplosiveArmorCost { get; set; } = 5;
+	[Property, Group("Armor"), Range(1, int.MaxValue), Description("Armor needed to fully block a fire hit.")]
+	public int FireArmorCost { get; set; } = 1;
+	[Property, Group("Armor"), Range(1, int.MaxValue), Description("Armor needed to fully block an ice hit.")]
+	public int IceArmorCost { get; set; } = 1;
+	[Property, Group("Armor"), Description("When armor cannot cover the full hit cost, the unprotected fraction damages health. If disabled, any remaining armor blocks the full hit.")]
+	public bool ArmorDamageOverflow { get; set; } = true;
 	[Property, Group("Debug")] public bool ShowAttackHitboxes { get; set; } = true;
 	public virtual bool CanTakeDamage => true;
 
@@ -13,6 +38,7 @@ public abstract class GameEntity : Component
 
 	private const float PunchFacingThreshold = 0.5f;
 	private const float PunchTraceHeight = 36f;
+	private int _armor = 0;
 	private readonly Dictionary<ModelRenderer, Material> _originalMaterials = new();
 	private Material _flashMaterial;
 	private float _flashEndTime;
@@ -26,7 +52,7 @@ public abstract class GameEntity : Component
 			Health = MaxHealth;
 	}
 
-	public void TakeDamage(float amount, Vector3 hitDirection = default, GameDamageType type = GameDamageType.Physical, GameEntity attacker = null)
+	public void TakeDamage(float amount, Vector3 hitDirection = default, GameDamageType type = GameDamageType.Physical, GameEntity attacker = null, bool bypassArmor = false)
 	{
 		if (!Networking.IsHost)
 		{
@@ -40,13 +66,46 @@ public abstract class GameEntity : Component
 			return;
 		}
 
-		if (!CanTakeDamage)
+		if (!System.Enum.IsDefined(type))
+		{
+			Log.Error("Damage requires a valid damage type.");
+			return;
+		}
+
+		if (Health <= 0f || !CanTakeDamage)
 			return;
 
-		float previousHealth = Health;
-		Health = System.MathF.Max(0f, Health - amount);
-		bool wasKill = previousHealth > 0f && Health <= 0f;
-		GamePlayerStats.RecordDamage(attacker, this, previousHealth - Health, type, wasKill);
+		float healthDamage = amount;
+		if (Armor > 0 && !bypassArmor)
+		{
+			int armorCost = type switch
+			{
+				GameDamageType.Physical => PhysicalArmorCost,
+				GameDamageType.Explosive => ExplosiveArmorCost,
+				GameDamageType.Fire => FireArmorCost,
+				GameDamageType.Ice => IceArmorCost,
+				_ => 1
+			};
+			if (armorCost <= 0)
+			{
+				Log.Error($"Armor cost for {type} damage must be positive.");
+				return;
+			}
+
+			int spentArmor = System.Math.Min(Armor, armorCost);
+			Armor -= spentArmor;
+			healthDamage = ArmorDamageOverflow ? amount * ((armorCost - spentArmor) / (float)armorCost) : 0f;
+		}
+
+		bool wasKill = false;
+		if (healthDamage > 0f)
+		{
+			float previousHealth = Health;
+			Health = System.MathF.Max(0f, Health - healthDamage);
+			wasKill = Health <= 0f;
+			if (Health < previousHealth)
+				GamePlayerStats.RecordDamage(attacker, this, previousHealth - Health, type, wasKill);
+		}
 		FlashHit();
 		OnDamaged(hitDirection);
 		if (wasKill)
@@ -55,6 +114,24 @@ public abstract class GameEntity : Component
 
 	protected virtual void OnHealthDepleted()
 	{
+	}
+
+	/// <summary>Host only. Adds armor without a gameplay cap and records armor gained by survivors this round. Spawn armor is not counted. Protection depends on the configured cost for each damage type.</summary>
+	public bool AddArmor(int amount)
+	{
+		if (!Networking.IsHost || amount <= 0 || Armor > int.MaxValue - amount)
+		{
+			Log.Error("Adding armor requires a positive amount on the host within integer capacity.");
+			return false;
+		}
+
+		if (Health <= 0f)
+			return false;
+
+		Armor += amount;
+		if (this is GamePlayer player)
+			GamePlayerStats.Record(player, GameStatKeys.ArmorGained, amount);
+		return true;
 	}
 
 	public bool RestoreHealth(float amount)

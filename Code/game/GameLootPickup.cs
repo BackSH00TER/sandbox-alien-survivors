@@ -5,14 +5,15 @@ public enum LootKind
 	Health,
 	Rifle,
 	Shotgun,
-	Flare
+	Flare,
+	Armor
 }
 
-/// <summary>Health restores 50 on contact when injured; a flare pickup fires a revive flare on contact; weapons replace the equipped weapon through an owner-only interaction. Unclaimed pickups disappear after <see cref="LifetimeSeconds"/>.</summary>
+/// <summary>Health restores 50 on contact when injured; armor adds one armor point on contact; a flare pickup fires a revive flare on contact; weapons replace the equipped weapon through an owner-only interaction. Unclaimed pickups disappear after <see cref="LifetimeSeconds"/>.</summary>
 public sealed class GameLootPickup : Component
 {
 	public const float WeaponPickupRange = 72f;
-	private const float ContactRange = 32f; // walk-over range for health and flare pickups
+	private const float ContactRange = 32f; // walk-over range for health, armor and flare pickups
 	/// <summary>How many of the final seconds of <see cref="LifetimeSeconds"/> the pickup blinks as a warning that it is about to disappear.</summary>
 	private const float BlinkSeconds = 8f;
 	[Property, Range(5f, 300f), Description("Total seconds an unclaimed pickup stays before it disappears.")]
@@ -25,6 +26,7 @@ public sealed class GameLootPickup : Component
 	public string DisplayName => Kind switch
 	{
 		LootKind.Health => "Health +50",
+		LootKind.Armor => "Armor +1",
 		LootKind.Flare => "Flare Gun",
 		_ => Weapon?.DisplayName
 	};
@@ -66,6 +68,13 @@ public sealed class GameLootPickup : Component
 			AddPart("Medkit", Vector3.Zero, new Vector3(18f, 24f, 12f), new Color(0.9f, 0.15f, 0.2f));
 			AddPart("Cross Vertical", Vector3.Up * 7f, new Vector3(5f, 16f, 2f), Color.White);
 			AddPart("Cross Horizontal", Vector3.Up * 7f, new Vector3(13f, 5f, 2f), Color.White);
+		}
+		else if (Kind == LootKind.Armor)
+		{
+			var armorColor = new Color(0.2f, 0.75f, 1f);
+			AddPart("Armor Plate", Vector3.Zero, new Vector3(8f, 22f, 26f), armorColor);
+			AddPart("Armor Base", new Vector3(0f, 0f, -16f), new Vector3(8f, 14f, 8f), armorColor);
+			AddPart("Armor Stripe", new Vector3(5f, 0f, 0f), new Vector3(2f, 4f, 20f), Color.White);
 		}
 		else if (Kind == LootKind.Flare)
 		{
@@ -114,6 +123,8 @@ public sealed class GameLootPickup : Component
 
 		if (Kind == LootKind.Health)
 			TryHealNearby();
+		else if (Kind == LootKind.Armor)
+			TryAddArmorNearby();
 		else if (Kind == LootKind.Flare)
 			TryFireFlareNearby();
 	}
@@ -136,6 +147,19 @@ public sealed class GameLootPickup : Component
 		foreach (var player in Scene.GetAllComponents<GamePlayer>())
 		{
 			if (!CanReach(player, ContactRange) || !player.RestoreHealth(50f))
+				continue;
+
+			Claimed = true;
+			GameObject.Destroy();
+			return;
+		}
+	}
+
+	private void TryAddArmorNearby()
+	{
+		foreach (var player in Scene.GetAllComponents<GamePlayer>())
+		{
+			if (!CanReach(player, ContactRange) || !player.AddArmor(1))
 				continue;
 
 			Claimed = true;

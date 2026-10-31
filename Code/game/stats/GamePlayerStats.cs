@@ -40,7 +40,7 @@ public sealed class GamePlayerStats : Component
     /// <summary>Host only. Adds to a player's stat.</summary>
     public static void Record(GamePlayer player, string key, float amount = 1f)
     {
-        GamePlayerStats stats = player.GetComponent<GamePlayerStats>();
+        GamePlayerStats stats = player.Stats;
         if (!stats.IsValid())
         {
             Log.Error("GamePlayer requires a GamePlayerStats component.");

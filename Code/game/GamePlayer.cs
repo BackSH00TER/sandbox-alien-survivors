@@ -3,6 +3,7 @@ using Sandbox;
 public sealed class GamePlayer : GameEntity
 {
 	[Property, RequireComponent] public PlayerController Controller { get; set; }
+	[Property, RequireComponent] public GamePlayerStats Stats { get; set; }
 	[Property, Range(0.25f, 4f)] public float Zoom { get; set; } = 1.5f;
 	[Property, Group("Spectate"), Range(0f, 2000f), Description("Height above the death position that the UAV flies at.")]
 	public float UavAltitude { get; set; } = 600f;
@@ -47,8 +48,7 @@ public sealed class GamePlayer : GameEntity
 	{
 		get
 		{
-			GamePlayerStats stats = GetComponent<GamePlayerStats>();
-			return stats.IsValid() && stats.IsRoundOver;
+			return Stats.IsValid() && Stats.IsRoundOver;
 		}
 	}
 	// Dead, god mode and the post-revive grace period all block damage.
@@ -286,7 +286,7 @@ public sealed class GamePlayer : GameEntity
 		NextAttackTime = Time.Now + EffectiveAttackInterval;
 	}
 
-	// K: kill self, G: drop a flare pickup in front, H: toggle god mode. Only while the debug overlay is on.
+	// Debug shortcuts are only active while the debug overlay is on.
 	private void HandleDebugKeys()
 	{
 		if (!GameHUD.IsDebugEnabled(Scene))
@@ -300,6 +300,12 @@ public sealed class GamePlayer : GameEntity
 
 		if (Input.Keyboard.Pressed("H"))
 			DebugToggleGodMode();
+
+		if (Input.Keyboard.Pressed("J"))
+			DebugSpawnArmorPickup();
+
+		if (Input.Keyboard.Pressed("L"))
+			DebugSpawnCrate();
 	}
 
 	[Rpc.Host(NetFlags.OwnerOnly)]
@@ -310,7 +316,7 @@ public sealed class GamePlayer : GameEntity
 
 		// Killing on purpose wins over god mode, so it is switched off first.
 		GodMode = false;
-		TakeDamage(Health);
+		TakeDamage(Health, bypassArmor: true);
 	}
 
 	[Rpc.Host(NetFlags.OwnerOnly)]
@@ -323,6 +329,69 @@ public sealed class GamePlayer : GameEntity
 	public void DebugSpawnFlarePickup()
 	{
 		GameLootPickup.Spawn(WorldPosition + Controller.EyeAngles.ToRotation().Forward * 80f, LootKind.Flare);
+	}
+
+	[Rpc.Host(NetFlags.OwnerOnly)]
+	public void DebugSpawnArmorPickup()
+	{
+		if (TryGetDebugSpawnPosition(out var position))
+			GameLootPickup.Spawn(position, LootKind.Armor);
+	}
+
+	[Rpc.Host(NetFlags.OwnerOnly)]
+	public void DebugSpawnCrate()
+	{
+		if (!TryGetDebugSpawnPosition(out var position))
+			return;
+
+		var spawner = Scene.GetAllComponents<GameCrateSpawner>().FirstOrDefault();
+		var rifle = spawner?.Rifle ?? ResourceLibrary.Get<GameWeaponDefinition>("weapons/rifle.weapon");
+		var shotgun = spawner?.Shotgun ?? ResourceLibrary.Get<GameWeaponDefinition>("weapons/shotgun.weapon");
+		if (rifle == null || shotgun == null)
+		{
+			Log.Error("Debug crates require rifle and shotgun weapon resources.");
+			return;
+		}
+
+		if (!rifle.Validate() || !shotgun.Validate())
+			return;
+
+		GameSupplyCrate.Spawn(position, rifle, shotgun);
+	}
+
+	private bool TryGetDebugSpawnPosition(out Vector3 position)
+	{
+		position = default;
+		if (IsDead || IsRoundOver || !GameHUD.IsDebugEnabled(Scene))
+			return false;
+
+		if (!Controller.IsValid())
+		{
+			Log.Error("Debug spawning requires a player controller.");
+			return false;
+		}
+
+		var candidate = WorldPosition + Rotation.FromYaw(Controller.EyeAngles.yaw).Forward * 120f;
+		var ground = Scene.Trace.FromTo(candidate + Vector3.Up * 64f, candidate - Vector3.Up * 256f)
+			.IgnoreGameObjectHierarchy(GameObject).IgnoreDynamic().Run();
+		if (!ground.Hit || ground.StartedSolid || ground.Normal.z < 0.9f
+			|| (ground.GameObject.IsValid() && ground.GameObject.GetComponentInParent<GameEntity>().IsValid()))
+		{
+			Log.Warning("Cannot debug-spawn here: no suitable ground in front of the player.");
+			return false;
+		}
+
+		var bounds = new BBox(new Vector3(-21f, -21f, 1f), new Vector3(21f, 21f, 46f));
+		var clearance = Scene.Trace.Box(bounds, ground.EndPosition, ground.EndPosition)
+			.IgnoreGameObjectHierarchy(GameObject).Run();
+		if (clearance.Hit || clearance.StartedSolid)
+		{
+			Log.Warning("Cannot debug-spawn here: the space in front of the player is blocked.");
+			return false;
+		}
+
+		position = ground.EndPosition;
+		return true;
 	}
 
 	protected override void OnHealthDepleted()

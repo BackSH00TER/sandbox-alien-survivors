@@ -21,9 +21,13 @@
 				<div>B: Toggle debug</div>
 				<div>K: Kill self</div>
 				<div>G: Spawn flare pickup</div>
+				<div>J: Spawn armor pickup</div>
+				<div>L: Spawn crate</div>
 				<div>H: God mode (@(LocalPlayer.GodMode ? "ON" : "off"))</div>
 			</div>
 		}
+
+		<div class="armor">Armor: @LocalPlayer.Armor</div>
 
 		<div class="experience">
 			<div class="fill"
@@ -104,7 +108,7 @@
 	{
 		var player = LocalPlayer;
 		return System.HashCode.Combine(MatchStatus, player, player?.Level, ExperiencePercent,
-			(DebugEnabled, player?.ShowAttackDebug, NearbyWeapon, player?.IsStunned, player?.IsDead, player?.GodMode, GamePlayerStats.HasRoundEnded(Scene)),
+			(DebugEnabled, player?.ShowAttackDebug, NearbyWeapon, player?.IsStunned, player?.IsDead, player?.GodMode, GamePlayerStats.HasRoundEnded(Scene), player?.Armor),
 			System.HashCode.Combine(player?.EffectiveAttackInterval, player?.EffectiveAttackRange,
 				player?.EquippedWeapon, player?.EquippedWeapon?.BulletsPerShot));
 	}
