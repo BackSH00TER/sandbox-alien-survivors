@@ -286,7 +286,7 @@ public sealed class SurvivorController : Entity
 		NextAttackTime = Time.Now + EffectiveAttackInterval;
 	}
 
-	// K: kill self, G: drop a flare pickup in front, H: toggle god mode. Only while the debug overlay is on.
+	// Debug shortcuts are only active while the debug overlay is on.
 	private void HandleDebugKeys()
 	{
 		if (!GameHUD.IsDebugEnabled(Scene))
@@ -300,6 +300,12 @@ public sealed class SurvivorController : Entity
 
 		if (Input.Keyboard.Pressed("H"))
 			DebugToggleGodMode();
+
+		if (Input.Keyboard.Pressed("J"))
+			DebugSpawnArmorPickup();
+
+		if (Input.Keyboard.Pressed("L"))
+			DebugSpawnCrate();
 	}
 
 	[Rpc.Host(NetFlags.OwnerOnly)]
@@ -323,6 +329,69 @@ public sealed class SurvivorController : Entity
 	public void DebugSpawnFlarePickup()
 	{
 		LootPickup.Spawn(WorldPosition + Controller.EyeAngles.ToRotation().Forward * 80f, LootKind.Flare);
+	}
+
+	[Rpc.Host(NetFlags.OwnerOnly)]
+	public void DebugSpawnArmorPickup()
+	{
+		if (TryGetDebugSpawnPosition(out var position))
+			LootPickup.Spawn(position, LootKind.Armor);
+	}
+
+	[Rpc.Host(NetFlags.OwnerOnly)]
+	public void DebugSpawnCrate()
+	{
+		if (!TryGetDebugSpawnPosition(out var position))
+			return;
+
+		var spawner = Scene.GetAllComponents<CrateSpawner>().FirstOrDefault();
+		var rifle = spawner?.Rifle ?? ResourceLibrary.Get<WeaponDefinition>("weapons/rifle.weapon");
+		var shotgun = spawner?.Shotgun ?? ResourceLibrary.Get<WeaponDefinition>("weapons/shotgun.weapon");
+		if (rifle == null || shotgun == null)
+		{
+			Log.Error("Debug crates require rifle and shotgun weapon resources.");
+			return;
+		}
+
+		if (!rifle.Validate() || !shotgun.Validate())
+			return;
+
+		SupplyCrate.Spawn(position, rifle, shotgun);
+	}
+
+	private bool TryGetDebugSpawnPosition(out Vector3 position)
+	{
+		position = default;
+		if (IsDead || IsRoundOver || !GameHUD.IsDebugEnabled(Scene))
+			return false;
+
+		if (!Controller.IsValid())
+		{
+			Log.Error("Debug spawning requires a player controller.");
+			return false;
+		}
+
+		var candidate = WorldPosition + Rotation.FromYaw(Controller.EyeAngles.yaw).Forward * 120f;
+		var ground = Scene.Trace.FromTo(candidate + Vector3.Up * 64f, candidate - Vector3.Up * 256f)
+			.IgnoreGameObjectHierarchy(GameObject).IgnoreDynamic().Run();
+		if (!ground.Hit || ground.StartedSolid || ground.Normal.z < 0.9f
+			|| (ground.GameObject.IsValid() && ground.GameObject.GetComponentInParent<Entity>().IsValid()))
+		{
+			Log.Warning("Cannot debug-spawn here: no suitable ground in front of the player.");
+			return false;
+		}
+
+		var bounds = new BBox(new Vector3(-21f, -21f, 1f), new Vector3(21f, 21f, 46f));
+		var clearance = Scene.Trace.Box(bounds, ground.EndPosition, ground.EndPosition)
+			.IgnoreGameObjectHierarchy(GameObject).Run();
+		if (clearance.Hit || clearance.StartedSolid)
+		{
+			Log.Warning("Cannot debug-spawn here: the space in front of the player is blocked.");
+			return false;
+		}
+
+		position = ground.EndPosition;
+		return true;
 	}
 
 	protected override void OnHealthDepleted()
