@@ -6,14 +6,14 @@
 <root>
 	@if (_survivor.IsValid() && _survivor.PendingModifierChoices > 0)
 	{
-		SurvivorController survivor = _survivor;
+		GamePlayer survivor = _survivor;
 		int offerId = survivor.ModifierOfferId;
 		<div class="modifier-heading">Choose an upgrade</div>
 		<div class="modifier-hint">Press 1, 2, or 3, or click a card. Upgrades stack. Gameplay continues.</div>
 		<div class="modifier-options">
 			@for (int index = 0; index < 3; index++)
 			{
-				Modifier option = ModifierOption(survivor, index);
+				GameModifier option = ModifierOption(survivor, index);
 				<button class="modifier-card" @onclick="@(() => survivor.SelectModifier(offerId, option))">
 					<div class="modifier-key">@(index + 1)</div>
 					<div class="modifier-icon">@ModifierCatalog.Icon(option)</div>
@@ -31,9 +31,9 @@
 
 @code
 {
-	private SurvivorController _survivor;
+	private GamePlayer _survivor;
 
-	private static Modifier ModifierOption(SurvivorController survivor, int index) => index switch
+	private static GameModifier ModifierOption(GamePlayer survivor, int index) => index switch
 	{
 		0 => survivor.ModifierOptionOne,
 		1 => survivor.ModifierOptionTwo,
@@ -44,7 +44,7 @@
 	public override void Tick()
 	{
 		base.Tick();
-		_survivor = Game.ActiveScene.GetAllComponents<SurvivorController>().FirstOrDefault(x => !x.IsProxy);
+		_survivor = Game.ActiveScene.GetAllComponents<GamePlayer>().FirstOrDefault(x => !x.IsProxy);
 		if (!_survivor.IsValid() || _survivor.PendingModifierChoices <= 0)
 			return;
 

@@ -16,7 +16,7 @@
     "OwnerTransfer": 1,
     "Components": [
       {
-        "__type": "SurvivorController",
+        "__type": "GamePlayer",
         "__guid": "4a96a11b-c648-4118-a19a-b06f1de6d5f3",
         "__enabled": true,
         "Flags": 0,
@@ -298,7 +298,7 @@
             "ZIndex": 100
           },
           {
-            "__type": "Sandbox.SurvivorHealthBar",
+            "__type": "Sandbox.GamePlayerHealthbar",
             "__guid": "0c6d6508-bb9d-4c6e-b883-98750f8aed23",
             "__enabled": true,
             "Flags": 0,
@@ -312,7 +312,7 @@
               "_type": "component",
               "component_id": "4a96a11b-c648-4118-a19a-b06f1de6d5f3",
               "go": "584b711c-7537-4772-ba13-53bbc7b3e538",
-              "component_type": "SurvivorController"
+              "component_type": "GamePlayer"
             }
           }
         ],

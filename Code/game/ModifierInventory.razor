@@ -4,7 +4,7 @@
 @namespace Sandbox
 
 <root>
-	@foreach (Modifier modifier in System.Enum.GetValues<Modifier>())
+	@foreach (GameModifier modifier in System.Enum.GetValues<GameModifier>())
 	{
 		int stacks = StacksOf(modifier);
 		if (stacks > 0)
@@ -19,25 +19,25 @@
 
 @code
 {
-	private SurvivorController _survivor;
+	private GamePlayer _survivor;
 
-	private int StacksOf(Modifier modifier)
+	private int StacksOf(GameModifier modifier)
 	{
 		if (!_survivor.IsValid())
 			return 0;
 
 		return modifier switch
 		{
-			Modifier.AttackSpeed => _survivor.AttackSpeedStacks,
-			Modifier.AttackRange => _survivor.AttackRangeStacks,
-			Modifier.Vitality => _survivor.VitalityStacks,
+			GameModifier.AttackSpeed => _survivor.AttackSpeedStacks,
+			GameModifier.AttackRange => _survivor.AttackRangeStacks,
+			GameModifier.Vitality => _survivor.VitalityStacks,
 			_ => throw new System.ArgumentOutOfRangeException(nameof(modifier))
 		};
 	}
 
 	protected override int BuildHash()
 	{
-		_survivor = Game.ActiveScene.GetAllComponents<SurvivorController>().FirstOrDefault(x => !x.IsProxy);
+		_survivor = Game.ActiveScene.GetAllComponents<GamePlayer>().FirstOrDefault(x => !x.IsProxy);
 		if (!_survivor.IsValid())
 			return 0;
 

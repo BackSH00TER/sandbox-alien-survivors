@@ -1,7 +1,7 @@
 using Sandbox;
 
 /// <summary>An enemy variant that leaves a timed, damaging blast on its corpse.</summary>
-public sealed class ExplodingEnemy : Component
+public sealed class GameEnemyExploding : Component
 {
 	[Property, Range(0.1f, 5f), Description("Warning time after death, in seconds.")]
 	public float FuseDuration { get; set; } = 3f;
@@ -36,7 +36,7 @@ public sealed class ExplodingEnemy : Component
 			return;
 		}
 
-		var explosion = corpse.AddComponent<EnemyExplosion>();
+		var explosion = corpse.AddComponent<GameEnemyExplosion>();
 		explosion.FuseDuration = FuseDuration;
 		explosion.BlastRadius = BlastRadius;
 		explosion.BlastDamage = BlastDamage;

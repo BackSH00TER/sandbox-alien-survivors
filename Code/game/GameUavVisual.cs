@@ -4,7 +4,7 @@ using Sandbox;
 /// Local-only drone model shown at a dead survivor's position, so the player can see where their UAV is, plus a
 /// shadow on the ground beneath it for depth. Hidden while the survivor is alive.
 /// </summary>
-public sealed class UavVisual : Component
+public sealed class GameUavVisual : Component
 {
     private const float ArmReach = 46f;
     private const float RotorSpinDegreesPerSecond = 1800f;
@@ -13,7 +13,7 @@ public sealed class UavVisual : Component
     private static readonly Color RotorColor = new Color(1f, 1f, 1f);
     private static readonly Color BeaconColor = new Color(0.2f, 1f, 0.45f);
 
-    private SurvivorController _survivor;
+    private GamePlayer _survivor;
     private GameObject _drone;
     private GameObject _shadow;
     private ModelRenderer _beacon;
@@ -23,7 +23,7 @@ public sealed class UavVisual : Component
 
     protected override void OnStart()
     {
-        _survivor = GetComponent<SurvivorController>();
+        _survivor = GetComponent<GamePlayer>();
         BuildDrone();
         BuildShadow();
         SetShown(false);
@@ -111,7 +111,7 @@ public sealed class UavVisual : Component
                 trace = trace.IgnoreGameObjectHierarchy(skippedObject);
 
             ground = trace.Run();
-            var entity = ground.Hit && ground.GameObject.IsValid() ? ground.GameObject.GetComponentInParent<Entity>() : null;
+            var entity = ground.Hit && ground.GameObject.IsValid() ? ground.GameObject.GetComponentInParent<GameEntity>() : null;
             if (!entity.IsValid())
                 break;
 

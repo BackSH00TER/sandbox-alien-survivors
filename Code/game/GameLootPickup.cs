@@ -9,7 +9,7 @@ public enum LootKind
 }
 
 /// <summary>Health restores 50 on contact when injured; a flare pickup fires a revive flare on contact; weapons replace the equipped weapon through an owner-only interaction. Unclaimed pickups disappear after <see cref="LifetimeSeconds"/>.</summary>
-public sealed class LootPickup : Component
+public sealed class GameLootPickup : Component
 {
 	public const float WeaponPickupRange = 72f;
 	private const float ContactRange = 32f; // walk-over range for health and flare pickups
@@ -18,7 +18,7 @@ public sealed class LootPickup : Component
 	[Property, Range(5f, 300f), Description("Total seconds an unclaimed pickup stays before it disappears.")]
 	public float LifetimeSeconds { get; set; } = 45f;
 	[Sync(SyncFlags.FromHost)] public LootKind Kind { get; private set; }
-	[Sync(SyncFlags.FromHost)] public WeaponDefinition Weapon { get; private set; }
+	[Sync(SyncFlags.FromHost)] public GameWeaponDefinition Weapon { get; private set; }
 	[Sync(SyncFlags.FromHost)] public bool Claimed { get; private set; }
 	/// <summary>True during the last <see cref="BlinkSeconds"/> before the pickup disappears. Set by the host so every client blinks it.</summary>
 	[Sync(SyncFlags.FromHost)] public bool IsBlinking { get; private set; }
@@ -31,7 +31,7 @@ public sealed class LootPickup : Component
 	private GameObject _visual;
 	private float _spawnedAt;
 
-	public static LootPickup Spawn(Vector3 groundPosition, LootKind kind, WeaponDefinition weapon = null)
+	public static GameLootPickup Spawn(Vector3 groundPosition, LootKind kind, GameWeaponDefinition weapon = null)
 	{
 		var needsWeapon = kind == LootKind.Rifle || kind == LootKind.Shotgun;
 		if (!Networking.IsHost || !System.Enum.IsDefined(kind)
@@ -43,7 +43,7 @@ public sealed class LootPickup : Component
 
 		var obj = new GameObject(true, "Loot Pickup");
 		obj.WorldPosition = groundPosition + Vector3.Up * 16f;
-		var pickup = obj.AddComponent<LootPickup>();
+		var pickup = obj.AddComponent<GameLootPickup>();
 		pickup.Kind = kind;
 		pickup.Weapon = weapon;
 		if (!obj.NetworkSpawn())
@@ -133,7 +133,7 @@ public sealed class LootPickup : Component
 
 	private void TryHealNearby()
 	{
-		foreach (var survivor in Scene.GetAllComponents<SurvivorController>())
+		foreach (var survivor in Scene.GetAllComponents<GamePlayer>())
 		{
 			if (!CanReach(survivor, ContactRange) || !survivor.RestoreHealth(50f))
 				continue;
@@ -147,7 +147,7 @@ public sealed class LootPickup : Component
 	// Walking over a flare pickup fires the flare right away. Ignored while nobody is dead so it isn't wasted.
 	private void TryFireFlareNearby()
 	{
-		var survivors = Scene.GetAllComponents<SurvivorController>().ToList();
+		var survivors = Scene.GetAllComponents<GamePlayer>().ToList();
 		if (!survivors.Any(x => x.IsDead))
 			return;
 
@@ -156,14 +156,14 @@ public sealed class LootPickup : Component
 			if (!CanReach(survivor, ContactRange))
 				continue;
 
-			ReviveFlare.Spawn(survivor.WorldPosition);
+			GameReviveFlare.Spawn(survivor.WorldPosition);
 			Claimed = true;
 			GameObject.Destroy();
 			return;
 		}
 	}
 
-	public static LootPickup FindNearestWeapon(SurvivorController survivor)
+	public static GameLootPickup FindNearestWeapon(GamePlayer survivor)
 	{
 		if (!survivor.IsValid())
 			return null;
@@ -172,13 +172,13 @@ public sealed class LootPickup : Component
 		if (manager != null && manager.State != GameState.InProgress)
 			return null;
 
-		return survivor.Scene.GetAllComponents<LootPickup>()
+		return survivor.Scene.GetAllComponents<GameLootPickup>()
 			.Where(x => x.Kind != LootKind.Health && x.Weapon != null && x.CanReach(survivor, WeaponPickupRange))
 			.OrderBy(x => (x.WorldPosition - survivor.WorldPosition).LengthSquared)
 			.FirstOrDefault();
 	}
 
-	internal bool TryEquip(SurvivorController survivor)
+	internal bool TryEquip(GamePlayer survivor)
 	{
 		if (!Networking.IsHost || !GameInProgress() || Kind == LootKind.Health
 			|| !CanReach(survivor, WeaponPickupRange) || Weapon == null || !Weapon.Validate())
@@ -193,7 +193,7 @@ public sealed class LootPickup : Component
 		return true;
 	}
 
-	private bool CanReach(SurvivorController survivor, float range)
+	private bool CanReach(GamePlayer survivor, float range)
 	{
 		if (!Active || Claimed || !survivor.IsValid() || !survivor.Active || survivor.Health <= 0f
 			|| (WorldPosition - (survivor.WorldPosition + Vector3.Up * 16f)).LengthSquared > range * range)

@@ -44,7 +44,7 @@
 				<div class="dead-hint">Fly with WASD. Stay alive until a teammate fires a flare, then fly through it to return.
 				</div>
 			</div>
-			<FlareMarker />
+			<GameFlareMarker />
 		}
 
 		<ModifierPicker />
@@ -67,8 +67,8 @@
 	{
 		get
 		{
-			BossEnemy bossEnemy = Scene.GetAllComponents<BossEnemy>().FirstOrDefault();
-			Enemy boss = bossEnemy.IsValid() ? bossEnemy.GetComponent<Enemy>() : null;
+			GameEnemyBoss bossEnemy = Scene.GetAllComponents<GameEnemyBoss>().FirstOrDefault();
+			GameEnemy boss = bossEnemy.IsValid() ? bossEnemy.GetComponent<GameEnemy>() : null;
 			if (!boss.IsValid())
 				return $"Boss in: {CountdownTime}";
 
@@ -78,9 +78,9 @@
 		}
 	}
 
-	private SurvivorController LocalSurvivor => Scene.GetAllComponents<SurvivorController>().FirstOrDefault(x =>
+	private GamePlayer LocalSurvivor => Scene.GetAllComponents<GamePlayer>().FirstOrDefault(x =>
 !x.IsProxy);
-	private LootPickup NearbyWeapon => LootPickup.FindNearestWeapon(LocalSurvivor);
+	private GameLootPickup NearbyWeapon => GameLootPickup.FindNearestWeapon(LocalSurvivor);
 
 	protected override void OnUpdate()
 	{

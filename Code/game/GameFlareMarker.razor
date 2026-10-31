@@ -41,12 +41,12 @@
 	{
 		_isVisible = false;
 		Scene scene = Game.ActiveScene;
-		SurvivorController survivor = scene.GetAllComponents<SurvivorController>().FirstOrDefault(x => !x.IsProxy);
+		GamePlayer survivor = scene.GetAllComponents<GamePlayer>().FirstOrDefault(x => !x.IsProxy);
 		CameraComponent camera = scene.Camera;
 		if (!survivor.IsValid() || !survivor.IsDead || !camera.IsValid())
 			return;
 
-		ReviveFlare flare = scene.GetAllComponents<ReviveFlare>()
+		GameReviveFlare flare = scene.GetAllComponents<GameReviveFlare>()
 			.OrderBy(x => (x.WorldPosition - survivor.WorldPosition).LengthSquared)
 			.FirstOrDefault();
 		if (!flare.IsValid())

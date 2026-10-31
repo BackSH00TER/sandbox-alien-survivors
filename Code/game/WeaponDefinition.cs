@@ -1,8 +1,8 @@
 using Sandbox;
 
 /// <summary>Base weapon stats; survivor modifiers are applied without changing the shared resource.</summary>
-[GameResource("Weapon", "weapon", "An equippable survivor weapon.", Icon = "gps_fixed")]
-public sealed class WeaponDefinition : GameResource
+[AssetType(Name = "Weapon", Extension = "weapon", Category = "weapons")]
+public sealed partial class GameWeaponDefinition : GameResource
 {
 	[Property] public string DisplayName { get; set; } = "Pistol";
 	[Property, Range(0.1f, 20f)] public float FireRate { get; set; } = 1f;

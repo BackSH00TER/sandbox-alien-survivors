@@ -61,7 +61,7 @@
 
     private bool IsOwnerReady()
     {
-        PlayerReadyState state = GameObject.Parent?.Components.Get<PlayerReadyState>();
+        LobbyPlayerReadyState state = GameObject.Parent?.Components.Get<LobbyPlayerReadyState>();
         return state != null && state.IsReady;
     }
 

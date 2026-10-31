@@ -1,6 +1,6 @@
 using Sandbox;
 
-public sealed class SurvivorController : Entity
+public sealed class GamePlayer : GameEntity
 {
 	[Property, RequireComponent] public PlayerController Controller { get; set; }
 	[Property, Range(0.25f, 4f)] public float Zoom { get; set; } = 1.5f;
@@ -14,8 +14,8 @@ public sealed class SurvivorController : Entity
 	[Property, Group("Revive"), Range(0f, 10f), Description("Seconds a revived survivor cannot take damage.")]
 	public float ReviveInvulnerableSeconds { get; set; } = 3f;
 	[Property, Group("Weapon"), Description("Weapon equipped on spawn. If unassigned, uses weapons/pistol.weapon.")]
-	public WeaponDefinition StartingWeapon { get; set; }
-	[Sync(SyncFlags.FromHost)] public WeaponDefinition EquippedWeapon { get; private set; }
+	public GameWeaponDefinition StartingWeapon { get; set; }
+	[Sync(SyncFlags.FromHost)] public GameWeaponDefinition EquippedWeapon { get; private set; }
 	[Property, Group("Debug")] public bool ShowAttackDebug { get; set; } = true;
 
 	[Group("Experience")]
@@ -29,9 +29,9 @@ public sealed class SurvivorController : Entity
 
 	[Sync(SyncFlags.FromHost)] public int PendingModifierChoices { get; private set; }
 	[Sync(SyncFlags.FromHost)] public int ModifierOfferId { get; private set; }
-	[Sync(SyncFlags.FromHost)] public Modifier ModifierOptionOne { get; private set; }
-	[Sync(SyncFlags.FromHost)] public Modifier ModifierOptionTwo { get; private set; }
-	[Sync(SyncFlags.FromHost)] public Modifier ModifierOptionThree { get; private set; }
+	[Sync(SyncFlags.FromHost)] public GameModifier ModifierOptionOne { get; private set; }
+	[Sync(SyncFlags.FromHost)] public GameModifier ModifierOptionTwo { get; private set; }
+	[Sync(SyncFlags.FromHost)] public GameModifier ModifierOptionThree { get; private set; }
 	[Sync(SyncFlags.FromHost)] public int AttackSpeedStacks { get; private set; }
 	[Sync(SyncFlags.FromHost)] public int AttackRangeStacks { get; private set; }
 	[Sync(SyncFlags.FromHost)] public int VitalityStacks { get; private set; }
@@ -83,9 +83,9 @@ public sealed class SurvivorController : Entity
 	protected override void OnStart()
 	{
 		base.OnStart();
-		var heldWeapon = GameObject.GetOrAddComponent<HeldWeaponModel>();
+		var heldWeapon = GameObject.GetOrAddComponent<GamePlayerHeldWeaponModel>();
 		heldWeapon.Flags |= ComponentFlags.NotNetworked | ComponentFlags.NotSaved;
-		var uavVisual = GameObject.GetOrAddComponent<UavVisual>();
+		var uavVisual = GameObject.GetOrAddComponent<GameUavVisual>();
 		uavVisual.Flags |= ComponentFlags.NotNetworked | ComponentFlags.NotSaved;
 		Controller.UseCameraControls = false;
 		Controller.UseLookControls = false;
@@ -96,7 +96,7 @@ public sealed class SurvivorController : Entity
 
 		if (Networking.IsHost)
 		{
-			EquipWeapon(StartingWeapon ?? ResourceLibrary.Get<WeaponDefinition>("weapons/pistol.weapon"));
+			EquipWeapon(StartingWeapon ?? ResourceLibrary.Get<GameWeaponDefinition>("weapons/pistol.weapon"));
 			QueueModifierChoice();
 		}
 	}
@@ -122,7 +122,7 @@ public sealed class SurvivorController : Entity
 
 		if (Input.Pressed("Use"))
 		{
-			var pickup = LootPickup.FindNearestWeapon(this);
+			var pickup = GameLootPickup.FindNearestWeapon(this);
 			if (pickup.IsValid())
 				PickupWeapon(pickup);
 		}
@@ -150,7 +150,7 @@ public sealed class SurvivorController : Entity
 		CursorRayOrigin = ray.Position;
 		CursorRayDirection = ray.Forward;
 
-		if (TryGetAimDirection(WorldPosition + Vector3.Up * WeaponProjectile.CollisionHeight, out var direction))
+		if (TryGetAimDirection(WorldPosition + Vector3.Up * GameWeaponProjectile.CollisionHeight, out var direction))
 			Controller.EyeAngles = Rotation.LookAt(direction, Vector3.Up).Angles();
 	}
 
@@ -265,7 +265,7 @@ public sealed class SurvivorController : Entity
 	}
 
 	/// <summary>Equip a weapon on the host while preserving the player's modifier stacks.</summary>
-	public void EquipWeapon(WeaponDefinition weapon)
+	public void EquipWeapon(GameWeaponDefinition weapon)
 	{
 		if (!Networking.IsHost)
 		{
@@ -322,7 +322,7 @@ public sealed class SurvivorController : Entity
 	[Rpc.Host(NetFlags.OwnerOnly)]
 	public void DebugSpawnFlarePickup()
 	{
-		LootPickup.Spawn(WorldPosition + Controller.EyeAngles.ToRotation().Forward * 80f, LootKind.Flare);
+		GameLootPickup.Spawn(WorldPosition + Controller.EyeAngles.ToRotation().Forward * 80f, LootKind.Flare);
 	}
 
 	protected override void OnHealthDepleted()
@@ -356,7 +356,7 @@ public sealed class SurvivorController : Entity
 	}
 
 	[Rpc.Host(NetFlags.OwnerOnly)]
-	public void PickupWeapon(LootPickup pickup)
+	public void PickupWeapon(GameLootPickup pickup)
 	{
 		if (!pickup.IsValid() || pickup.Scene != Scene)
 		{
@@ -369,7 +369,7 @@ public sealed class SurvivorController : Entity
 
 	private void FireWeapon()
 	{
-		var heldWeapon = GetComponent<HeldWeaponModel>();
+		var heldWeapon = GetComponent<GamePlayerHeldWeaponModel>();
 		if (!heldWeapon.IsValid())
 		{
 			Log.Error("SurvivorController requires a held weapon model to fire.");
@@ -392,7 +392,7 @@ public sealed class SurvivorController : Entity
 			var angle = EquippedWeapon.BulletsPerShot == 1 ? 0f
 				: -EquippedWeapon.SpreadDegrees * 0.5f + EquippedWeapon.SpreadDegrees * i / (EquippedWeapon.BulletsPerShot - 1);
 			var direction = Rotation.FromYaw(angle) * forward;
-			WeaponProjectile.Spawn(this, EquippedWeapon, origin, direction, EffectiveAttackRange);
+			GameWeaponProjectile.Spawn(this, EquippedWeapon, origin, direction, EffectiveAttackRange);
 		}
 
 		PlayFire((int)EquippedWeapon.HoldType);
@@ -449,7 +449,7 @@ public sealed class SurvivorController : Entity
 
 	private void RollModifierOffer()
 	{
-		var options = System.Enum.GetValues<Modifier>();
+		var options = System.Enum.GetValues<GameModifier>();
 		for (var i = options.Length - 1; i > 0; i--)
 		{
 			var other = Game.Random.Int(0, i);
@@ -463,7 +463,7 @@ public sealed class SurvivorController : Entity
 	}
 
 	[Rpc.Host(NetFlags.OwnerOnly)]
-	public void SelectModifier(int offerId, Modifier modifier)
+	public void SelectModifier(int offerId, GameModifier modifier)
 	{
 		var gameManager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
 		if (!Active || (gameManager != null && gameManager.State != GameState.InProgress)
@@ -476,14 +476,14 @@ public sealed class SurvivorController : Entity
 
 		switch (modifier)
 		{
-			case Modifier.AttackSpeed:
+			case GameModifier.AttackSpeed:
 				AttackSpeedStacks++;
 				NextAttackTime = System.MathF.Min(NextAttackTime, Time.Now + EffectiveAttackInterval);
 				break;
-			case Modifier.AttackRange:
+			case GameModifier.AttackRange:
 				AttackRangeStacks++;
 				break;
-			case Modifier.Vitality:
+			case GameModifier.Vitality:
 				VitalityStacks++;
 				IncreaseMaxHealth(100f);
 				break;

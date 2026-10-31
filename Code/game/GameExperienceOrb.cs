@@ -1,6 +1,6 @@
 using Sandbox;
 
-public sealed class ExperienceOrb : Component
+public sealed class GameExperienceOrb : Component
 {
 	[Property, Range(1, 1000)] public int Amount { get; set; } = 1;
 	[Property, Range(0f, 1000f)] public float MagnetRange { get; set; } = 150f;
@@ -24,7 +24,7 @@ public sealed class ExperienceOrb : Component
 
 		var orb = new GameObject(true, "Experience Orb");
 		orb.WorldPosition = position + Vector3.Up * 12f;
-		orb.AddComponent<ExperienceOrb>().Amount = amount;
+		orb.AddComponent<GameExperienceOrb>().Amount = amount;
 
 		if (!orb.NetworkSpawn())
 		{
@@ -68,9 +68,9 @@ public sealed class ExperienceOrb : Component
 		if (gameManager != null && gameManager.State != GameState.InProgress)
 			return;
 
-		SurvivorController target = null;
+		GamePlayer target = null;
 		var nearestDistanceSquared = MagnetRange * MagnetRange;
-		foreach (var survivor in Scene.GetAllComponents<SurvivorController>())
+		foreach (var survivor in Scene.GetAllComponents<GamePlayer>())
 		{
 			if (!survivor.Active || survivor.Health <= 0f)
 				continue;

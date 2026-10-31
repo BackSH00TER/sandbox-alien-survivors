@@ -12,5 +12,5 @@ public static class StatKeys
     public static string DamageDealtToEnemy(EnemyKind kind) => $"damage_dealt.enemy.{kind}";
     public static string DamageTakenByType(DamageType type) => $"damage_taken.type.{type}";
     public static string KillsByEnemy(EnemyKind kind) => $"kills.enemy.{kind}";
-    public static string ModifierPicked(Modifier modifier) => $"modifier.{modifier}";
+    public static string ModifierPicked(GameModifier modifier) => $"modifier.{modifier}";
 }

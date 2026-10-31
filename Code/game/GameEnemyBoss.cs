@@ -1,7 +1,7 @@
 using Sandbox;
 
 /// <summary>A large melee boss. Its death, rather than the countdown, completes the match.</summary>
-public sealed class BossEnemy : Component
+public sealed class GameEnemyBoss : Component
 {
 	[Property, Range(1f, 10000f)] public float BossHealth { get; set; } = 1000f;
 	[Property, Range(1f, 4f)] public float Size { get; set; } = 1.8f;
@@ -61,7 +61,7 @@ public sealed class BossEnemy : Component
 		if (!_warning.IsValid())
 			return;
 
-		var enemy = GetComponent<Enemy>();
+		var enemy = GetComponent<GameEnemy>();
 		var manager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
 		_warning.Enabled = enemy.IsValid() && enemy.Health > 0f
 			&& (manager == null || manager.State == GameState.InProgress)
@@ -99,14 +99,14 @@ public sealed class BossEnemy : Component
 				IsChargingStun = false;
 				ImpactTime = Time.Now;
 				_nextStunTime = Time.Now + StunCooldown;
-				foreach (var survivor in Scene.GetAllComponents<SurvivorController>())
+				foreach (var survivor in Scene.GetAllComponents<GamePlayer>())
 				{
 					if (!survivor.Active || survivor.Health <= 0f)
 						continue;
 
 					var offset = survivor.WorldPosition - StunCenter;
 					if (new Vector3(offset.x, offset.y, 0f).LengthSquared <= StunRadius * StunRadius
-						&& System.MathF.Abs(offset.z) <= WeaponProjectile.CollisionHeight)
+						&& System.MathF.Abs(offset.z) <= GameWeaponProjectile.CollisionHeight)
 						survivor.ApplyStun(StunDuration);
 				}
 			}
@@ -137,7 +137,7 @@ public sealed class BossEnemy : Component
 		ImpactTime = -100f;
 	}
 
-	public void Configure(Enemy enemy)
+	public void Configure(GameEnemy enemy)
 	{
 		enemy.MaxHealth = BossHealth;
 		enemy.MoveSpeed = MoveSpeed;
@@ -149,7 +149,7 @@ public sealed class BossEnemy : Component
 		GameObject.WorldScale *= Size;
 	}
 
-	public void Defeated(Enemy enemy)
+	public void Defeated(GameEnemy enemy)
 	{
 		CancelStunAttack();
 		var manager = Scene.GetAllComponents<GameManager>().FirstOrDefault();

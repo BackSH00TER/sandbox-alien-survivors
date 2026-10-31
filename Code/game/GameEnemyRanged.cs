@@ -1,7 +1,7 @@
 using Sandbox;
 
 /// <summary>Ranged enemy settings, firing and post-shot wandering, driven by Enemy's lifecycle.</summary>
-public sealed class RangedEnemy : Component
+public sealed class GameEnemyRanged : Component
 {
 	[Property, Range(1f, 2000f)] public float FiringRange { get; set; } = 400f;
 	[Property, Range(0.1f, 10f)] public float ShotInterval { get; set; } = 2f;
@@ -39,7 +39,7 @@ public sealed class RangedEnemy : Component
 	}
 
 	/// <summary>Handles in-range combat movement; false lets Enemy pursue an out-of-range target.</summary>
-	public bool TryAttack(Enemy enemy, PlayerController target, out Vector3 wishVelocity)
+	public bool TryAttack(GameEnemy enemy, PlayerController target, out Vector3 wishVelocity)
 	{
 		wishVelocity = Vector3.Zero;
 		if (!Networking.IsHost || IsProxy)
@@ -48,8 +48,8 @@ public sealed class RangedEnemy : Component
 			return false;
 		}
 
-		var origin = WorldPosition + Vector3.Up * WeaponProjectile.CollisionHeight;
-		var offset = target.WorldPosition + Vector3.Up * WeaponProjectile.CollisionHeight - origin;
+		var origin = WorldPosition + Vector3.Up * GameWeaponProjectile.CollisionHeight;
+		var offset = target.WorldPosition + Vector3.Up * GameWeaponProjectile.CollisionHeight - origin;
 		if (offset.LengthSquared > FiringRange * FiringRange)
 		{
 			CancelAttack();
@@ -74,7 +74,7 @@ public sealed class RangedEnemy : Component
 
 		IsCharging = false;
 		_nextShotTime = Time.Now + ShotInterval;
-		WeaponProjectile.SpawnEnemy(enemy, origin, offset.LengthSquared > 0.001f
+		GameWeaponProjectile.SpawnEnemy(enemy, origin, offset.LengthSquared > 0.001f
 			? offset.Normal : enemy.Controller.EyeAngles.ToRotation().Forward,
 			Damage, ProjectileSpeed, ProjectileRadius, FiringRange);
 		var horizontal = new Vector3(offset.x, offset.y, 0f);
@@ -85,7 +85,7 @@ public sealed class RangedEnemy : Component
 		return true;
 	}
 
-	private Vector3 GetWanderVelocity(Enemy enemy, Vector3 targetOffset)
+	private Vector3 GetWanderVelocity(GameEnemy enemy, Vector3 targetOffset)
 	{
 		if (_wanderDirection.LengthSquared <= 0.001f)
 			return Vector3.Zero;
@@ -98,7 +98,7 @@ public sealed class RangedEnemy : Component
 		else if (horizontal.Length < FiringRange * 0.35f && horizontal.LengthSquared > 0.001f)
 			direction = (direction - horizontal.Normal * 2f).Normal;
 
-		var origin = WorldPosition + Vector3.Up * WeaponProjectile.CollisionHeight;
+		var origin = WorldPosition + Vector3.Up * GameWeaponProjectile.CollisionHeight;
 		var trace = Scene.Trace.Sphere(enemy.Controller.BodyRadius, origin, origin + direction * 48f)
 			.IgnoreGameObjectHierarchy(GameObject)
 			.Run();

@@ -1,6 +1,6 @@
 using Sandbox;
 
-public abstract class Entity : Component
+public abstract class GameEntity : Component
 {
 	[Property, Range(1f, 1000f), Sync(SyncFlags.FromHost)] public float MaxHealth { get; set; } = 100f;
 	[Property, Range(0.01f, 1f)] public float HitFlashDuration { get; set; } = 0.12f;
@@ -20,13 +20,13 @@ public abstract class Entity : Component
 
 	protected override void OnStart()
 	{
-		var blood = GameObject.GetOrAddComponent<BloodiedModel>();
+		var blood = GameObject.GetOrAddComponent<GameBloodiedModel>();
 		blood.Flags |= ComponentFlags.NotNetworked | ComponentFlags.NotSaved;
 		if (Networking.IsHost)
 			Health = MaxHealth;
 	}
 
-	public void TakeDamage(float amount, Vector3 hitDirection = default, DamageType type = DamageType.Physical, Entity attacker = null)
+	public void TakeDamage(float amount, Vector3 hitDirection = default, DamageType type = DamageType.Physical, GameEntity attacker = null)
 	{
 		if (!Networking.IsHost)
 		{
@@ -105,7 +105,7 @@ public abstract class Entity : Component
 	{
 	}
 
-	protected void Punch<T>(PlayerController controller, float range, float damage) where T : Entity
+	protected void Punch<T>(PlayerController controller, float range, float damage) where T : GameEntity
 	{
 		T target = null;
 		var closestDistanceSquared = range * range;
@@ -124,7 +124,7 @@ public abstract class Entity : Component
 				.FromTo(WorldPosition + Vector3.Up * PunchTraceHeight, candidate.WorldPosition + Vector3.Up * PunchTraceHeight)
 				.IgnoreGameObjectHierarchy(GameObject)
 				.Run();
-			if (trace.Hit && trace.GameObject.GetComponentInParent<Entity>() != candidate)
+			if (trace.Hit && trace.GameObject.GetComponentInParent<GameEntity>() != candidate)
 				continue;
 
 			target = candidate;

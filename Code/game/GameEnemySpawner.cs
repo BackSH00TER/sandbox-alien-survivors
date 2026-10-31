@@ -1,6 +1,6 @@
 using Sandbox;
 
-public sealed class EnemySpawner : Component
+public sealed class GameEnemySpawner : Component
 {
 	[Group("Enemy Spawning")]
 	[Property] public GameObject EnemyPrefab { get; set; }
@@ -59,7 +59,7 @@ public sealed class EnemySpawner : Component
 		SpawnEnemy(false);
 	}
 
-	public Enemy SpawnBoss()
+	public GameEnemy SpawnBoss()
 	{
 		if (!Networking.IsHost)
 		{
@@ -70,7 +70,7 @@ public sealed class EnemySpawner : Component
 		return SpawnEnemy(true);
 	}
 
-	private Enemy SpawnEnemy(bool isBoss)
+	private GameEnemy SpawnEnemy(bool isBoss)
 	{
 		if (EnemyPrefab == null)
 		{
@@ -104,20 +104,20 @@ public sealed class EnemySpawner : Component
 		}
 
 		var enemy = EnemyPrefab.Clone(spawnPosition);
-		var component = enemy.GetOrAddComponent<Enemy>();
+		var component = enemy.GetOrAddComponent<GameEnemy>();
 		if (isBoss)
 		{
 			enemy.Name = "Boss";
-			enemy.GetOrAddComponent<BossEnemy>().Configure(component);
+			enemy.GetOrAddComponent<GameEnemyBoss>().Configure(component);
 		}
 		else
 		{
 			var variantRoll = _random.NextDouble() * 100f;
 			var explodingChance = ExplodingEnemyChance.Clamp(0f, 100f);
 			if (variantRoll < explodingChance)
-				enemy.GetOrAddComponent<ExplodingEnemy>();
+				enemy.GetOrAddComponent<GameEnemyExploding>();
 			else if (variantRoll < explodingChance + RangedEnemyChance.Clamp(0f, 100f))
-				enemy.GetOrAddComponent<RangedEnemy>();
+				enemy.GetOrAddComponent<GameEnemyRanged>();
 		}
 
 		if (!enemy.NetworkSpawn())

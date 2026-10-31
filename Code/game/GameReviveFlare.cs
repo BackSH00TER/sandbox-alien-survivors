@@ -4,7 +4,7 @@ using Sandbox;
 /// Red flare fired straight up when an alive survivor walks over a flare pickup. It rises to <see cref="HangHeight"/>,
 /// glows for <see cref="LifetimeSeconds"/>, dims over the final <see cref="DimSeconds"/>, then burns out.
 /// </summary>
-public sealed class ReviveFlare : Component
+public sealed class GameReviveFlare : Component
 {
     [Property, Range(10f, 600f)] public float LifetimeSeconds { get; set; } = 120f;
     [Property, Range(1f, 120f), Description("Seconds before burnout that the flare starts dimming and then blinks.")]
@@ -34,7 +34,7 @@ public sealed class ReviveFlare : Component
     private float _flickerSeed;
 
     /// <summary>Host only. Fires a flare straight up from the given ground position.</summary>
-    public static ReviveFlare Spawn(Vector3 groundPosition)
+    public static GameReviveFlare Spawn(Vector3 groundPosition)
     {
         if (!Networking.IsHost)
         {
@@ -44,7 +44,7 @@ public sealed class ReviveFlare : Component
 
         var obj = new GameObject(true, "Revive Flare");
         obj.WorldPosition = groundPosition + Vector3.Up * 40f;
-        var flare = obj.AddComponent<ReviveFlare>();
+        var flare = obj.AddComponent<GameReviveFlare>();
         flare.GroundPosition = groundPosition;
         flare.Remaining = flare.LifetimeSeconds;
         if (!obj.NetworkSpawn())
@@ -144,7 +144,7 @@ public sealed class ReviveFlare : Component
     // Reach is measured sideways with a height allowance, since the drone flies above the flare.
     private bool TryClaim()
     {
-        SurvivorController claimer = Scene.GetAllComponents<SurvivorController>()
+        GamePlayer claimer = Scene.GetAllComponents<GamePlayer>()
             .Where(x => x.IsDead && CanClaim(x))
             .OrderBy(x => (x.WorldPosition - WorldPosition).WithZ(0f).LengthSquared)
             .FirstOrDefault();
@@ -155,7 +155,7 @@ public sealed class ReviveFlare : Component
         return true;
     }
 
-    private bool CanClaim(SurvivorController uav)
+    private bool CanClaim(GamePlayer uav)
     {
         Vector3 offset = uav.WorldPosition - WorldPosition;
         return offset.WithZ(0f).LengthSquared <= ClaimRadius * ClaimRadius

@@ -38,7 +38,7 @@ public sealed class PlayerStats : Component
     }
 
     /// <summary>Host only. Adds to a stat of the player that owns the survivor.</summary>
-    public static void Record(SurvivorController survivor, string key, float amount = 1f)
+    public static void Record(GamePlayer survivor, string key, float amount = 1f)
     {
         PlayerStats stats = survivor.GetComponent<PlayerStats>();
         if (!stats.IsValid())
@@ -51,9 +51,9 @@ public sealed class PlayerStats : Component
     }
 
     /// <summary>Host only. Called for every hit that removed health, including the killing blow.</summary>
-    public static void RecordDamage(Entity attacker, Entity victim, float amount, DamageType type, bool wasKill)
+    public static void RecordDamage(GameEntity attacker, GameEntity victim, float amount, DamageType type, bool wasKill)
     {
-        if (victim is SurvivorController survivorVictim)
+        if (victim is GamePlayer survivorVictim)
         {
             Record(survivorVictim, StatKeys.DamageTaken, amount);
             Record(survivorVictim, StatKeys.DamageTakenByType(type), amount);
@@ -61,7 +61,7 @@ public sealed class PlayerStats : Component
                 Record(survivorVictim, StatKeys.Deaths);
         }
 
-        if (victim is Enemy enemy && attacker is SurvivorController survivorAttacker)
+        if (victim is GameEnemy enemy && attacker is GamePlayer survivorAttacker)
         {
             Record(survivorAttacker, StatKeys.DamageDealt, amount);
             Record(survivorAttacker, StatKeys.DamageDealtByType(type), amount);

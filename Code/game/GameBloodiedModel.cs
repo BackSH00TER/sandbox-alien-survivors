@@ -1,7 +1,7 @@
 using Sandbox;
 using Sandbox.Rendering;
 
-public sealed class BloodiedModel : Component
+public sealed class GameBloodiedModel : Component
 {
 	[Property, Sync(SyncFlags.FromHost)] public float Amount { get; set; }
 
@@ -11,7 +11,7 @@ public sealed class BloodiedModel : Component
 
 	protected override void OnPreRender()
 	{
-		var entity = GetComponent<Entity>();
+		var entity = GetComponent<GameEntity>();
 		var target = entity.IsValid() ? entity.BloodAmount : Amount;
 		_visibleAmount = float.Lerp(_visibleAmount, target.Clamp(0f, 1f), (Time.Delta * 12f).Clamp(0f, 1f));
 		var amount = entity.IsValid() && entity.IsHitFlashing ? 0f : _visibleAmount;

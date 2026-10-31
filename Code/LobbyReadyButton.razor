@@ -17,7 +17,7 @@
 
 @code
 {
-    private PlayerReadyState LocalState => Scene.GetAllComponents<PlayerReadyState>().FirstOrDefault( x => !x.IsProxy );
+    private LobbyPlayerReadyState LocalState => Scene.GetAllComponents<LobbyPlayerReadyState>().FirstOrDefault( x => !x.IsProxy );
 
     private bool IsLocalPlayerReady => LocalState?.IsReady ?? false;
 
@@ -36,7 +36,7 @@
 
     private void ToggleReady()
     {
-        PlayerReadyState state = LocalState;
+        LobbyPlayerReadyState state = LocalState;
         if ( state == null )
             return;
 

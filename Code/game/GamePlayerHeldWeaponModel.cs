@@ -1,9 +1,9 @@
 using Sandbox;
 
-public sealed class HeldWeaponModel : Component
+public sealed class GamePlayerHeldWeaponModel : Component
 {
-	private SurvivorController _survivor;
-	private WeaponDefinition _weapon;
+	private GamePlayer _survivor;
+	private GameWeaponDefinition _weapon;
 	private GameObject _model;
 	private ModelRenderer _authoredRenderer;
 	private Vector3 _muzzleOffset;
@@ -12,7 +12,7 @@ public sealed class HeldWeaponModel : Component
 
 	protected override void OnStart()
 	{
-		_survivor = GetComponent<SurvivorController>();
+		_survivor = GetComponent<GamePlayer>();
 	}
 
 	protected override void OnPreRender()

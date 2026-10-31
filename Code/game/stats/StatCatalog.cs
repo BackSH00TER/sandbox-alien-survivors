@@ -50,7 +50,7 @@ public static class StatCatalog
         new StatSection("Damage taken by type",
             RowsFor<DamageType>(type => new StatRow(type.ToString(), StatKeys.DamageTakenByType(type))), true),
         new StatSection("Upgrades",
-            RowsFor<Modifier>(modifier => new StatRow(ModifierCatalog.Name(modifier), StatKeys.ModifierPicked(modifier))), true)
+            RowsFor<GameModifier>(modifier => new StatRow(ModifierCatalog.Name(modifier), StatKeys.ModifierPicked(modifier))), true)
     };
 
     private static List<StatRow> RowsFor<T>(System.Func<T, StatRow> buildRow) where T : struct, System.Enum

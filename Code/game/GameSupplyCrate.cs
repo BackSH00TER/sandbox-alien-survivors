@@ -1,14 +1,14 @@
 using Sandbox;
 
 /// <summary>A 30-health shootable crate that drops one equally weighted health, rifle, or shotgun pickup, or a flare when someone is dead.</summary>
-public sealed class SupplyCrate : Entity
+public sealed class GameSupplyCrate : GameEntity
 {
-	[Sync(SyncFlags.FromHost)] public WeaponDefinition Rifle { get; set; }
-	[Sync(SyncFlags.FromHost)] public WeaponDefinition Shotgun { get; set; }
+	[Sync(SyncFlags.FromHost)] public GameWeaponDefinition Rifle { get; set; }
+	[Sync(SyncFlags.FromHost)] public GameWeaponDefinition Shotgun { get; set; }
 	public override bool CanTakeDamage => Health > 0f && !_opened;
 	private bool _opened;
 
-	public static SupplyCrate Spawn(Vector3 groundPosition, WeaponDefinition rifle, WeaponDefinition shotgun)
+	public static GameSupplyCrate Spawn(Vector3 groundPosition, GameWeaponDefinition rifle, GameWeaponDefinition shotgun)
 	{
 		if (!Networking.IsHost)
 		{
@@ -18,7 +18,7 @@ public sealed class SupplyCrate : Entity
 
 		var obj = new GameObject(true, "Supply Crate");
 		obj.WorldPosition = groundPosition + Vector3.Up * 22f;
-		var crate = obj.AddComponent<SupplyCrate>();
+		var crate = obj.AddComponent<GameSupplyCrate>();
 		crate.MaxHealth = 30f;
 		crate.Rifle = rifle;
 		crate.Shotgun = shotgun;
@@ -63,7 +63,7 @@ public sealed class SupplyCrate : Entity
 	/// </summary>
 	private LootKind RollKind()
 	{
-		var spawner = Scene.GetAllComponents<CrateSpawner>().FirstOrDefault();
+		var spawner = Scene.GetAllComponents<GameCrateSpawner>().FirstOrDefault();
 		if (spawner != null && Game.Random.Float() < spawner.GetFlareDropChance())
 			return LootKind.Flare;
 
@@ -78,13 +78,13 @@ public sealed class SupplyCrate : Entity
 		_opened = true;
 		var kind = RollKind();
 		// Only weapon drops need a weapon definition; health and flare pickups have none.
-		WeaponDefinition weapon = kind switch
+		GameWeaponDefinition weapon = kind switch
 		{
 			LootKind.Rifle => Rifle,
 			LootKind.Shotgun => Shotgun,
 			_ => null
 		};
-		LootPickup.Spawn(WorldPosition - Vector3.Up * 22f, kind, weapon);
+		GameLootPickup.Spawn(WorldPosition - Vector3.Up * 22f, kind, weapon);
 		GameObject.Destroy();
 	}
 }

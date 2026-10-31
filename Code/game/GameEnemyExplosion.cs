@@ -1,7 +1,7 @@
 using Sandbox;
 
 /// <summary>Host-authoritative death fuse configured by ExplodingEnemy, with a client-visible warning and blast.</summary>
-public sealed class EnemyExplosion : Component
+public sealed class GameEnemyExplosion : Component
 {
 	[Sync(SyncFlags.FromHost)] public float FuseDuration { get; set; }
 	[Sync(SyncFlags.FromHost)] public float BlastRadius { get; set; }
@@ -90,23 +90,23 @@ public sealed class EnemyExplosion : Component
 
 	private void ApplyBlastDamage()
 	{
-		var center = WorldPosition + Vector3.Up * WeaponProjectile.CollisionHeight;
+		var center = WorldPosition + Vector3.Up * GameWeaponProjectile.CollisionHeight;
 		// Death can spawn more objects, so snapshot targets before applying damage.
-		var targets = Scene.GetAllComponents<Entity>().ToArray();
+		var targets = Scene.GetAllComponents<GameEntity>().ToArray();
 		var blastTrace = Scene.Trace.IgnoreGameObjectHierarchy(GameObject);
 		foreach (var target in targets)
 		{
-			if (target is Enemy or SurvivorController)
+			if (target is GameEnemy or GamePlayer)
 				blastTrace = blastTrace.IgnoreGameObjectHierarchy(target.GameObject);
 		}
 
 		foreach (var target in targets)
 		{
 			if (!target.IsValid() || !target.Active || !target.CanTakeDamage || target.Health <= 0f
-				|| (target is not Enemy && target is not SurvivorController))
+				|| (target is not GameEnemy && target is not GamePlayer))
 				continue;
 
-			var targetPosition = target.WorldPosition + Vector3.Up * WeaponProjectile.CollisionHeight;
+			var targetPosition = target.WorldPosition + Vector3.Up * GameWeaponProjectile.CollisionHeight;
 			var offset = targetPosition - center;
 			if (offset.LengthSquared > BlastRadius * BlastRadius)
 				continue;

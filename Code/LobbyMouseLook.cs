@@ -5,7 +5,7 @@ using Sandbox;
 /// Makes a lobby character look and reach toward its owner's mouse cursor.
 /// The owner publishes a world-space target; every client applies it locally so all see the same pose.
 /// </summary>
-public sealed class LobbyMouseLook : Component
+public sealed class LobbyPlayerMouseLook : Component
 {
     [Property] public PlayerController Controller { get; set; }
 

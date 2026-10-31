@@ -11,10 +11,10 @@ public sealed class LobbyManager : Component
 	[Property] public string GameScene { get; set; }
 
 	/// <summary>Number of players currently in the lobby.</summary>
-	public int PlayerCount => Scene.GetAllComponents<PlayerReadyState>().Count();
+	public int PlayerCount => Scene.GetAllComponents<LobbyPlayerReadyState>().Count();
 
 	/// <summary>Number of players currently readied up.</summary>
-	public int ReadyCount => Scene.GetAllComponents<PlayerReadyState>().Count(x => x.IsReady);
+	public int ReadyCount => Scene.GetAllComponents<LobbyPlayerReadyState>().Count(x => x.IsReady);
 
 	/// <summary>True when at least one player is in the lobby and every player is readied up.</summary>
 	public bool AreAllPlayersReady => PlayerCount > 0 && ReadyCount == PlayerCount;

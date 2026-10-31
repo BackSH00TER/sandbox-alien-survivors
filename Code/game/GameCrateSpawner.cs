@@ -1,14 +1,14 @@
 using Sandbox;
 
-public sealed class CrateSpawner : Component
+public sealed class GameCrateSpawner : Component
 {
 	[Property, Range(1, 50), Description("Maximum live crates. Each broken crate frees one slot after the respawn delay.")]
 	public int MaxCrates { get; set; } = 5;
 	[Property, Range(0.1f, 120f), Description("Delay after a crate breaks, independent of when its loot is collected.")]
 	public float RespawnDelay { get; set; } = 10f;
 	[Property, Range(100f, 5000f)] public float SpawnRadius { get; set; } = 900f;
-	[Property] public WeaponDefinition Rifle { get; set; }
-	[Property] public WeaponDefinition Shotgun { get; set; }
+	[Property] public GameWeaponDefinition Rifle { get; set; }
+	[Property] public GameWeaponDefinition Shotgun { get; set; }
 
 	[Property, Group("Flare Gun"), Range(0f, 1f), Description("Chance a broken crate drops a flare gun the moment someone dies.")]
 	public float FlareBaseChance { get; set; } = 0.25f;
@@ -18,7 +18,7 @@ public sealed class CrateSpawner : Component
 
 	private sealed class Slot
 	{
-		public SupplyCrate Crate;
+		public GameSupplyCrate Crate;
 		public float ReadyAt;
 	}
 
@@ -30,8 +30,8 @@ public sealed class CrateSpawner : Component
 		if (!Networking.IsHost)
 			return;
 
-		Rifle ??= ResourceLibrary.Get<WeaponDefinition>("weapons/rifle.weapon");
-		Shotgun ??= ResourceLibrary.Get<WeaponDefinition>("weapons/shotgun.weapon");
+		Rifle ??= ResourceLibrary.Get<GameWeaponDefinition>("weapons/rifle.weapon");
+		Shotgun ??= ResourceLibrary.Get<GameWeaponDefinition>("weapons/shotgun.weapon");
 		if (MaxCrates < 1 || MaxCrates > 50 || !float.IsFinite(RespawnDelay) || RespawnDelay <= 0f
 			|| !float.IsFinite(SpawnRadius) || SpawnRadius < 100f
 			|| Rifle == null || Shotgun == null || !Rifle.Validate() || !Shotgun.Validate())
@@ -70,7 +70,7 @@ public sealed class CrateSpawner : Component
 
 			if (TryFindPosition(out var position))
 			{
-				slot.Crate = SupplyCrate.Spawn(position, Rifle, Shotgun);
+				slot.Crate = GameSupplyCrate.Spawn(position, Rifle, Shotgun);
 				if (slot.Crate.IsValid())
 				{
 					_spawnFailureLogged = false;
@@ -93,13 +93,13 @@ public sealed class CrateSpawner : Component
 	/// </summary>
 	public float GetFlareDropChance()
 	{
-		var survivors = Scene.GetAllComponents<SurvivorController>().ToList();
+		var survivors = Scene.GetAllComponents<GamePlayer>().ToList();
 		var dead = survivors.Where(x => x.IsDead).ToList();
 		if (dead.Count == 0)
 			return 0f;
 
-		var flaresInPlay = Scene.GetAllComponents<ReviveFlare>().Count()
-			+ Scene.GetAllComponents<LootPickup>().Count(x => x.Kind == LootKind.Flare && !x.Claimed);
+		var flaresInPlay = Scene.GetAllComponents<GameReviveFlare>().Count()
+			+ Scene.GetAllComponents<GameLootPickup>().Count(x => x.Kind == LootKind.Flare && !x.Claimed);
 		if (flaresInPlay >= dead.Count)
 			return 0f;
 
@@ -117,12 +117,12 @@ public sealed class CrateSpawner : Component
 			var ground = Scene.Trace.FromTo(candidate + Vector3.Up * 512f, candidate - Vector3.Up * 2000f)
 				.IgnoreDynamic().Run();
 			if (!ground.Hit || ground.StartedSolid || ground.Normal.z < 0.9f
-				|| (ground.GameObject.IsValid() && ground.GameObject.GetComponentInParent<Entity>().IsValid()))
+				|| (ground.GameObject.IsValid() && ground.GameObject.GetComponentInParent<GameEntity>().IsValid()))
 				continue;
 
 			candidate = ground.EndPosition;
-			if (Scene.GetAllComponents<SupplyCrate>().Any(x => (x.WorldPosition - candidate).Length < 100f)
-				|| Scene.GetAllComponents<SurvivorController>().Any(x => (x.WorldPosition - candidate).Length < 100f))
+			if (Scene.GetAllComponents<GameSupplyCrate>().Any(x => (x.WorldPosition - candidate).Length < 100f)
+				|| Scene.GetAllComponents<GamePlayer>().Any(x => (x.WorldPosition - candidate).Length < 100f))
 				continue;
 
 			var bounds = new BBox(new Vector3(-21f, -21f, 1f), new Vector3(21f, 21f, 46f));

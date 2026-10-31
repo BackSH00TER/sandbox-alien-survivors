@@ -1,12 +1,12 @@
 using Sandbox;
 
-public sealed class Enemy : Entity
+public sealed class GameEnemy : GameEntity
 {
 	public override bool CanTakeDamage => Health > 0f && !IsDescending;
 
-	public EnemyKind Kind => GetComponent<BossEnemy>().IsValid() ? EnemyKind.Boss
-		: GetComponent<RangedEnemy>().IsValid() ? EnemyKind.Ranged
-		: GetComponent<ExplodingEnemy>().IsValid() ? EnemyKind.Exploding
+	public EnemyKind Kind => GetComponent<GameEnemyBoss>().IsValid() ? EnemyKind.Boss
+		: GetComponent<GameEnemyRanged>().IsValid() ? EnemyKind.Ranged
+		: GetComponent<GameEnemyExploding>().IsValid() ? EnemyKind.Exploding
 		: EnemyKind.Melee;
 
 	[Property, RequireComponent] public PlayerController Controller { get; set; }
@@ -159,8 +159,8 @@ public sealed class Enemy : Entity
 		var gameManager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
 		if (gameManager != null && gameManager.State != GameState.InProgress)
 		{
-			GetComponent<BossEnemy>()?.CancelStunAttack();
-			GetComponent<RangedEnemy>()?.CancelAttack();
+			GetComponent<GameEnemyBoss>()?.CancelStunAttack();
+			GetComponent<GameEnemyRanged>()?.CancelAttack();
 			IsWindingUp = false;
 			IsTargetInPunchRange = false;
 			MovementUnlockTime = 0f;
@@ -169,7 +169,7 @@ public sealed class Enemy : Entity
 
 		if (Time.Now < StaggerEndTime)
 		{
-			GetComponent<RangedEnemy>()?.CancelAttack();
+			GetComponent<GameEnemyRanged>()?.CancelAttack();
 			StopAttackMovement();
 			return;
 		}
@@ -179,9 +179,9 @@ public sealed class Enemy : Entity
 
 		foreach (var player in Scene.GetAllComponents<PlayerController>())
 		{
-			if (!player.Active || player.GameObject.GetComponent<Enemy>() != null)
+			if (!player.Active || player.GameObject.GetComponent<GameEnemy>() != null)
 				continue;
-			SurvivorController survivor = player.GameObject.GetComponent<SurvivorController>();
+			GamePlayer survivor = player.GameObject.GetComponent<GamePlayer>();
 			if (survivor != null && survivor.IsDead)
 				continue;
 
@@ -193,7 +193,7 @@ public sealed class Enemy : Entity
 			}
 		}
 
-		var boss = GetComponent<BossEnemy>();
+		var boss = GetComponent<GameEnemyBoss>();
 		if (boss.IsValid() && boss.TryStunAttack(target))
 		{
 			IsWindingUp = false;
@@ -202,7 +202,7 @@ public sealed class Enemy : Entity
 			return;
 		}
 
-		var ranged = GetComponent<RangedEnemy>();
+		var ranged = GetComponent<GameEnemyRanged>();
 		if (ranged.IsValid())
 		{
 			if (target == null)
@@ -242,7 +242,7 @@ public sealed class Enemy : Entity
 				NextPunchTime = Time.Now + System.MathF.Max(0.1f, PunchInterval);
 				MovementUnlockTime = Time.Now + System.MathF.Max(0f, PunchRecovery);
 				PlayPunch();
-				Punch<SurvivorController>(Controller, PunchRange, PunchDamage);
+				Punch<GamePlayer>(Controller, PunchRange, PunchDamage);
 			}
 
 			return;
@@ -298,7 +298,7 @@ public sealed class Enemy : Entity
 
 		IsWindingUp = false;
 		IsTargetInPunchRange = false;
-		GetComponent<RangedEnemy>()?.CancelAttack();
+		GetComponent<GameEnemyRanged>()?.CancelAttack();
 		StaggerEndTime = Time.Now + HitStaggerDuration;
 		MovementUnlockTime = System.MathF.Max(MovementUnlockTime, StaggerEndTime);
 		NextPunchTime = System.MathF.Max(NextPunchTime, StaggerEndTime);
@@ -327,17 +327,17 @@ public sealed class Enemy : Entity
 
 	protected override void OnHealthDepleted()
 	{
-		GetComponent<RangedEnemy>()?.CancelAttack();
+		GetComponent<GameEnemyRanged>()?.CancelAttack();
 		IsWindingUp = false;
 		IsTargetInPunchRange = false;
 		StopAttackMovement();
-		var boss = GetComponent<BossEnemy>();
+		var boss = GetComponent<GameEnemyBoss>();
 		if (boss.IsValid())
 		{
 			boss.Defeated(this);
 			return;
 		}
-		ExperienceOrb.Spawn(Scene, WorldPosition, ExperienceDrop);
+		GameExperienceOrb.Spawn(Scene, WorldPosition, ExperienceDrop);
 
 		if (!Controller.Renderer.IsValid())
 		{
@@ -347,8 +347,8 @@ public sealed class Enemy : Entity
 
 		RestoreMaterials();
 		var ragdoll = Controller.CreateRagdoll("Enemy Ragdoll");
-		ragdoll.AddComponent<BloodiedModel>().Amount = 1f;
-		var exploder = GetComponent<ExplodingEnemy>();
+		ragdoll.AddComponent<GameBloodiedModel>().Amount = 1f;
+		var exploder = GetComponent<GameEnemyExploding>();
 		if (exploder.IsValid())
 			exploder.ConfigureDeathExplosion(ragdoll);
 

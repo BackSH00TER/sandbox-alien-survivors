@@ -1,9 +1,9 @@
 using Sandbox;
 
-public sealed class WeaponProjectile : Component
+public sealed class GameWeaponProjectile : Component
 {
 	public const float CollisionHeight = 36f;
-	[Sync(SyncFlags.FromHost)] public Entity Shooter { get; private set; }
+	[Sync(SyncFlags.FromHost)] public GameEntity Shooter { get; private set; }
 	[Sync(SyncFlags.FromHost)] private bool IsEnemyProjectile { get; set; }
 	[Sync(SyncFlags.FromHost)] public Vector3 Direction { get; private set; }
 	[Sync(SyncFlags.FromHost)] public float Speed { get; private set; }
@@ -16,18 +16,18 @@ public sealed class WeaponProjectile : Component
 	private float _remainingRange;
 	private bool _finished;
 
-	public static void Spawn(SurvivorController shooter, WeaponDefinition weapon, Vector3 position, Vector3 direction, float range)
+	public static void Spawn(GamePlayer shooter, GameWeaponDefinition weapon, Vector3 position, Vector3 direction, float range)
 	{
 		Spawn(shooter, position, direction, weapon.Damage, weapon.ProjectileSpeed, weapon.ProjectileRadius, range);
 	}
 
-	public static void SpawnEnemy(Enemy shooter, Vector3 position, Vector3 direction,
+	public static void SpawnEnemy(GameEnemy shooter, Vector3 position, Vector3 direction,
 		float damage, float speed, float radius, float range)
 	{
 		Spawn(shooter, position, direction, damage, speed, radius, range);
 	}
 
-	private static void Spawn(Entity shooter, Vector3 position, Vector3 direction,
+	private static void Spawn(GameEntity shooter, Vector3 position, Vector3 direction,
 		float damage, float speed, float radius, float range)
 	{
 		if (!Networking.IsHost)
@@ -39,9 +39,9 @@ public sealed class WeaponProjectile : Component
 		var bullet = new GameObject(true, "Weapon Projectile");
 		bullet.WorldPosition = position;
 		bullet.WorldRotation = Rotation.LookAt(direction);
-		var projectile = bullet.AddComponent<WeaponProjectile>();
+		var projectile = bullet.AddComponent<GameWeaponProjectile>();
 		projectile.Shooter = shooter;
-		projectile.IsEnemyProjectile = shooter is Enemy;
+		projectile.IsEnemyProjectile = shooter is GameEnemy;
 		projectile.Direction = direction;
 		projectile.Speed = speed;
 		projectile.Radius = radius;
@@ -101,9 +101,9 @@ public sealed class WeaponProjectile : Component
 		var trace = CreateCollisionTrace().Sphere(Radius, start, end).Run();
 		if (trace.Hit || trace.StartedSolid)
 		{
-			var target = trace.GameObject.IsValid() ? trace.GameObject.GetComponentInParent<Entity>() : null;
+			var target = trace.GameObject.IsValid() ? trace.GameObject.GetComponentInParent<GameEntity>() : null;
 			var canDamage = target.IsValid() && target.CanTakeDamage && target.Health > 0f
-				&& (IsEnemyProjectile ? target is SurvivorController : target is Enemy or SupplyCrate);
+				&& (IsEnemyProjectile ? target is GamePlayer : target is GameEnemy or GameSupplyCrate);
 			DrawTravel(start, trace.EndPosition, canDamage ? Color.Green : Color.Red);
 			Finish();
 			if (canDamage)
@@ -125,7 +125,7 @@ public sealed class WeaponProjectile : Component
 		if (IsEnemyProjectile)
 		{
 			// Apply to both muzzle clearance and travel, including enemies spawned after this shot.
-			foreach (var enemy in Scene.GetAllComponents<Enemy>())
+			foreach (var enemy in Scene.GetAllComponents<GameEnemy>())
 				trace = trace.IgnoreGameObjectHierarchy(enemy.GameObject);
 		}
 		else if (Shooter.IsValid())

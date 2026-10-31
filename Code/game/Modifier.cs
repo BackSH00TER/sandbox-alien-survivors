@@ -1,4 +1,4 @@
-public enum Modifier
+public enum GameModifier
 {
 	AttackSpeed,
 	AttackRange,
@@ -7,27 +7,27 @@ public enum Modifier
 
 public static class ModifierCatalog
 {
-	public static string Icon(Modifier modifier) => modifier switch
+	public static string Icon(GameModifier modifier) => modifier switch
 	{
-		Modifier.AttackSpeed => "bolt",
-		Modifier.AttackRange => "open_with",
-		Modifier.Vitality => "favorite",
+		GameModifier.AttackSpeed => "bolt",
+		GameModifier.AttackRange => "open_with",
+		GameModifier.Vitality => "favorite",
 		_ => throw new System.ArgumentOutOfRangeException(nameof(modifier))
 	};
 
-	public static string Name(Modifier modifier) => modifier switch
+	public static string Name(GameModifier modifier) => modifier switch
 	{
-		Modifier.AttackSpeed => "Rapid Strikes",
-		Modifier.AttackRange => "Long Reach",
-		Modifier.Vitality => "Vitality",
+		GameModifier.AttackSpeed => "Rapid Strikes",
+		GameModifier.AttackRange => "Long Reach",
+		GameModifier.Vitality => "Vitality",
 		_ => throw new System.ArgumentOutOfRangeException(nameof(modifier))
 	};
 
-	public static string Description(Modifier modifier) => modifier switch
+	public static string Description(GameModifier modifier) => modifier switch
 	{
-		Modifier.AttackSpeed => "+100% attack rate per stack.",
-		Modifier.AttackRange => "+100% attack range per stack.",
-		Modifier.Vitality => "+100 maximum health and restore 100 health.",
+		GameModifier.AttackSpeed => "+100% attack rate per stack.",
+		GameModifier.AttackRange => "+100% attack range per stack.",
+		GameModifier.Vitality => "+100 maximum health and restore 100 health.",
 		_ => throw new System.ArgumentOutOfRangeException(nameof(modifier))
 	};
 }

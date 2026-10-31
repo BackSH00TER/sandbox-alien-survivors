@@ -14,7 +14,7 @@ public sealed class GameManager : Component
 	[Group("Game Settings"), Description("Ends the game as soon as every survivor is dead, since nobody is left to fire a revive flare. Turn off while debugging revives.")]
 	[Property] public bool ShouldEndWhenAllDead { get; set; } = false;
 	[Sync(SyncFlags.FromHost)] public GameState State { get; set; } = GameState.InProgress;
-	[Sync(SyncFlags.FromHost)] public Enemy Boss { get; private set; }
+	[Sync(SyncFlags.FromHost)] public GameEnemy Boss { get; private set; }
 	[Sync(SyncFlags.FromHost)] public bool BossSpawned { get; private set; }
 
 	[Group("Scene Transition")]
@@ -51,7 +51,7 @@ public sealed class GameManager : Component
 
 	private void SpawnBoss()
 	{
-		var spawner = Scene.GetAllComponents<EnemySpawner>().FirstOrDefault(x => x.Active);
+		var spawner = Scene.GetAllComponents<GameEnemySpawner>().FirstOrDefault(x => x.Active);
 		if (!spawner.IsValid())
 		{
 			if (!_missingSpawnerLogged)
@@ -71,7 +71,7 @@ public sealed class GameManager : Component
 		BossSpawned = true;
 	}
 
-	public void BossDefeated(Enemy enemy)
+	public void BossDefeated(GameEnemy enemy)
 	{
 		if (!Networking.IsHost)
 		{
@@ -93,7 +93,7 @@ public sealed class GameManager : Component
 
 	private bool AreAllSurvivorsDead()
 	{
-		List<SurvivorController> survivors = Scene.GetAllComponents<SurvivorController>().ToList();
+		List<GamePlayer> survivors = Scene.GetAllComponents<GamePlayer>().ToList();
 		return survivors.Count > 0 && survivors.All(x => x.IsDead);
 	}
 
