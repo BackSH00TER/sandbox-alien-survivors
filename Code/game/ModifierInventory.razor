@@ -4,12 +4,13 @@
 @namespace Sandbox
 
 <root>
-	@foreach (Modifier modifier in System.Enum.GetValues<Modifier>())
+	@foreach (ModifierDefinition definition in ModifierCatalog.All)
 	{
+		Modifier modifier = definition.Id;
 		int stacks = StacksOf(modifier);
 		if (stacks > 0)
 		{
-			<div class="modifier-item @modifier.ToString().ToLowerInvariant()">
+			<div class="modifier-item @(definition.EffectType.HasValue ? "damage-effect" : modifier.ToString().ToLowerInvariant())" tooltip="@($"{definition.Name}: {definition.Description}")">
 				<div class="modifier-icon">@ModifierCatalog.Icon(modifier)</div>
 				<div class="modifier-count">@stacks</div>
 			</div>
@@ -26,13 +27,7 @@
 		if (!_survivor.IsValid())
 			return 0;
 
-		return modifier switch
-		{
-			Modifier.AttackSpeed => _survivor.AttackSpeedStacks,
-			Modifier.AttackRange => _survivor.AttackRangeStacks,
-			Modifier.Vitality => _survivor.VitalityStacks,
-			_ => throw new System.ArgumentOutOfRangeException(nameof(modifier))
-		};
+		return _survivor.ModifierStacks(modifier);
 	}
 
 	protected override int BuildHash()
@@ -41,7 +36,6 @@
 		if (!_survivor.IsValid())
 			return 0;
 
-		return System.HashCode.Combine(_survivor, _survivor.AttackSpeedStacks, _survivor.AttackRangeStacks,
-			_survivor.VitalityStacks);
+		return System.HashCode.Combine(_survivor, _survivor.ModifierContentHash());
 	}
 }

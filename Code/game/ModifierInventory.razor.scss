@@ -16,6 +16,7 @@ ModifierInventory
 	}
 
 	.modifier-item {
+		pointer-events: all;
 		position: relative;
 		width: 54px;
 		height: 54px;
@@ -46,6 +47,14 @@ ModifierInventory
 
 			.modifier-icon {
 				color: #ff7c91;
+			}
+
+			&.damage-effect {
+				border-color: #ff651a;
+
+				.modifier-icon {
+					color: #ff651a;
+				}
 			}
 		}
 	}

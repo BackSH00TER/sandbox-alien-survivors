@@ -10,11 +10,13 @@ public sealed class WeaponProjectile : Component
 	[Sync(SyncFlags.FromHost)] public float Radius { get; private set; }
 	[Sync(SyncFlags.FromHost)] public bool ShowHitbox { get; private set; }
 	[Sync(SyncFlags.FromHost)] public Vector3 CollisionOffset { get; private set; }
+	[Sync(SyncFlags.FromHost)] public DamageType EffectType { get; private set; } = DamageType.Physical;
 	public Vector3 CollisionPosition => WorldPosition + CollisionOffset;
 
 	private float _damage;
 	private float _remainingRange;
 	private bool _finished;
+	private DamageEffectSettings _effect;
 
 	public static void Spawn(SurvivorController shooter, WeaponDefinition weapon, Vector3 position, Vector3 direction, float range)
 	{
@@ -42,6 +44,11 @@ public sealed class WeaponProjectile : Component
 		var projectile = bullet.AddComponent<WeaponProjectile>();
 		projectile.Shooter = shooter;
 		projectile.IsEnemyProjectile = shooter is Enemy;
+		if (shooter is SurvivorController survivor)
+		{
+			projectile._effect = DamageEffectCatalog.Roll(survivor.ModifierStacks, () => Game.Random.Float());
+			projectile.EffectType = projectile._effect?.Type ?? DamageType.Physical;
+		}
 		projectile.Direction = direction;
 		projectile.Speed = speed;
 		projectile.Radius = radius;
@@ -71,7 +78,9 @@ public sealed class WeaponProjectile : Component
 		renderer.Model = Model.Load("models/dev/sphere.vmdl");
 		// Exaggerate the visible bullet without enlarging its collision radius.
 		visual.LocalScale = new Vector3(20f, 7f, 7f) / renderer.Model.Bounds.Size.x;
-		renderer.Tint = IsEnemyProjectile ? new Color(1f, 0.15f, 0.8f) : new Color(1f, 0.8f, 0.2f);
+		renderer.Tint = IsEnemyProjectile ? new Color(1f, 0.15f, 0.8f)
+			: EffectType != DamageType.Physical ? DamageEffectCatalog.Get(EffectType).BulletColor
+			: new Color(1f, 0.8f, 0.2f);
 		if (IsEnemyProjectile)
 			visual.LocalScale = Vector3.One * (Radius * 2f / renderer.Model.Bounds.Size.x);
 		renderer.RenderType = ModelRenderer.ShadowRenderType.Off;
@@ -105,9 +114,13 @@ public sealed class WeaponProjectile : Component
 			var canDamage = target.IsValid() && target.CanTakeDamage && target.Health > 0f
 				&& (IsEnemyProjectile ? target is SurvivorController : target is Enemy or SupplyCrate);
 			DrawTravel(start, trace.EndPosition, canDamage ? Color.Green : Color.Red);
-			Finish();
 			if (canDamage)
+			{
 				target.TakeDamage(_damage, Direction, DamageType.Physical, Shooter);
+				if (_effect != null && target.IsValid() && target is Enemy && target.CanTakeDamage && target.Health > 0f)
+					target.ApplyDamageEffect(_effect, Shooter);
+			}
+			Finish();
 			return;
 		}
 

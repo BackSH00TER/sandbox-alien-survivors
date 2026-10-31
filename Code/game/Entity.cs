@@ -7,6 +7,11 @@ public abstract class Entity : Component
 	[Sync(SyncFlags.FromHost)] public float Health { get; private set; } = 100f;
 	[Property, Group("Debug")] public bool ShowAttackHitboxes { get; set; } = true;
 	public virtual bool CanTakeDamage => true;
+	[Sync(SyncFlags.FromHost)] public NetDictionary<DamageType, int> EffectStacks { get; private set; } = new();
+	private readonly TimedDamageEffects<Entity> _damageEffects = new();
+	private readonly Dictionary<DamageType, float> _nextSpreadTimes = new();
+
+	public int EffectStackCount(DamageType type) => EffectStacks.TryGetValue(type, out var count) ? count : 0;
 
 	/// <summary>0 to 1 amount of blood splatter drawn on the model. By default it follows how much health is missing.</summary>
 	public virtual float BloodAmount => 1f - Health / System.MathF.Max(1f, MaxHealth);
@@ -50,7 +55,99 @@ public abstract class Entity : Component
 		FlashHit();
 		OnDamaged(hitDirection);
 		if (wasKill)
+		{
+			ClearDamageEffects();
 			OnHealthDepleted();
+		}
+	}
+
+	public void ApplyDamageEffect(DamageEffectSettings settings, Entity attacker)
+	{
+		if (!Networking.IsHost || settings == null || !attacker.IsValid()
+			|| !DamageEffectCatalog.All.Any(x => x.Type == settings.Type))
+		{
+			Log.Error("Applying a damage effect requires the host, implemented effect settings and a valid attacker.");
+			return;
+		}
+
+		UpdateDamageEffects(false);
+		var manager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
+		if (!Active || !CanTakeDamage || Health <= 0f || (manager != null && manager.State != GameState.InProgress))
+			return;
+
+		if (_damageEffects.Count(settings.Type, Time.Now) == 0)
+			_nextSpreadTimes[settings.Type] = Time.Now + 1f;
+		_damageEffects.Apply(settings, attacker, Time.Now);
+		SyncEffectStacks();
+	}
+
+	private void UpdateDamageEffects(bool spread)
+	{
+		if (!Networking.IsHost || _damageEffects.Stacks.Count == 0)
+			return;
+
+		var manager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
+		if (!Active || Health <= 0f || (manager != null && manager.State != GameState.InProgress))
+		{
+			ClearDamageEffects();
+			return;
+		}
+
+		_damageEffects.Advance(Time.Now, (stack, amount) =>
+		{
+			if (this.IsValid() && Active && CanTakeDamage && Health > 0f
+				&& (manager == null || manager.State == GameState.InProgress))
+				TakeDamage(amount, default, stack.Settings.Type, stack.Source.IsValid() ? stack.Source : null);
+		}, flush: !spread || !CanTakeDamage);
+		if (!this.IsValid() || Health <= 0f || (manager != null && manager.State != GameState.InProgress))
+			return;
+		SyncEffectStacks();
+		if (!spread || this is not Enemy || !CanTakeDamage)
+			return;
+
+		// One spread roll per type per entity, not per stack. The newest spread-enabled stack supplies stats and credit.
+		foreach (var stack in _damageEffects.Stacks.Where(x => x.Settings.SpreadChance > 0f)
+			.GroupBy(x => x.Settings.Type).Select(x => x.Last()).ToArray())
+		{
+			if (Time.Now < _nextSpreadTimes[stack.Settings.Type])
+				continue;
+			_nextSpreadTimes[stack.Settings.Type] = Time.Now + 1f;
+			if (!stack.Source.IsValid()
+				|| (stack.Settings.SpreadChance < 1f && Game.Random.Float() >= stack.Settings.SpreadChance))
+				continue;
+
+			var settings = stack.Settings;
+			var candidates = Scene.GetAllComponents<Enemy>().Where(x => x != this && x.Active
+				&& x.CanTakeDamage && x.Health > 0f && x._damageEffects.CanSpreadTo(settings, Time.Now)
+				&& (x.WorldPosition - WorldPosition).LengthSquared <= settings.SpreadRadius * settings.SpreadRadius)
+				.Where(x =>
+				{
+					var trace = Scene.Trace.FromTo(WorldPosition + Vector3.Up * WeaponProjectile.CollisionHeight,
+						x.WorldPosition + Vector3.Up * WeaponProjectile.CollisionHeight)
+						.IgnoreGameObjectHierarchy(GameObject).Run();
+					return !trace.Hit || trace.GameObject.GetComponentInParent<Entity>() == x;
+				}).ToList();
+			if (candidates.Count > 0)
+				candidates[Game.Random.Int(0, candidates.Count - 1)].ApplyDamageEffect(settings, stack.Source);
+		}
+	}
+
+	private void SyncEffectStacks()
+	{
+		foreach (var definition in DamageEffectCatalog.All)
+		{
+			var count = _damageEffects.Count(definition.Type, Time.Now);
+			if (EffectStackCount(definition.Type) != count)
+				EffectStacks[definition.Type] = count;
+		}
+	}
+
+	private void ClearDamageEffects()
+	{
+		_damageEffects.Clear();
+		_nextSpreadTimes.Clear();
+		if (Networking.IsHost)
+			EffectStacks.Clear();
 	}
 
 	protected virtual void OnHealthDepleted()
@@ -214,6 +311,7 @@ public abstract class Entity : Component
 
 	protected override void OnUpdate()
 	{
+		UpdateDamageEffects(true);
 		if (_originalMaterials.Count == 0)
 			return;
 
@@ -236,6 +334,7 @@ public abstract class Entity : Component
 
 	protected override void OnDisabled()
 	{
+		ClearDamageEffects();
 		RestoreMaterials();
 	}
 }

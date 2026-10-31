@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <EngineDirectory Condition="'$(EngineDirectory)' == ''">$(FACEPUNCH_ENGINE)</EngineDirectory>
+  </PropertyGroup>
+  <Target Name="CheckEngine" BeforeTargets="ResolveReferences">
+    <Error Condition="!Exists('$(EngineDirectory)\bin\managed\Sandbox.System.dll')" Text="Set FACEPUNCH_ENGINE or pass -p:EngineDirectory to your s&amp;box installation." />
+  </Target>
+  <ItemGroup>
+    <Compile Include="..\Code\game\DamageEffect.cs" Link="DamageEffect.cs" />
+    <Compile Include="..\Code\game\TimedDamageEffects.cs" Link="TimedDamageEffects.cs" />
+    <Compile Include="..\Code\game\WeightedDraw.cs" Link="WeightedDraw.cs" />
+    <Compile Include="..\Code\game\Modifier.cs" Link="Modifier.cs" />
+    <Compile Include="..\Code\game\stats\DamageType.cs" Link="DamageType.cs" />
+    <Reference Include="$(EngineDirectory)\bin\managed\Sandbox.System.dll" />
+  </ItemGroup>
+</Project>

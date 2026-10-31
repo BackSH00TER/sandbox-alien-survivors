@@ -35,6 +35,23 @@ public sealed class SurvivorController : Entity
 	[Sync(SyncFlags.FromHost)] public int AttackSpeedStacks { get; private set; }
 	[Sync(SyncFlags.FromHost)] public int AttackRangeStacks { get; private set; }
 	[Sync(SyncFlags.FromHost)] public int VitalityStacks { get; private set; }
+	[Sync(SyncFlags.FromHost)] private NetDictionary<Modifier, int> EffectModifierStacks { get; set; } = new();
+
+	public int ModifierStacks(Modifier modifier) => modifier switch
+	{
+		Modifier.AttackSpeed => AttackSpeedStacks,
+		Modifier.AttackRange => AttackRangeStacks,
+		Modifier.Vitality => VitalityStacks,
+		_ => EffectModifierStacks.TryGetValue(modifier, out var count) ? count : 0
+	};
+
+	public int ModifierContentHash()
+	{
+		int hash = System.HashCode.Combine(AttackSpeedStacks, AttackRangeStacks, VitalityStacks);
+		foreach (var pair in EffectModifierStacks)
+			hash ^= System.HashCode.Combine(pair.Key, pair.Value);
+		return hash;
+	}
 
 	public float EffectiveAttackInterval => EquippedWeapon == null ? 0f
 		: System.MathF.Max(0.1f, 1f / (EquippedWeapon.FireRate * (1f + AttackSpeedStacks)));
@@ -449,12 +466,7 @@ public sealed class SurvivorController : Entity
 
 	private void RollModifierOffer()
 	{
-		var options = System.Enum.GetValues<Modifier>();
-		for (var i = options.Length - 1; i > 0; i--)
-		{
-			var other = Game.Random.Int(0, i);
-			(options[i], options[other]) = (options[other], options[i]);
-		}
+		var options = ModifierCatalog.RollOffer(ModifierStacks, () => Game.Random.Float());
 
 		ModifierOptionOne = options[0];
 		ModifierOptionTwo = options[1];
@@ -468,7 +480,8 @@ public sealed class SurvivorController : Entity
 		var gameManager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
 		if (!Active || (gameManager != null && gameManager.State != GameState.InProgress)
 			|| PendingModifierChoices <= 0 || offerId != ModifierOfferId
-			|| (modifier != ModifierOptionOne && modifier != ModifierOptionTwo && modifier != ModifierOptionThree))
+			|| (modifier != ModifierOptionOne && modifier != ModifierOptionTwo && modifier != ModifierOptionThree)
+			|| !ModifierCatalog.Get(modifier).IsAvailable(ModifierStacks))
 		{
 			Log.Warning("Rejected an unavailable or outdated modifier choice.");
 			return;
@@ -488,8 +501,8 @@ public sealed class SurvivorController : Entity
 				IncreaseMaxHealth(100f);
 				break;
 			default:
-				Log.Error($"Unknown modifier: {modifier}");
-				return;
+				EffectModifierStacks[modifier] = ModifierStacks(modifier) + 1;
+				break;
 		}
 
 		PlayerStats.Record(this, StatKeys.ModifierPicked(modifier));
