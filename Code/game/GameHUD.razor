@@ -4,53 +4,53 @@
 @namespace Sandbox
 
 <root>
-	<div class="title">@MatchStatus@(LocalSurvivor?.IsStunned == true ? " | STUNNED" : "")</div>
+	<div class="title">@MatchStatus@(LocalPlayer?.IsStunned == true ? " | STUNNED" : "")</div>
 
-	@if (LocalSurvivor.IsValid())
+	@if (LocalPlayer.IsValid())
 	{
-		<ModifierInventory />
+		<GameModifierInventory />
 
-		@if (DebugEnabled && LocalSurvivor.ShowAttackDebug)
+		@if (DebugEnabled && LocalPlayer.ShowAttackDebug)
 		{
 			<div class="attack-debug">
-				<div>Weapon: @(LocalSurvivor.EquippedWeapon?.DisplayName ?? "None")</div>
-				<div>Attack rate: @((LocalSurvivor.EffectiveAttackInterval > 0f ? 1f / LocalSurvivor.EffectiveAttackInterval : 0f).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)) / sec</div>
-				<div>Interval: @(LocalSurvivor.EffectiveAttackInterval.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)) sec</div>
-				<div>Range: @(LocalSurvivor.EffectiveAttackRange.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)) units</div>
-				<div>Bullets / shot: @(LocalSurvivor.EquippedWeapon?.BulletsPerShot ?? 0)</div>
+				<div>Weapon: @(LocalPlayer.EquippedWeapon?.DisplayName ?? "None")</div>
+				<div>Attack rate: @((LocalPlayer.EffectiveAttackInterval > 0f ? 1f / LocalPlayer.EffectiveAttackInterval : 0f).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)) / sec</div>
+				<div>Interval: @(LocalPlayer.EffectiveAttackInterval.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)) sec</div>
+				<div>Range: @(LocalPlayer.EffectiveAttackRange.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)) units</div>
+				<div>Bullets / shot: @(LocalPlayer.EquippedWeapon?.BulletsPerShot ?? 0)</div>
 				<div>B: Toggle debug</div>
 				<div>K: Kill self</div>
 				<div>G: Spawn flare pickup</div>
-				<div>H: God mode (@(LocalSurvivor.GodMode ? "ON" : "off"))</div>
+				<div>H: God mode (@(LocalPlayer.GodMode ? "ON" : "off"))</div>
 			</div>
 		}
 
 		<div class="experience">
 			<div class="fill"
 				 style="width: @(ExperiencePercent.ToString(System.Globalization.CultureInfo.InvariantCulture))%;"></div>
-			<div class="label">Lv @LocalSurvivor.Level</div>
+			<div class="label">Lv @LocalPlayer.Level</div>
 		</div>
 
-		@if (NearbyWeapon.IsValid() && !LocalSurvivor.IsDead)
+		@if (NearbyWeapon.IsValid() && !LocalPlayer.IsDead)
 		{
-			<div class="weapon-prompt">E: Replace @(LocalSurvivor.EquippedWeapon?.DisplayName ?? "weapon") with
+			<div class="weapon-prompt">E: Replace @(LocalPlayer.EquippedWeapon?.DisplayName ?? "weapon") with
 				@NearbyWeapon.DisplayName</div>
 		}
 
-		@if (LocalSurvivor.IsDead)
+		@if (LocalPlayer.IsDead)
 		{
 			<div class="dead-banner">
 				<div class="dead-title">YOU DIED</div>
 				<div class="dead-hint">Fly with WASD. Stay alive until a teammate fires a flare, then fly through it to return.
 				</div>
 			</div>
-			<FlareMarker />
+			<GameFlareMarker />
 		}
 
-		<ModifierPicker />
+		<GameModifierPicker />
 	}
 
-	@if (PlayerStats.HasRoundEnded(Scene))
+	@if (GamePlayerStats.HasRoundEnded(Scene))
 	{
 		<GameStatsScreen />
 	}
@@ -67,8 +67,8 @@
 	{
 		get
 		{
-			BossEnemy bossEnemy = Scene.GetAllComponents<BossEnemy>().FirstOrDefault();
-			Enemy boss = bossEnemy.IsValid() ? bossEnemy.GetComponent<Enemy>() : null;
+			GameEnemyBoss bossEnemy = Scene.GetAllComponents<GameEnemyBoss>().FirstOrDefault();
+			GameEnemy boss = bossEnemy.IsValid() ? bossEnemy.GetComponent<GameEnemy>() : null;
 			if (!boss.IsValid())
 				return $"Boss in: {CountdownTime}";
 
@@ -78,9 +78,9 @@
 		}
 	}
 
-	private SurvivorController LocalSurvivor => Scene.GetAllComponents<SurvivorController>().FirstOrDefault(x =>
+	private GamePlayer LocalPlayer => Scene.GetAllComponents<GamePlayer>().FirstOrDefault(x =>
 !x.IsProxy);
-	private LootPickup NearbyWeapon => LootPickup.FindNearestWeapon(LocalSurvivor);
+	private GameLootPickup NearbyWeapon => GameLootPickup.FindNearestWeapon(LocalPlayer);
 
 	protected override void OnUpdate()
 	{
@@ -92,20 +92,20 @@
 	{
 		get
 		{
-			var survivor = LocalSurvivor;
-			if (!survivor.IsValid())
+			var player = LocalPlayer;
+			if (!player.IsValid())
 				return 0f;
 
-			return ((float)survivor.Experience / survivor.ExperienceToNextLevel).Clamp(0f, 1f) * 100f;
+			return ((float)player.Experience / player.ExperienceToNextLevel).Clamp(0f, 1f) * 100f;
 		}
 	}
 
 	protected override int BuildHash()
 	{
-		var survivor = LocalSurvivor;
-		return System.HashCode.Combine(MatchStatus, survivor, survivor?.Level, ExperiencePercent,
-			(DebugEnabled, survivor?.ShowAttackDebug, NearbyWeapon, survivor?.IsStunned, survivor?.IsDead, survivor?.GodMode, PlayerStats.HasRoundEnded(Scene)),
-			System.HashCode.Combine(survivor?.EffectiveAttackInterval, survivor?.EffectiveAttackRange,
-				survivor?.EquippedWeapon, survivor?.EquippedWeapon?.BulletsPerShot));
+		var player = LocalPlayer;
+		return System.HashCode.Combine(MatchStatus, player, player?.Level, ExperiencePercent,
+			(DebugEnabled, player?.ShowAttackDebug, NearbyWeapon, player?.IsStunned, player?.IsDead, player?.GodMode, GamePlayerStats.HasRoundEnded(Scene)),
+			System.HashCode.Combine(player?.EffectiveAttackInterval, player?.EffectiveAttackRange,
+				player?.EquippedWeapon, player?.EquippedWeapon?.BulletsPerShot));
 	}
 }

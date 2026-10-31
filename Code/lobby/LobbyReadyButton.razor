@@ -1,0 +1,47 @@
+@using Sandbox
+@using Sandbox.UI
+@namespace Sandbox
+@inherits PanelComponent
+
+<root>
+    @if ( Networking.IsHost )
+    {
+        <button class="start-button @(AreAllPlayersReady ? "" : "is-disabled")" onclick=@StartGame>
+            @($"Start Game ({ReadyCount}/{PlayerCount})")
+        </button>
+    }
+    <button class="ready-button @(IsLocalPlayerReady ? "is-ready" : "")" onclick=@ToggleReady>
+        @(IsLocalPlayerReady ? "Unready" : "Ready Up")
+    </button>
+</root>
+
+@code
+{
+    private LobbyPlayerReadyState LocalState => Scene.GetAllComponents<LobbyPlayerReadyState>().FirstOrDefault( x => !x.IsProxy );
+
+    private bool IsLocalPlayerReady => LocalState?.IsReady ?? false;
+
+    private LobbyManager Manager => Scene.GetAllComponents<LobbyManager>().FirstOrDefault();
+
+    private bool AreAllPlayersReady => Manager?.AreAllPlayersReady ?? false;
+
+    private int ReadyCount => Manager?.ReadyCount ?? 0;
+
+    private int PlayerCount => Manager?.PlayerCount ?? 0;
+
+    private void StartGame()
+    {
+        Manager?.StartGame();
+    }
+
+    private void ToggleReady()
+    {
+        LobbyPlayerReadyState state = LocalState;
+        if ( state == null )
+            return;
+
+        state.IsReady = !state.IsReady;
+    }
+
+    protected override int BuildHash() => System.HashCode.Combine( IsLocalPlayerReady, ReadyCount, PlayerCount, Networking.IsHost );
+}
