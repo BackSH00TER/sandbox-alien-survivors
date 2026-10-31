@@ -4,6 +4,7 @@ public static class StatKeys
     public const string DamageDealt = "damage_dealt";
     public const string DamageDealtToBoss = "damage_dealt.boss";
     public const string DamageTaken = "damage_taken";
+    public const string ArmorGained = "armor_gained";
     public const string Kills = "kills";
     public const string Deaths = "deaths";
     public const string TimesRevived = "times_revived";

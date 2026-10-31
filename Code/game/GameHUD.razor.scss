@@ -66,6 +66,19 @@ GameHUD {
 		color: #fff;
 	}
 
+	.armor {
+		position: absolute;
+		left: 24px;
+		bottom: 56px;
+		padding: 6px 12px;
+		background-color: #101218cc;
+		border-radius: 4px;
+		font-family: Orbitron;
+		font-size: 18px;
+		color: #33bfff;
+		text-shadow: 0 1px 2px #000;
+	}
+
 	.experience {
 		position: absolute;
 		left: 24px;

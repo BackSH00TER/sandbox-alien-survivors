@@ -44,6 +44,7 @@ public static class StatCatalog
         new StatSection("Survival", new List<StatRow>
         {
             new StatRow("Damage taken", StatKeys.DamageTaken),
+            new StatRow("Armor gained", StatKeys.ArmorGained),
             new StatRow("Deaths", StatKeys.Deaths),
             new StatRow("Times revived", StatKeys.TimesRevived)
         }),

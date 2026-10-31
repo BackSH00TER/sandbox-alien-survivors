@@ -1,6 +1,6 @@
 using Sandbox;
 
-/// <summary>A 30-health shootable crate that drops one equally weighted health, rifle, or shotgun pickup, or a flare when someone is dead.</summary>
+/// <summary>A 30-health shootable crate. After the revive-flare roll, armor has a 10% chance; otherwise health, rifle and shotgun are equally weighted.</summary>
 public sealed class SupplyCrate : Entity
 {
 	[Sync(SyncFlags.FromHost)] public WeaponDefinition Rifle { get; set; }
@@ -53,19 +53,22 @@ public sealed class SupplyCrate : Entity
 		renderer.Tint = color;
 	}
 
-	// Every loot kind except Flare is a normal drop. Built from the enum so new kinds are picked up automatically.
+	// Armor and flare have their own chances; the remaining kinds share the ordinary drop pool.
 	private static readonly LootKind[] NormalDrops = System.Enum.GetValues<LootKind>()
-		.Where(x => x != LootKind.Flare).ToArray();
+		.Where(x => x != LootKind.Flare && x != LootKind.Armor).ToArray();
 
 	/// <summary>
 	/// Picks what the crate drops. A flare is rolled first, and only has a chance while someone is dead. Otherwise
-	/// one of the normal drops is chosen with equal weight.
+	/// armor has a 10% chance, then one of the normal drops is chosen with equal weight.
 	/// </summary>
 	private LootKind RollKind()
 	{
 		var spawner = Scene.GetAllComponents<CrateSpawner>().FirstOrDefault();
 		if (spawner != null && Game.Random.Float() < spawner.GetFlareDropChance())
 			return LootKind.Flare;
+
+		if (Game.Random.Float() < 0.1f)
+			return LootKind.Armor;
 
 		return NormalDrops[Game.Random.Int(0, NormalDrops.Length - 1)];
 	}
@@ -77,7 +80,7 @@ public sealed class SupplyCrate : Entity
 
 		_opened = true;
 		var kind = RollKind();
-		// Only weapon drops need a weapon definition; health and flare pickups have none.
+		// Only weapon drops need a weapon definition.
 		WeaponDefinition weapon = kind switch
 		{
 			LootKind.Rifle => Rifle,

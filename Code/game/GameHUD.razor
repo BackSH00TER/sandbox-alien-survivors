@@ -25,6 +25,8 @@
 			</div>
 		}
 
+		<div class="armor">Armor: @LocalSurvivor.Armor</div>
+
 		<div class="experience">
 			<div class="fill"
 				 style="width: @(ExperiencePercent.ToString(System.Globalization.CultureInfo.InvariantCulture))%;"></div>
@@ -104,7 +106,7 @@
 	{
 		var survivor = LocalSurvivor;
 		return System.HashCode.Combine(MatchStatus, survivor, survivor?.Level, ExperiencePercent,
-			(DebugEnabled, survivor?.ShowAttackDebug, NearbyWeapon, survivor?.IsStunned, survivor?.IsDead, survivor?.GodMode, PlayerStats.HasRoundEnded(Scene)),
+			(DebugEnabled, survivor?.ShowAttackDebug, NearbyWeapon, survivor?.IsStunned, survivor?.IsDead, survivor?.GodMode, PlayerStats.HasRoundEnded(Scene), survivor?.Armor),
 			System.HashCode.Combine(survivor?.EffectiveAttackInterval, survivor?.EffectiveAttackRange,
 				survivor?.EquippedWeapon, survivor?.EquippedWeapon?.BulletsPerShot));
 	}

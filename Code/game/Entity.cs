@@ -5,6 +5,21 @@ public abstract class Entity : Component
 	[Property, Range(1f, 1000f), Sync(SyncFlags.FromHost)] public float MaxHealth { get; set; } = 100f;
 	[Property, Range(0.01f, 1f)] public float HitFlashDuration { get; set; } = 0.12f;
 	[Sync(SyncFlags.FromHost)] public float Health { get; private set; } = 100f;
+	[Property, Range(0, int.MaxValue), Sync(SyncFlags.FromHost), Description("Current armor. Set on creation; each point blocks one entire hit.")]
+	public int Armor
+	{
+		get => _armor;
+		set
+		{
+			if (value < 0)
+			{
+				Log.Error("Armor must be non-negative.");
+				return;
+			}
+
+			_armor = value;
+		}
+	}
 	[Property, Group("Debug")] public bool ShowAttackHitboxes { get; set; } = true;
 	public virtual bool CanTakeDamage => true;
 
@@ -13,6 +28,7 @@ public abstract class Entity : Component
 
 	private const float PunchFacingThreshold = 0.5f;
 	private const float PunchTraceHeight = 36f;
+	private int _armor = 0;
 	private readonly Dictionary<ModelRenderer, Material> _originalMaterials = new();
 	private Material _flashMaterial;
 	private float _flashEndTime;
@@ -26,7 +42,7 @@ public abstract class Entity : Component
 			Health = MaxHealth;
 	}
 
-	public void TakeDamage(float amount, Vector3 hitDirection = default, DamageType type = DamageType.Physical, Entity attacker = null)
+	public void TakeDamage(float amount, Vector3 hitDirection = default, DamageType type = DamageType.Physical, Entity attacker = null, bool bypassArmor = false)
 	{
 		if (!Networking.IsHost)
 		{
@@ -40,13 +56,21 @@ public abstract class Entity : Component
 			return;
 		}
 
-		if (!CanTakeDamage)
+		if (Health <= 0f || !CanTakeDamage)
 			return;
 
-		float previousHealth = Health;
-		Health = System.MathF.Max(0f, Health - amount);
-		bool wasKill = previousHealth > 0f && Health <= 0f;
-		PlayerStats.RecordDamage(attacker, this, previousHealth - Health, type, wasKill);
+		bool wasKill = false;
+		if (Armor > 0 && !bypassArmor)
+		{
+			Armor--;
+		}
+		else
+		{
+			float previousHealth = Health;
+			Health = System.MathF.Max(0f, Health - amount);
+			wasKill = Health <= 0f;
+			PlayerStats.RecordDamage(attacker, this, previousHealth - Health, type, wasKill);
+		}
 		FlashHit();
 		OnDamaged(hitDirection);
 		if (wasKill)
@@ -55,6 +79,24 @@ public abstract class Entity : Component
 
 	protected virtual void OnHealthDepleted()
 	{
+	}
+
+	/// <summary>Host only. Adds armor without a gameplay cap and records armor gained by survivors this round. Spawn armor is not counted. Each point absorbs one entire damaging hit.</summary>
+	public bool AddArmor(int amount)
+	{
+		if (!Networking.IsHost || amount <= 0 || Armor > int.MaxValue - amount)
+		{
+			Log.Error("Adding armor requires a positive amount on the host within integer capacity.");
+			return false;
+		}
+
+		if (Health <= 0f)
+			return false;
+
+		Armor += amount;
+		if (this is SurvivorController survivor)
+			PlayerStats.Record(survivor, StatKeys.ArmorGained, amount);
+		return true;
 	}
 
 	public bool RestoreHealth(float amount)

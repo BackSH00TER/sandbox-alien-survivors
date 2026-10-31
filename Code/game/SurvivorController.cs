@@ -310,7 +310,7 @@ public sealed class SurvivorController : Entity
 
 		// Killing on purpose wins over god mode, so it is switched off first.
 		GodMode = false;
-		TakeDamage(Health);
+		TakeDamage(Health, bypassArmor: true);
 	}
 
 	[Rpc.Host(NetFlags.OwnerOnly)]
