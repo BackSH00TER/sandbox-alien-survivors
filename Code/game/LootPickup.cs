@@ -9,7 +9,7 @@ public enum LootKind
 	Armor
 }
 
-/// <summary>Health restores 50 on contact when injured; armor adds one hit-blocking point on contact; a flare pickup fires a revive flare on contact; weapons replace the equipped weapon through an owner-only interaction. Unclaimed pickups disappear after <see cref="LifetimeSeconds"/>.</summary>
+/// <summary>Health restores 50 on contact when injured; armor adds one armor point on contact; a flare pickup fires a revive flare on contact; weapons replace the equipped weapon through an owner-only interaction. Unclaimed pickups disappear after <see cref="LifetimeSeconds"/>.</summary>
 public sealed class LootPickup : Component
 {
 	public const float WeaponPickupRange = 72f;

@@ -40,7 +40,7 @@ public sealed class PlayerStats : Component
     /// <summary>Host only. Adds to a stat of the player that owns the survivor.</summary>
     public static void Record(SurvivorController survivor, string key, float amount = 1f)
     {
-        PlayerStats stats = survivor.GetComponent<PlayerStats>();
+        PlayerStats stats = survivor.Stats;
         if (!stats.IsValid())
         {
             Log.Error("SurvivorController requires a PlayerStats component.");

@@ -3,6 +3,7 @@ using Sandbox;
 public sealed class SurvivorController : Entity
 {
 	[Property, RequireComponent] public PlayerController Controller { get; set; }
+	[Property, RequireComponent] public PlayerStats Stats { get; set; }
 	[Property, Range(0.25f, 4f)] public float Zoom { get; set; } = 1.5f;
 	[Property, Group("Spectate"), Range(0f, 2000f), Description("Height above the death position that the UAV flies at.")]
 	public float UavAltitude { get; set; } = 600f;
@@ -47,8 +48,7 @@ public sealed class SurvivorController : Entity
 	{
 		get
 		{
-			PlayerStats stats = GetComponent<PlayerStats>();
-			return stats.IsValid() && stats.IsRoundOver;
+			return Stats.IsValid() && Stats.IsRoundOver;
 		}
 	}
 	// Dead, god mode and the post-revive grace period all block damage.
