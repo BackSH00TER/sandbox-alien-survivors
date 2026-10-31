@@ -1,6 +1,6 @@
 using Sandbox;
 
-/// <summary>Base weapon stats; survivor modifiers are applied without changing the shared resource.</summary>
+/// <summary>Base weapon stats; player modifiers are applied without changing the shared resource.</summary>
 [AssetType(Name = "Weapon", Extension = "weapon", Category = "weapons")]
 public sealed partial class GameWeaponDefinition : GameResource
 {

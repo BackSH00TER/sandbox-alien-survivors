@@ -70,15 +70,15 @@ public sealed class GameExperienceOrb : Component
 
 		GamePlayer target = null;
 		var nearestDistanceSquared = MagnetRange * MagnetRange;
-		foreach (var survivor in Scene.GetAllComponents<GamePlayer>())
+		foreach (var player in Scene.GetAllComponents<GamePlayer>())
 		{
-			if (!survivor.Active || survivor.Health <= 0f)
+			if (!player.Active || player.Health <= 0f)
 				continue;
 
-			var distanceSquared = (survivor.WorldPosition + Vector3.Up * 12f - WorldPosition).LengthSquared;
+			var distanceSquared = (player.WorldPosition + Vector3.Up * 12f - WorldPosition).LengthSquared;
 			if (distanceSquared <= nearestDistanceSquared)
 			{
-				target = survivor;
+				target = player;
 				nearestDistanceSquared = distanceSquared;
 			}
 		}

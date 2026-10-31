@@ -93,8 +93,8 @@ public sealed class GameCrateSpawner : Component
 	/// </summary>
 	public float GetFlareDropChance()
 	{
-		var survivors = Scene.GetAllComponents<GamePlayer>().ToList();
-		var dead = survivors.Where(x => x.IsDead).ToList();
+		var players = Scene.GetAllComponents<GamePlayer>().ToList();
+		var dead = players.Where(x => x.IsDead).ToList();
 		if (dead.Count == 0)
 			return 0f;
 

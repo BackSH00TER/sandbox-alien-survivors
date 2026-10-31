@@ -9,9 +9,9 @@ public sealed class GamePlayer : GameEntity
 	[Property, Group("Spectate"), Range(100f, 3000f)] public float UavSpeed { get; set; } = 900f;
 	[Property, Group("Spectate"), Description("Camera offset from the UAV. Higher and steeper than the alive camera.")]
 	public Vector3 UavCameraOffset { get; set; } = new Vector3(-350f, 0f, 800f);
-	[Property, Group("Revive"), Range(0.05f, 1f), Description("Fraction of max health a revived survivor comes back with.")]
+	[Property, Group("Revive"), Range(0.05f, 1f), Description("Fraction of max health a revived player comes back with.")]
 	public float ReviveHealthFraction { get; set; } = 0.5f;
-	[Property, Group("Revive"), Range(0f, 10f), Description("Seconds a revived survivor cannot take damage.")]
+	[Property, Group("Revive"), Range(0f, 10f), Description("Seconds a revived player cannot take damage.")]
 	public float ReviveInvulnerableSeconds { get; set; } = 3f;
 	[Property, Group("Weapon"), Description("Weapon equipped on spawn. If unassigned, uses weapons/pistol.weapon.")]
 	public GameWeaponDefinition StartingWeapon { get; set; }
@@ -54,19 +54,19 @@ public sealed class GamePlayer : GameEntity
 	// Dead, god mode and the post-revive grace period all block damage.
 	public override bool CanTakeDamage => !IsDead && !GodMode && Time.Now >= _invulnerableUntil;
 
-	/// <summary>Debug only: while true this survivor takes no damage.</summary>
+	/// <summary>Debug only: while true this player takes no damage.</summary>
 	[Sync(SyncFlags.FromHost)] public bool GodMode { get; private set; }
 
 	/// <summary>
-	/// Missing health that is not shown as blood. Set on revive so a revived survivor comes back clean, then
+	/// Missing health that is not shown as blood. Set on revive so a revived player comes back clean, then
 	/// shrinks as they heal so blood only appears from damage taken after that.
 	/// </summary>
 	[Sync(SyncFlags.FromHost)] public float BloodOffset { get; private set; }
 
-	// A dead survivor shows no blood, so the UAV drone and the body on revive are clean.
+	// A dead player shows no blood, so the UAV drone and the body on revive are clean.
 	public override float BloodAmount => IsDead ? 0f : System.MathF.Max(0f, base.BloodAmount - BloodOffset);
 
-	/// <summary>Host only: when this survivor died, used to raise the flare drop chance the longer they stay dead.</summary>
+	/// <summary>Host only: when this player died, used to raise the flare drop chance the longer they stay dead.</summary>
 	public float DeathTime { get; private set; }
 
 	[Sync(SyncFlags.FromHost)] private float NextAttackTime { get; set; }
@@ -135,7 +135,7 @@ public sealed class GamePlayer : GameEntity
 		{
 			if (!_missingCameraLogged)
 			{
-				Log.Error("SurvivorController requires an active scene camera.");
+				Log.Error("GamePlayer requires an active scene camera.");
 				_missingCameraLogged = true;
 			}
 
@@ -330,7 +330,7 @@ public sealed class GamePlayer : GameEntity
 		DeathTime = Time.Now;
 	}
 
-	/// <summary>Host only. Revives a dead survivor at the given ground position with partial health and a short grace period.</summary>
+	/// <summary>Host only. Revives a dead player at the given ground position with partial health and a short grace period.</summary>
 	public bool ReviveAt(Vector3 groundPosition)
 	{
 		if (!Networking.IsHost || !IsDead)
@@ -372,7 +372,7 @@ public sealed class GamePlayer : GameEntity
 		var heldWeapon = GetComponent<GamePlayerHeldWeaponModel>();
 		if (!heldWeapon.IsValid())
 		{
-			Log.Error("SurvivorController requires a held weapon model to fire.");
+			Log.Error("GamePlayer requires a held weapon model to fire.");
 			return;
 		}
 
@@ -506,7 +506,7 @@ public sealed class GamePlayer : GameEntity
 	{
 		if (!Controller.Renderer.IsValid())
 		{
-			Log.Error("SurvivorController requires an animated renderer to fire.");
+			Log.Error("GamePlayer requires an animated renderer to fire.");
 			return;
 		}
 

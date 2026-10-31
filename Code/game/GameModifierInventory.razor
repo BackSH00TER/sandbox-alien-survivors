@@ -19,29 +19,29 @@
 
 @code
 {
-	private GamePlayer _survivor;
+	private GamePlayer _player;
 
 	private int StacksOf(GameModifier modifier)
 	{
-		if (!_survivor.IsValid())
+		if (!_player.IsValid())
 			return 0;
 
 		return modifier switch
 		{
-			GameModifier.AttackSpeed => _survivor.AttackSpeedStacks,
-			GameModifier.AttackRange => _survivor.AttackRangeStacks,
-			GameModifier.Vitality => _survivor.VitalityStacks,
+			GameModifier.AttackSpeed => _player.AttackSpeedStacks,
+			GameModifier.AttackRange => _player.AttackRangeStacks,
+			GameModifier.Vitality => _player.VitalityStacks,
 			_ => throw new System.ArgumentOutOfRangeException(nameof(modifier))
 		};
 	}
 
 	protected override int BuildHash()
 	{
-		_survivor = Game.ActiveScene.GetAllComponents<GamePlayer>().FirstOrDefault(x => !x.IsProxy);
-		if (!_survivor.IsValid())
+		_player = Game.ActiveScene.GetAllComponents<GamePlayer>().FirstOrDefault(x => !x.IsProxy);
+		if (!_player.IsValid())
 			return 0;
 
-		return System.HashCode.Combine(_survivor, _survivor.AttackSpeedStacks, _survivor.AttackRangeStacks,
-			_survivor.VitalityStacks);
+		return System.HashCode.Combine(_player, _player.AttackSpeedStacks, _player.AttackRangeStacks,
+			_player.VitalityStacks);
 	}
 }

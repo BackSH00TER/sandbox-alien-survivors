@@ -133,9 +133,9 @@ public sealed class GameLootPickup : Component
 
 	private void TryHealNearby()
 	{
-		foreach (var survivor in Scene.GetAllComponents<GamePlayer>())
+		foreach (var player in Scene.GetAllComponents<GamePlayer>())
 		{
-			if (!CanReach(survivor, ContactRange) || !survivor.RestoreHealth(50f))
+			if (!CanReach(player, ContactRange) || !player.RestoreHealth(50f))
 				continue;
 
 			Claimed = true;
@@ -147,60 +147,60 @@ public sealed class GameLootPickup : Component
 	// Walking over a flare pickup fires the flare right away. Ignored while nobody is dead so it isn't wasted.
 	private void TryFireFlareNearby()
 	{
-		var survivors = Scene.GetAllComponents<GamePlayer>().ToList();
-		if (!survivors.Any(x => x.IsDead))
+		var players = Scene.GetAllComponents<GamePlayer>().ToList();
+		if (!players.Any(x => x.IsDead))
 			return;
 
-		foreach (var survivor in survivors)
+		foreach (var player in players)
 		{
-			if (!CanReach(survivor, ContactRange))
+			if (!CanReach(player, ContactRange))
 				continue;
 
-			GameReviveFlare.Spawn(survivor.WorldPosition);
+			GameReviveFlare.Spawn(player.WorldPosition);
 			Claimed = true;
 			GameObject.Destroy();
 			return;
 		}
 	}
 
-	public static GameLootPickup FindNearestWeapon(GamePlayer survivor)
+	public static GameLootPickup FindNearestWeapon(GamePlayer player)
 	{
-		if (!survivor.IsValid())
+		if (!player.IsValid())
 			return null;
 
-		var manager = survivor.Scene.GetAllComponents<GameManager>().FirstOrDefault();
+		var manager = player.Scene.GetAllComponents<GameManager>().FirstOrDefault();
 		if (manager != null && manager.State != GameState.InProgress)
 			return null;
 
-		return survivor.Scene.GetAllComponents<GameLootPickup>()
-			.Where(x => x.Kind != LootKind.Health && x.Weapon != null && x.CanReach(survivor, WeaponPickupRange))
-			.OrderBy(x => (x.WorldPosition - survivor.WorldPosition).LengthSquared)
+		return player.Scene.GetAllComponents<GameLootPickup>()
+			.Where(x => x.Kind != LootKind.Health && x.Weapon != null && x.CanReach(player, WeaponPickupRange))
+			.OrderBy(x => (x.WorldPosition - player.WorldPosition).LengthSquared)
 			.FirstOrDefault();
 	}
 
-	internal bool TryEquip(GamePlayer survivor)
+	internal bool TryEquip(GamePlayer player)
 	{
 		if (!Networking.IsHost || !GameInProgress() || Kind == LootKind.Health
-			|| !CanReach(survivor, WeaponPickupRange) || Weapon == null || !Weapon.Validate())
+			|| !CanReach(player, WeaponPickupRange) || Weapon == null || !Weapon.Validate())
 		{
 			Log.Warning("Rejected an unavailable or out-of-range weapon pickup.");
 			return false;
 		}
 
 		Claimed = true;
-		survivor.EquipWeapon(Weapon);
+		player.EquipWeapon(Weapon);
 		GameObject.Destroy();
 		return true;
 	}
 
-	private bool CanReach(GamePlayer survivor, float range)
+	private bool CanReach(GamePlayer player, float range)
 	{
-		if (!Active || Claimed || !survivor.IsValid() || !survivor.Active || survivor.Health <= 0f
-			|| (WorldPosition - (survivor.WorldPosition + Vector3.Up * 16f)).LengthSquared > range * range)
+		if (!Active || Claimed || !player.IsValid() || !player.Active || player.Health <= 0f
+			|| (WorldPosition - (player.WorldPosition + Vector3.Up * 16f)).LengthSquared > range * range)
 			return false;
 
-		var trace = Scene.Trace.FromTo(survivor.WorldPosition + Vector3.Up * 36f, WorldPosition)
-			.IgnoreGameObjectHierarchy(survivor.GameObject).IgnoreGameObjectHierarchy(GameObject).Run();
+		var trace = Scene.Trace.FromTo(player.WorldPosition + Vector3.Up * 36f, WorldPosition)
+			.IgnoreGameObjectHierarchy(player.GameObject).IgnoreGameObjectHierarchy(GameObject).Run();
 		return !trace.Hit && !trace.StartedSolid;
 	}
 

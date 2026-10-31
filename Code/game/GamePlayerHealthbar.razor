@@ -16,7 +16,7 @@
 
 @code
 {
-	[Property] public GamePlayer Survivor { get; set; }
+	[Property] public GamePlayer Player { get; set; }
 
 	private Vector2 _screenPosition;
 	private bool _visible;
@@ -27,10 +27,10 @@
 	protected override void OnUpdate()
 	{
 		_visible = false;
-		if (!Survivor.IsValid() || Survivor.IsDead || Survivor.IsRoundOver || !Scene.Camera.IsValid())
+		if (!Player.IsValid() || Player.IsDead || Player.IsRoundOver || !Scene.Camera.IsValid())
 			return;
 
-		var position = Survivor.WorldPosition + Vector3.Up * 90f;
+		var position = Player.WorldPosition + Vector3.Up * 90f;
 		if ((position - Scene.Camera.WorldPosition).Dot(Scene.Camera.WorldRotation.Forward) <= 0f)
 			return;
 
@@ -39,12 +39,12 @@
 			&& _screenPosition.y >= 0f && _screenPosition.y <= 1f;
 	}
 
-	private float HealthPercent => Survivor.IsValid() && Survivor.MaxHealth > 0f
-		? (Survivor.Health / Survivor.MaxHealth).Clamp(0f, 1f) * 100f
+	private float HealthPercent => Player.IsValid() && Player.MaxHealth > 0f
+		? (Player.Health / Player.MaxHealth).Clamp(0f, 1f) * 100f
 		: 0f;
 
-	private string HealthText => Survivor.IsValid()
-		? $"{Survivor.Health.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)} / {Survivor.MaxHealth.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)}"
+	private string HealthText => Player.IsValid()
+		? $"{Player.Health.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)} / {Player.MaxHealth.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)}"
 		: "";
 
 	protected override int BuildHash() => System.HashCode.Combine(

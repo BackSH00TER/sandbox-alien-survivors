@@ -1,7 +1,7 @@
 using Sandbox;
 
 /// <summary>
-/// Red flare fired straight up when an alive survivor walks over a flare pickup. It rises to <see cref="HangHeight"/>,
+/// Red flare fired straight up when an alive player walks over a flare pickup. It rises to <see cref="HangHeight"/>,
 /// glows for <see cref="LifetimeSeconds"/>, dims over the final <see cref="DimSeconds"/>, then burns out.
 /// </summary>
 public sealed class GameReviveFlare : Component

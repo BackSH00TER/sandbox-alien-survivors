@@ -99,15 +99,15 @@ public sealed class GameEnemyBoss : Component
 				IsChargingStun = false;
 				ImpactTime = Time.Now;
 				_nextStunTime = Time.Now + StunCooldown;
-				foreach (var survivor in Scene.GetAllComponents<GamePlayer>())
+				foreach (var player in Scene.GetAllComponents<GamePlayer>())
 				{
-					if (!survivor.Active || survivor.Health <= 0f)
+					if (!player.Active || player.Health <= 0f)
 						continue;
 
-					var offset = survivor.WorldPosition - StunCenter;
+					var offset = player.WorldPosition - StunCenter;
 					if (new Vector3(offset.x, offset.y, 0f).LengthSquared <= StunRadius * StunRadius
 						&& System.MathF.Abs(offset.z) <= GameWeaponProjectile.CollisionHeight)
-						survivor.ApplyStun(StunDuration);
+						player.ApplyStun(StunDuration);
 				}
 			}
 			return true;

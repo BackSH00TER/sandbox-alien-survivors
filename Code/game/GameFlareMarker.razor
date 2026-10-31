@@ -41,19 +41,19 @@
 	{
 		_isVisible = false;
 		Scene scene = Game.ActiveScene;
-		GamePlayer survivor = scene.GetAllComponents<GamePlayer>().FirstOrDefault(x => !x.IsProxy);
+		GamePlayer player = scene.GetAllComponents<GamePlayer>().FirstOrDefault(x => !x.IsProxy);
 		CameraComponent camera = scene.Camera;
-		if (!survivor.IsValid() || !survivor.IsDead || !camera.IsValid())
+		if (!player.IsValid() || !player.IsDead || !camera.IsValid())
 			return;
 
 		GameReviveFlare flare = scene.GetAllComponents<GameReviveFlare>()
-			.OrderBy(x => (x.WorldPosition - survivor.WorldPosition).LengthSquared)
+			.OrderBy(x => (x.WorldPosition - player.WorldPosition).LengthSquared)
 			.FirstOrDefault();
 		if (!flare.IsValid())
 			return;
 
 		_isVisible = true;
-		_distance = (int)((flare.WorldPosition - survivor.WorldPosition).WithZ(0f).Length / UnitsPerMeter);
+		_distance = (int)((flare.WorldPosition - player.WorldPosition).WithZ(0f).Length / UnitsPerMeter);
 
 		Vector2 screen = camera.PointToScreenNormal(flare.WorldPosition);
 		bool isInFront = (flare.WorldPosition - camera.WorldPosition).Dot(camera.WorldRotation.Forward) > 0f;

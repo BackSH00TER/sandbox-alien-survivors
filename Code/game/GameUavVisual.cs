@@ -1,8 +1,8 @@
 using Sandbox;
 
 /// <summary>
-/// Local-only drone model shown at a dead survivor's position, so the player can see where their UAV is, plus a
-/// shadow on the ground beneath it for depth. Hidden while the survivor is alive.
+/// Local-only drone model shown at a dead player's position, so the player can see where their UAV is, plus a
+/// shadow on the ground beneath it for depth. Hidden while the player is alive.
 /// </summary>
 public sealed class GameUavVisual : Component
 {
@@ -13,7 +13,7 @@ public sealed class GameUavVisual : Component
     private static readonly Color RotorColor = new Color(1f, 1f, 1f);
     private static readonly Color BeaconColor = new Color(0.2f, 1f, 0.45f);
 
-    private GamePlayer _survivor;
+    private GamePlayer _player;
     private GameObject _drone;
     private GameObject _shadow;
     private ModelRenderer _beacon;
@@ -23,7 +23,7 @@ public sealed class GameUavVisual : Component
 
     protected override void OnStart()
     {
-        _survivor = GetComponent<GamePlayer>();
+        _player = GetComponent<GamePlayer>();
         BuildDrone();
         BuildShadow();
         SetShown(false);
@@ -31,7 +31,7 @@ public sealed class GameUavVisual : Component
 
     protected override void OnUpdate()
     {
-        bool shouldShow = _survivor.IsValid() && _survivor.IsDead;
+        bool shouldShow = _player.IsValid() && _player.IsDead;
         if (shouldShow != _isShown)
             SetShown(shouldShow);
 

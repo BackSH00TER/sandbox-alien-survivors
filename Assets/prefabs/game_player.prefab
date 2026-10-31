@@ -308,7 +308,7 @@
             "OnComponentFixedUpdate": null,
             "OnComponentStart": null,
             "OnComponentUpdate": null,
-            "Survivor": {
+            "Player": {
               "_type": "component",
               "component_id": "4a96a11b-c648-4118-a19a-b06f1de6d5f3",
               "go": "584b711c-7537-4772-ba13-53bbc7b3e538",

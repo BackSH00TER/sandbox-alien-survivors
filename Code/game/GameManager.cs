@@ -11,7 +11,7 @@ public sealed class GameManager : Component
 	[Group("Game Settings")]
 	[Property, Description("Seconds until the boss spawns. Defeating the boss ends the match.")]
 	public int CountdownTime { get; set; } = 60;
-	[Group("Game Settings"), Description("Ends the game as soon as every survivor is dead, since nobody is left to fire a revive flare. Turn off while debugging revives.")]
+	[Group("Game Settings"), Description("Ends the game as soon as every player is dead, since nobody is left to fire a revive flare. Turn off while debugging revives.")]
 	[Property] public bool ShouldEndWhenAllDead { get; set; } = false;
 	[Sync(SyncFlags.FromHost)] public GameState State { get; set; } = GameState.InProgress;
 	[Sync(SyncFlags.FromHost)] public GameEnemy Boss { get; private set; }
@@ -39,7 +39,7 @@ public sealed class GameManager : Component
 		if (!Networking.IsHost || State == GameState.Ended)
 			return;
 
-		if (ShouldEndWhenAllDead && AreAllSurvivorsDead())
+		if (ShouldEndWhenAllDead && AreAllPlayersDead())
 		{
 			EndGame();
 			return;
@@ -91,10 +91,10 @@ public sealed class GameManager : Component
 		EndGame();
 	}
 
-	private bool AreAllSurvivorsDead()
+	private bool AreAllPlayersDead()
 	{
-		List<GamePlayer> survivors = Scene.GetAllComponents<GamePlayer>().ToList();
-		return survivors.Count > 0 && survivors.All(x => x.IsDead);
+		List<GamePlayer> players = Scene.GetAllComponents<GamePlayer>().ToList();
+		return players.Count > 0 && players.All(x => x.IsDead);
 	}
 
 	private void EndGame()

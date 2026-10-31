@@ -37,10 +37,10 @@ public sealed class GamePlayerStats : Component
         Values[key] = Get(key) + amount;
     }
 
-    /// <summary>Host only. Adds to a stat of the player that owns the survivor.</summary>
-    public static void Record(GamePlayer survivor, string key, float amount = 1f)
+    /// <summary>Host only. Adds to a player's stat.</summary>
+    public static void Record(GamePlayer player, string key, float amount = 1f)
     {
-        GamePlayerStats stats = survivor.GetComponent<GamePlayerStats>();
+        GamePlayerStats stats = player.GetComponent<GamePlayerStats>();
         if (!stats.IsValid())
         {
             Log.Error("GamePlayer requires a GamePlayerStats component.");
@@ -53,25 +53,25 @@ public sealed class GamePlayerStats : Component
     /// <summary>Host only. Called for every hit that removed health, including the killing blow.</summary>
     public static void RecordDamage(GameEntity attacker, GameEntity victim, float amount, GameDamageType type, bool wasKill)
     {
-        if (victim is GamePlayer survivorVictim)
+        if (victim is GamePlayer playerVictim)
         {
-            Record(survivorVictim, GameStatKeys.DamageTaken, amount);
-            Record(survivorVictim, GameStatKeys.DamageTakenByType(type), amount);
+            Record(playerVictim, GameStatKeys.DamageTaken, amount);
+            Record(playerVictim, GameStatKeys.DamageTakenByType(type), amount);
             if (wasKill)
-                Record(survivorVictim, GameStatKeys.Deaths);
+                Record(playerVictim, GameStatKeys.Deaths);
         }
 
-        if (victim is GameEnemy enemy && attacker is GamePlayer survivorAttacker)
+        if (victim is GameEnemy enemy && attacker is GamePlayer playerAttacker)
         {
-            Record(survivorAttacker, GameStatKeys.DamageDealt, amount);
-            Record(survivorAttacker, GameStatKeys.DamageDealtByType(type), amount);
-            Record(survivorAttacker, GameStatKeys.DamageDealtToEnemy(enemy.Kind), amount);
+            Record(playerAttacker, GameStatKeys.DamageDealt, amount);
+            Record(playerAttacker, GameStatKeys.DamageDealtByType(type), amount);
+            Record(playerAttacker, GameStatKeys.DamageDealtToEnemy(enemy.Kind), amount);
             if (enemy.Kind == GameEnemyKind.Boss)
-                Record(survivorAttacker, GameStatKeys.DamageDealtToBoss, amount);
+                Record(playerAttacker, GameStatKeys.DamageDealtToBoss, amount);
             if (wasKill)
             {
-                Record(survivorAttacker, GameStatKeys.Kills);
-                Record(survivorAttacker, GameStatKeys.KillsByEnemy(enemy.Kind));
+                Record(playerAttacker, GameStatKeys.Kills);
+                Record(playerAttacker, GameStatKeys.KillsByEnemy(enemy.Kind));
             }
         }
     }

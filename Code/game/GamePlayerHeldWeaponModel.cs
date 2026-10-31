@@ -2,7 +2,7 @@ using Sandbox;
 
 public sealed class GamePlayerHeldWeaponModel : Component
 {
-	private GamePlayer _survivor;
+	private GamePlayer _player;
 	private GameWeaponDefinition _weapon;
 	private GameObject _model;
 	private ModelRenderer _authoredRenderer;
@@ -12,7 +12,7 @@ public sealed class GamePlayerHeldWeaponModel : Component
 
 	protected override void OnStart()
 	{
-		_survivor = GetComponent<GamePlayer>();
+		_player = GetComponent<GamePlayer>();
 	}
 
 	protected override void OnPreRender()
@@ -49,12 +49,12 @@ public sealed class GamePlayerHeldWeaponModel : Component
 
 	private bool UpdateModel()
 	{
-		if (!_survivor.IsValid() || !_survivor.Controller.Renderer.IsValid())
+		if (!_player.IsValid() || !_player.Controller.Renderer.IsValid())
 			return false;
 
-		if (_weapon != _survivor.EquippedWeapon)
+		if (_weapon != _player.EquippedWeapon)
 		{
-			_weapon = _survivor.EquippedWeapon;
+			_weapon = _player.EquippedWeapon;
 			if (_model.IsValid())
 				_model.Destroy();
 			_authoredRenderer = null;
@@ -66,13 +66,13 @@ public sealed class GamePlayerHeldWeaponModel : Component
 		if (!_model.IsValid())
 			return false;
 
-		if (_survivor.IsDead)
+		if (_player.IsDead)
 		{
 			_model.Enabled = false;
 			return false;
 		}
 
-		var hand = _survivor.Controller.Renderer.GetAttachment("hold_R");
+		var hand = _player.Controller.Renderer.GetAttachment("hold_R");
 		if (hand is not { } transform)
 		{
 			if (!_missingAttachmentLogged)

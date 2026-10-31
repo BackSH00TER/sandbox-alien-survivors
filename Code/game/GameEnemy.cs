@@ -177,18 +177,18 @@ public sealed class GameEnemy : GameEntity
 		PlayerController target = null;
 		var nearestDistanceSquared = float.PositiveInfinity;
 
-		foreach (var player in Scene.GetAllComponents<PlayerController>())
+		foreach (var controller in Scene.GetAllComponents<PlayerController>())
 		{
-			if (!player.Active || player.GameObject.GetComponent<GameEnemy>() != null)
+			if (!controller.Active || controller.GameObject.GetComponent<GameEnemy>() != null)
 				continue;
-			GamePlayer survivor = player.GameObject.GetComponent<GamePlayer>();
-			if (survivor != null && survivor.IsDead)
+			GamePlayer player = controller.GameObject.GetComponent<GamePlayer>();
+			if (player != null && player.IsDead)
 				continue;
 
-			var distanceSquared = (player.WorldPosition - WorldPosition).LengthSquared;
+			var distanceSquared = (controller.WorldPosition - WorldPosition).LengthSquared;
 			if (distanceSquared < nearestDistanceSquared)
 			{
-				target = player;
+				target = controller;
 				nearestDistanceSquared = distanceSquared;
 			}
 		}
