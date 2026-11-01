@@ -445,7 +445,7 @@ public sealed class GamePlayer : GameEntity
 			return;
 		}
 
-		if (!heldWeapon.TryGetMuzzlePosition(out var muzzlePosition))
+		if (!heldWeapon.TryGetMuzzleTransform(out var muzzlePosition, out var forward))
 			return;
 
 		var clearance = Scene.Trace.Sphere(EquippedWeapon.ProjectileRadius,
@@ -453,8 +453,6 @@ public sealed class GamePlayer : GameEntity
 			.IgnoreGameObjectHierarchy(GameObject)
 			.Run();
 		var origin = clearance.Hit || clearance.StartedSolid ? clearance.EndPosition : muzzlePosition;
-		if (!TryGetAimDirection(origin, out var forward))
-			return;
 
 		for (var i = 0; i < EquippedWeapon.BulletsPerShot; i++)
 		{
