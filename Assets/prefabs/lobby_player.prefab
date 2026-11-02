@@ -181,7 +181,7 @@
         "StartDelay": 0.05
       },
       {
-        "__type": "LobbyMouseLook",
+        "__type": "LobbyPlayerMouseLook",
         "__guid": "9c2f6a0e-4b7d-4e1a-8f53-1d6b0a7e2c94",
         "__enabled": true,
         "Flags": 0,
@@ -207,7 +207,7 @@
         "WristBend": 2
       },
       {
-        "__type": "PlayerReadyState",
+        "__type": "LobbyPlayerReadyState",
         "__guid": "d4a71c38-5e92-4b0f-a6c3-82f9e1b05d7a",
         "__enabled": true,
         "Flags": 0,

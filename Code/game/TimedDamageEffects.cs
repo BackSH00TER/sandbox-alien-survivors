@@ -5,7 +5,7 @@ using System.Linq;
 /// <summary>Validated, immutable effect values captured when a projectile fires and reused when its effect spreads.</summary>
 public sealed class DamageEffectSettings
 {
-	public DamageType Type { get; }
+	public GameDamageType Type { get; }
 	public float ApplicationChance { get; }
 	public float Duration { get; }
 	public float DamagePerSecond { get; }
@@ -13,10 +13,10 @@ public sealed class DamageEffectSettings
 	public float SpreadChance { get; }
 	public float SpreadRadius { get; }
 
-	public DamageEffectSettings(DamageType type, float applicationChance, float duration,
+	public DamageEffectSettings(GameDamageType type, float applicationChance, float duration,
 		float damagePerSecond, int maxStacks, float spreadChance, float spreadRadius)
 	{
-		if (!Enum.IsDefined(type) || type == DamageType.Physical
+		if (!Enum.IsDefined(type) || type == GameDamageType.Physical
 			|| !float.IsFinite(applicationChance) || applicationChance < 0f || applicationChance > 1f
 			|| !float.IsFinite(duration) || duration <= 0f
 			|| !float.IsFinite(damagePerSecond) || damagePerSecond <= 0f || maxStacks < 1
@@ -61,7 +61,7 @@ public sealed class TimedDamageEffects<TSource>
 	private readonly List<TimedDamageStack<TSource>> _stacks = new();
 	public IReadOnlyList<TimedDamageStack<TSource>> Stacks => _stacks;
 
-	public int Count(DamageType type, float now) =>
+	public int Count(GameDamageType type, float now) =>
 		_stacks.Count(effectStack => effectStack.Settings.Type == type && effectStack.ExpiresAt > now);
 
 	/// <summary>Spread may fill an available stack slot, but unlike a direct hit it cannot replace a full stack.</summary>

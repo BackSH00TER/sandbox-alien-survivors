@@ -5,16 +5,16 @@ public sealed class BurningVisual : Component
 {
 	private const int FlameCount = 5;
 	private const float FlameRadius = 14f;
-	private Enemy _enemy;
+	private GameEnemy _enemy;
 	private GameObject _visualRoot;
 	private readonly List<LineRenderer> _flames = new();
 
 	protected override void OnStart()
 	{
-		_enemy = GetComponent<Enemy>();
+		_enemy = GetComponent<GameEnemy>();
 		if (!_enemy.IsValid())
 		{
-			Log.Error("BurningVisual requires an Enemy component.");
+			Log.Error("BurningVisual requires an GameEnemy component.");
 			Enabled = false;
 		}
 	}
@@ -22,7 +22,7 @@ public sealed class BurningVisual : Component
 	protected override void OnUpdate()
 	{
 		var isBurning = _enemy.IsValid() && _enemy.Active && _enemy.Health > 0f
-			&& _enemy.EffectStackCount(DamageType.Fire) > 0;
+			&& _enemy.EffectStackCount(GameDamageType.Fire) > 0;
 		if (isBurning && !_visualRoot.IsValid())
 			BuildFlames();
 		if (_visualRoot.IsValid() && _visualRoot.Enabled != isBurning)

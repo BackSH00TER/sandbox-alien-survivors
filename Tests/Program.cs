@@ -32,28 +32,28 @@ static void Near(float actual, float expected) =>
 	Check(MathF.Abs(actual - expected) < 0.0001f, $"Expected {expected}, got {actual}.");
 
 static DamageEffectSettings Settings(int cap = 1, float duration = 10f, float dps = 5f) =>
-	new(DamageType.Fire, 0.2f, duration, dps, cap, 0.1f, 120f);
+	new(GameDamageType.Fire, 0.2f, duration, dps, cap, 0.1f, 120f);
 
 static void Catalog()
 {
-	Check(ModifierCatalog.All.Select(modifier => modifier.Id).SequenceEqual(Enum.GetValues<Modifier>()), "Missing or duplicate modifier.");
-	Check(DamageEffectCatalog.All.Count == 1 && DamageEffectCatalog.All[0].Type == DamageType.Fire, "Only fire is implemented.");
-	var picks = new Dictionary<Modifier, int>();
-	int Stacks(Modifier modifier) => picks.GetValueOrDefault(modifier);
-	Check(ModifierCatalog.Get(Modifier.FireRounds).IsAvailable(Stacks), "Fire unlock must be available.");
-	Check(!ModifierCatalog.Get(Modifier.FireSpread).IsAvailable(Stacks), "Spread must require fire.");
-	Check(!ModifierCatalog.Get(Modifier.FireDamage).IsAvailable(Stacks), "Damage upgrade must require fire.");
-	Check(!ModifierCatalog.Get(Modifier.FireSpreadChance).IsAvailable(Stacks), "Wildfire must require spread.");
-	picks[Modifier.FireRounds] = 1;
-	Check(!ModifierCatalog.Get(Modifier.FireRounds).IsAvailable(Stacks), "Unlock must be one-time.");
-	Check(ModifierCatalog.Get(Modifier.FireSpread).IsAvailable(Stacks), "Spread should unlock.");
-	Check(!ModifierCatalog.Get(Modifier.FireSpreadChance).IsAvailable(Stacks), "Fire alone cannot unlock Wildfire.");
-	picks[Modifier.FireSpread] = 1;
-	Check(ModifierCatalog.Get(Modifier.FireSpreadChance).IsAvailable(Stacks), "Wildfire should unlock.");
-	picks[Modifier.FireApplicationChance] = 8;
-	picks[Modifier.FireSpreadChance] = 9;
-	Check(!ModifierCatalog.Get(Modifier.FireApplicationChance).IsAvailable(Stacks), "Maxed chance must not be offered.");
-	Check(!ModifierCatalog.Get(Modifier.FireSpreadChance).IsAvailable(Stacks), "Maxed spread must not be offered.");
+	Check(ModifierCatalog.All.Select(modifier => modifier.Id).SequenceEqual(Enum.GetValues<GameModifier>()), "Missing or duplicate modifier.");
+	Check(DamageEffectCatalog.All.Count == 1 && DamageEffectCatalog.All[0].Type == GameDamageType.Fire, "Only fire is implemented.");
+	var picks = new Dictionary<GameModifier, int>();
+	int Stacks(GameModifier modifier) => picks.GetValueOrDefault(modifier);
+	Check(ModifierCatalog.Get(GameModifier.FireRounds).IsAvailable(Stacks), "Fire unlock must be available.");
+	Check(!ModifierCatalog.Get(GameModifier.FireSpread).IsAvailable(Stacks), "Spread must require fire.");
+	Check(!ModifierCatalog.Get(GameModifier.FireDamage).IsAvailable(Stacks), "Damage upgrade must require fire.");
+	Check(!ModifierCatalog.Get(GameModifier.FireSpreadChance).IsAvailable(Stacks), "Wildfire must require spread.");
+	picks[GameModifier.FireRounds] = 1;
+	Check(!ModifierCatalog.Get(GameModifier.FireRounds).IsAvailable(Stacks), "Unlock must be one-time.");
+	Check(ModifierCatalog.Get(GameModifier.FireSpread).IsAvailable(Stacks), "Spread should unlock.");
+	Check(!ModifierCatalog.Get(GameModifier.FireSpreadChance).IsAvailable(Stacks), "Fire alone cannot unlock Wildfire.");
+	picks[GameModifier.FireSpread] = 1;
+	Check(ModifierCatalog.Get(GameModifier.FireSpreadChance).IsAvailable(Stacks), "Wildfire should unlock.");
+	picks[GameModifier.FireApplicationChance] = 8;
+	picks[GameModifier.FireSpreadChance] = 9;
+	Check(!ModifierCatalog.Get(GameModifier.FireApplicationChance).IsAvailable(Stacks), "Maxed chance must not be offered.");
+	Check(!ModifierCatalog.Get(GameModifier.FireSpreadChance).IsAvailable(Stacks), "Maxed spread must not be offered.");
 }
 
 static void Offers()
@@ -61,7 +61,7 @@ static void Offers()
 	var random = new Random(42);
 	foreach (var unlocked in new[] { false, true })
 	{
-		int Stacks(Modifier modifier) => unlocked && modifier is Modifier.FireRounds or Modifier.FireSpread ? 1 : 0;
+		int Stacks(GameModifier modifier) => unlocked && modifier is GameModifier.FireRounds or GameModifier.FireSpread ? 1 : 0;
 		for (int i = 0; i < 1000; i++)
 		{
 			var offer = ModifierCatalog.RollOffer(Stacks, () => (float)random.NextDouble());
@@ -91,8 +91,8 @@ static void Weights()
 static void FireRolls()
 {
 	Check(DamageEffectCatalog.Roll(_ => 0, () => throw new Exception("Locked effects must not draw.")) == null, "Locked fire rolled.");
-	var picks = new Dictionary<Modifier, int> { [Modifier.FireRounds] = 1 };
-	int Stacks(Modifier modifier) => picks.GetValueOrDefault(modifier);
+	var picks = new Dictionary<GameModifier, int> { [GameModifier.FireRounds] = 1 };
+	int Stacks(GameModifier modifier) => picks.GetValueOrDefault(modifier);
 	DamageEffectSettings Roll(float chance)
 	{
 		var rolls = new Queue<float>(new[] { 0f, chance });
@@ -105,12 +105,12 @@ static void FireRolls()
 	Near(fire.ApplicationChance, 0.2f);
 	Near(fire.SpreadChance, 0f);
 	Check(fire.MaxStacks == 1, "Default cap.");
-	picks[Modifier.FireSpread] = 1;
-	picks[Modifier.FireApplicationChance] = 8;
-	picks[Modifier.FireSpreadChance] = 9;
-	picks[Modifier.FireDuration] = 2;
-	picks[Modifier.FireDamage] = 2;
-	picks[Modifier.FireStacks] = 2;
+	picks[GameModifier.FireSpread] = 1;
+	picks[GameModifier.FireApplicationChance] = 8;
+	picks[GameModifier.FireSpreadChance] = 9;
+	picks[GameModifier.FireDuration] = 2;
+	picks[GameModifier.FireDamage] = 2;
+	picks[GameModifier.FireStacks] = 2;
 	var upgraded = DamageEffectCatalog.All[0].Resolve(Stacks);
 	Near(upgraded.ApplicationChance, 1f);
 	Near(upgraded.SpreadChance, 1f);
@@ -132,9 +132,9 @@ static void Expiries()
 	effects.Apply(Settings(2), "first", 0f);
 	effects.Advance(5f, Damage);
 	effects.Apply(Settings(2), "second", 5f);
-	Check(effects.Count(DamageType.Fire, 5f) == 2, "Two applications should coexist.");
+	Check(effects.Count(GameDamageType.Fire, 5f) == 2, "Two applications should coexist.");
 	effects.Advance(10f, Damage);
-	Check(effects.Count(DamageType.Fire, 10f) == 1, "First must expire without refreshing second.");
+	Check(effects.Count(GameDamageType.Fire, 10f) == 1, "First must expire without refreshing second.");
 	Near(totals["first"], 50f);
 	Near(totals["second"], 25f);
 	effects.Advance(20f, Damage);
@@ -231,8 +231,8 @@ static void Invalid()
 		() => Settings(duration: float.NaN),
 		() => Settings(dps: float.PositiveInfinity),
 		() => Settings(cap: 0),
-		() => new(DamageType.Fire, 2f, 5f, 5f, 1, 0f, 120f),
-		() => new(DamageType.Fire, 0.2f, 5f, 5f, 1, -0.1f, 120f)
+		() => new(GameDamageType.Fire, 2f, 5f, 5f, 1, 0f, 120f),
+		() => new(GameDamageType.Fire, 0.2f, 5f, 5f, 1, -0.1f, 120f)
 	})
 	{
 		try { create(); }

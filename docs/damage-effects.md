@@ -56,6 +56,10 @@ the host checks both the offer ID and eligibility when accepting a pick.
   rather than causing continuous hit-stagger every frame. It integrates elapsed time and never
   continues beyond expiry. Death, disable and round end clear effects. Invulnerability
   consumes elapsed effect time without applying damage.
+- Fire ticks use `GameEntity.TakeDamage`, so they respect the existing armor rules:
+  each application's damage tick spends `FireArmorCost`, with partial protection
+  controlled by `ArmorDamageOverflow`. Physical bullet impact spends physical armor
+  separately; a surviving enemy can still ignite after armor blocks that impact.
 - Once per second, each burning enemy rolls spread once per effect type, using
   its newest spread-enabled application's settings and original attacker. On
   success, one randomly selected living, damageable enemy within range and line of
@@ -68,11 +72,16 @@ the host checks both the offer ID and eligibility when accepting a pick.
 
 ## Adding another type
 
+Runtime combat types follow the upstream `Game*` naming (`GameEntity`, `GameEnemy`,
+`GamePlayer`, `GameModifier`, `GameDamageType`). Modifier UI lives in
+`GameModifierPicker` and `GameModifierInventory`; the test project links the renamed
+catalog and damage-type source files.
+
 For another timed effect, add its unlock/spread/upgrade modifier definitions and
 prerequisites, then add a `DamageEffectDefinition`. Shared rolling, stack lifetimes,
 damage attribution and spread logic do not need type-specific branches.
 New effect upgrades use the generic synchronized modifier dictionary.
-`Entity` separates ticking, spread rolls, target eligibility and line-of-sight checks
+`GameEntity` separates ticking, spread rolls, target eligibility and line-of-sight checks
 into helpers. Its round-manager property caches the scene lookup while the manager
 is valid and reacquires it after removal or a scene change.
 

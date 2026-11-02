@@ -117,13 +117,13 @@
       "OwnerTransfer": 1,
       "Components": [
         {
-          "__type": "EnemySpawner",
-          "__guid": "2b8a7a37-91a6-40ab-82d5-9cb06364ac9b",
+          "__type": "GameEnemySpawner",
+          "__guid": "139f007c-6468-43d4-98e8-9d5ef4cdd79c",
           "__enabled": true,
           "Flags": 0,
           "EnemyPrefab": {
             "_type": "gameobject",
-            "prefab": "prefabs/enemy.prefab"
+            "prefab": "prefabs/game_enemy.prefab"
           },
           "ExplodingEnemyChance": 30,
           "OnComponentDestroy": null,
@@ -517,19 +517,24 @@
           "__enabled": true,
           "Flags": 0,
           "CountdownTime": 60,
+          "GameScene": "scenes/game.scene",
           "LobbyScene": "scenes/lobby.scene",
           "OnComponentDestroy": null,
           "OnComponentDisabled": null,
           "OnComponentEnabled": null,
           "OnComponentFixedUpdate": null,
           "OnComponentStart": null,
-          "OnComponentUpdate": null
+          "OnComponentUpdate": null,
+          "ShouldEndWhenAllDead": false
         },
         {
-          "__type": "CrateSpawner",
-          "__guid": "ee46b061-aa0d-486b-8f5f-d670d0eb6172",
+          "__type": "GameCrateSpawner",
+          "__guid": "0201d08b-54a1-412e-9007-6df15308548c",
           "__enabled": true,
           "Flags": 0,
+          "FlareBaseChance": 0.25,
+          "FlareChanceGainPerSecond": 0.02,
+          "FlareMaxChance": 0.9,
           "MaxCrates": 5,
           "OnComponentDestroy": null,
           "OnComponentDisabled": null,
@@ -538,14 +543,8 @@
           "OnComponentStart": null,
           "OnComponentUpdate": null,
           "RespawnDelay": 10,
-          "Rifle": {
-            "Id": "1b6a0f0a-1941-495c-9b54-70a6e0d68912",
-            "Path": "weapons/rifle.weapon"
-          },
-          "Shotgun": {
-            "Id": "8b68b320-0ea6-478d-b3e6-c2ad535a48c5",
-            "Path": "weapons/shotgun.weapon"
-          },
+          "Rifle": "weapons/rifle.weapon",
+          "Shotgun": "weapons/shotgun.weapon",
           "SpawnRadius": 900
         }
       ],

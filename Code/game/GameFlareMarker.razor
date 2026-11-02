@@ -1,0 +1,82 @@
+@using Sandbox;
+@using Sandbox.UI;
+@inherits Panel
+@namespace Sandbox
+
+<root>
+	@if (_isVisible)
+	{
+		<div class="flare-marker"
+			 style="left: @(Percent(_markerPosition.x)); top: @(Percent(_markerPosition.y));">
+			<div class="flare-arrow-icon"
+				 style="transform: rotate(@(_arrowAngle.ToString("0", System.Globalization.CultureInfo.InvariantCulture))deg);">
+				arrow_forward</div>
+			<div class="flare-distance">@(_distance)m</div>
+		</div>
+	}
+</root>
+
+@code
+{
+	// Dead players get an arrow pointing at the nearest flare: pinned to the screen edge when it is off-screen,
+	// or hovering just above the flare when it is in view.
+	private const float UnitsPerMeter = 40f;
+	private const float MarkerEdgeX = 0.44f;
+	private const float MarkerEdgeY = 0.42f;
+	private bool _isVisible;
+	private Vector2 _markerPosition;
+	private float _arrowAngle;
+	private int _distance;
+
+	private static string Percent(float value) =>
+		(value * 100f).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + "%";
+
+	public override void Tick()
+	{
+		base.Tick();
+		UpdateMarker();
+	}
+
+	private void UpdateMarker()
+	{
+		_isVisible = false;
+		Scene scene = Game.ActiveScene;
+		GamePlayer player = scene.GetAllComponents<GamePlayer>().FirstOrDefault(x => !x.IsProxy);
+		CameraComponent camera = scene.Camera;
+		if (!player.IsValid() || !player.IsDead || !camera.IsValid())
+			return;
+
+		GameReviveFlare flare = scene.GetAllComponents<GameReviveFlare>()
+			.OrderBy(x => (x.WorldPosition - player.WorldPosition).LengthSquared)
+			.FirstOrDefault();
+		if (!flare.IsValid())
+			return;
+
+		_isVisible = true;
+		_distance = (int)((flare.WorldPosition - player.WorldPosition).WithZ(0f).Length / UnitsPerMeter);
+
+		Vector2 screen = camera.PointToScreenNormal(flare.WorldPosition);
+		bool isInFront = (flare.WorldPosition - camera.WorldPosition).Dot(camera.WorldRotation.Forward) > 0f;
+		Vector2 offset = new Vector2(screen.x - 0.5f, screen.y - 0.5f);
+		if (!isInFront)
+			offset = -offset;
+
+		bool isOnScreen = isInFront && System.MathF.Abs(offset.x) <= MarkerEdgeX && System.MathF.Abs(offset.y) <= MarkerEdgeY;
+		if (isOnScreen)
+		{
+			_markerPosition = new Vector2(screen.x, screen.y - 0.07f);
+			_arrowAngle = 90f;
+			return;
+		}
+
+		float scale = System.MathF.Max(System.MathF.Abs(offset.x) / MarkerEdgeX, System.MathF.Abs(offset.y) / MarkerEdgeY);
+		if (scale < 0.0001f)
+			scale = 1f;
+
+		_markerPosition = new Vector2(0.5f + offset.x / scale, 0.5f + offset.y / scale);
+		_arrowAngle = System.MathF.Atan2(offset.y, offset.x) * 180f / System.MathF.PI;
+	}
+
+	protected override int BuildHash() => System.HashCode.Combine(_isVisible, (int)(_markerPosition.x * 500f),
+		(int)(_markerPosition.y * 500f), (int)_arrowAngle / 2, _distance);
+}

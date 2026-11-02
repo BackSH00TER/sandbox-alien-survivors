@@ -13,8 +13,8 @@
     <Compile Include="..\Code\game\DamageEffect.cs" Link="DamageEffect.cs" />
     <Compile Include="..\Code\game\TimedDamageEffects.cs" Link="TimedDamageEffects.cs" />
     <Compile Include="..\Code\game\WeightedDraw.cs" Link="WeightedDraw.cs" />
-    <Compile Include="..\Code\game\Modifier.cs" Link="Modifier.cs" />
-    <Compile Include="..\Code\game\stats\DamageType.cs" Link="DamageType.cs" />
+    <Compile Include="..\Code\game\GameModifier.cs" Link="GameModifier.cs" />
+    <Compile Include="..\Code\game\stats\GameDamageType.cs" Link="GameDamageType.cs" />
     <Reference Include="$(EngineDirectory)\bin\managed\Sandbox.System.dll" />
   </ItemGroup>
 </Project>

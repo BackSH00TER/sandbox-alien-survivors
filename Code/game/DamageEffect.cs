@@ -14,9 +14,9 @@ public enum DamageEffectStat
 
 public sealed class DamageEffectDefinition
 {
-	public DamageType Type { get; init; }
-	public Modifier Unlock { get; init; }
-	public Modifier SpreadUnlock { get; init; }
+	public GameDamageType Type { get; init; }
+	public GameModifier Unlock { get; init; }
+	public GameModifier SpreadUnlock { get; init; }
 	public Color BulletColor { get; init; }
 	public float DrawWeight { get; init; } = 1f;
 	public float ApplicationChance { get; init; }
@@ -27,7 +27,7 @@ public sealed class DamageEffectDefinition
 	public float SpreadRadius { get; init; }
 
 	/// <summary>Builds a shot's immutable effect settings from the base values and the player's upgrade picks.</summary>
-	public DamageEffectSettings Resolve(Func<Modifier, int> getModifierPickCount)
+	public DamageEffectSettings Resolve(Func<GameModifier, int> getModifierPickCount)
 	{
 		// Sum each matching upgrade's increment multiplied by its pick count.
 		// These are player upgrade picks, not the timed effect stacks currently on an enemy.
@@ -58,9 +58,9 @@ public static class DamageEffectCatalog
 	{
 		new DamageEffectDefinition
 		{
-			Type = DamageType.Fire,
-			Unlock = Modifier.FireRounds,
-			SpreadUnlock = Modifier.FireSpread,
+			Type = GameDamageType.Fire,
+			Unlock = GameModifier.FireRounds,
+			SpreadUnlock = GameModifier.FireSpread,
 			BulletColor = new Color(1f, 0.25f, 0.05f),
 			ApplicationChance = 0.2f,
 			Duration = 5f,
@@ -70,10 +70,10 @@ public static class DamageEffectCatalog
 		}
 	};
 
-	public static DamageEffectDefinition Get(DamageType type) => All.First(effect => effect.Type == type);
+	public static DamageEffectDefinition Get(GameDamageType type) => All.First(effect => effect.Type == type);
 
 	/// <summary>Chooses one unlocked effect, then rolls its application chance; a failed roll leaves the bullet physical.</summary>
-	public static DamageEffectSettings Roll(Func<Modifier, int> getModifierPickCount, Func<float> random)
+	public static DamageEffectSettings Roll(Func<GameModifier, int> getModifierPickCount, Func<float> random)
 	{
 		var unlockedEffects = All.Where(effect => getModifierPickCount(effect.Unlock) > 0).ToList();
 		if (unlockedEffects.Count == 0)
