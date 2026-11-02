@@ -36,6 +36,24 @@ public sealed class GamePlayer : GameEntity
 	[Sync(SyncFlags.FromHost)] public int AttackSpeedStacks { get; private set; }
 	[Sync(SyncFlags.FromHost)] public int AttackRangeStacks { get; private set; }
 	[Sync(SyncFlags.FromHost)] public int VitalityStacks { get; private set; }
+	[Sync(SyncFlags.FromHost)] private NetDictionary<GameModifier, int> EffectModifierStacks { get; set; } = new();
+
+	public int ModifierStacks(GameModifier modifier) => modifier switch
+	{
+		GameModifier.AttackSpeed => AttackSpeedStacks,
+		GameModifier.AttackRange => AttackRangeStacks,
+		GameModifier.Vitality => VitalityStacks,
+		_ => EffectModifierStacks.TryGetValue(modifier, out var count) ? count : 0
+	};
+
+	/// <summary>Lets the inventory UI detect changed upgrade counts without depending on dictionary iteration order.</summary>
+	public int ModifierContentHash()
+	{
+		int hash = System.HashCode.Combine(AttackSpeedStacks, AttackRangeStacks, VitalityStacks);
+		foreach (var pair in EffectModifierStacks)
+			hash ^= System.HashCode.Combine(pair.Key, pair.Value);
+		return hash;
+	}
 
 	public float EffectiveAttackInterval => EquippedWeapon == null ? 0f
 		: System.MathF.Max(0.1f, 1f / (EquippedWeapon.FireRate * (1f + AttackSpeedStacks)));
@@ -518,12 +536,7 @@ public sealed class GamePlayer : GameEntity
 
 	private void RollModifierOffer()
 	{
-		var options = System.Enum.GetValues<GameModifier>();
-		for (var i = options.Length - 1; i > 0; i--)
-		{
-			var other = Game.Random.Int(0, i);
-			(options[i], options[other]) = (options[other], options[i]);
-		}
+		var options = ModifierCatalog.RollOffer(ModifierStacks, () => Game.Random.Float());
 
 		ModifierOptionOne = options[0];
 		ModifierOptionTwo = options[1];
@@ -537,7 +550,8 @@ public sealed class GamePlayer : GameEntity
 		var gameManager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
 		if (!Active || (gameManager != null && gameManager.State != GameState.InProgress)
 			|| PendingModifierChoices <= 0 || offerId != ModifierOfferId
-			|| (modifier != ModifierOptionOne && modifier != ModifierOptionTwo && modifier != ModifierOptionThree))
+			|| (modifier != ModifierOptionOne && modifier != ModifierOptionTwo && modifier != ModifierOptionThree)
+			|| !ModifierCatalog.Get(modifier).IsAvailable(ModifierStacks))
 		{
 			Log.Warning("Rejected an unavailable or outdated modifier choice.");
 			return;
@@ -557,8 +571,8 @@ public sealed class GamePlayer : GameEntity
 				IncreaseMaxHealth(100f);
 				break;
 			default:
-				Log.Error($"Unknown modifier: {modifier}");
-				return;
+				EffectModifierStacks[modifier] = ModifierStacks(modifier) + 1;
+				break;
 		}
 
 		GamePlayerStats.Record(this, GameStatKeys.ModifierPicked(modifier));
