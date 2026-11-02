@@ -10,6 +10,12 @@ public sealed class GameCrateSpawner : Component
 	[Property] public GameWeaponDefinition Rifle { get; set; }
 	[Property] public GameWeaponDefinition Shotgun { get; set; }
 
+	// Copied to each new crate; changing these settings does not alter crates already spawned.
+	[Property, Group("Loot"), Description("Minimum items per crate, inclusive. Must be at least one.")]
+	public int MinDrops { get; set; } = GameSupplyCrate.DefaultMinDrops;
+	[Property, Group("Loot"), Description("Maximum items per crate, inclusive. Must be at least MinDrops. Each count is equally likely.")]
+	public int MaxDrops { get; set; } = GameSupplyCrate.DefaultMaxDrops;
+
 	[Property, Group("Flare Gun"), Range(0f, 1f), Description("Chance a broken crate drops a flare gun the moment someone dies.")]
 	public float FlareBaseChance { get; set; } = 0.25f;
 	[Property, Group("Flare Gun"), Range(0f, 0.2f), Description("Extra drop chance gained for every second the longest-dead player stays dead.")]
@@ -34,9 +40,10 @@ public sealed class GameCrateSpawner : Component
 		Shotgun ??= ResourceLibrary.Get<GameWeaponDefinition>("weapons/shotgun.weapon");
 		if (MaxCrates < 1 || MaxCrates > 50 || !float.IsFinite(RespawnDelay) || RespawnDelay <= 0f
 			|| !float.IsFinite(SpawnRadius) || SpawnRadius < 100f
+			|| MinDrops < 1 || MaxDrops < MinDrops
 			|| Rifle == null || Shotgun == null || !Rifle.Validate() || !Shotgun.Validate())
 		{
-			Log.Error("CrateSpawner requires valid spawning settings and rifle/shotgun resources.");
+			Log.Error("CrateSpawner requires valid spawning settings, 1 <= MinDrops <= MaxDrops, and rifle/shotgun resources.");
 			Enabled = false;
 			return;
 		}
@@ -70,7 +77,7 @@ public sealed class GameCrateSpawner : Component
 
 			if (TryFindPosition(out var position))
 			{
-				slot.Crate = GameSupplyCrate.Spawn(position, Rifle, Shotgun);
+				slot.Crate = GameSupplyCrate.Spawn(position, Rifle, Shotgun, MinDrops, MaxDrops);
 				if (slot.Crate.IsValid())
 				{
 					_spawnFailureLogged = false;
