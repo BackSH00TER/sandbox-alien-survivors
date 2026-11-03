@@ -51,7 +51,8 @@ public static class GameStatCatalog
         new StatSection("Damage taken by type",
             RowsFor<GameDamageType>(type => new StatRow(type.ToString(), GameStatKeys.DamageTakenByType(type))), true),
         new StatSection("Upgrades",
-            RowsFor<GameModifier>(modifier => new StatRow(ModifierCatalog.Name(modifier), GameStatKeys.ModifierPicked(modifier))), true)
+            RowsFor<GameModifier>(modifier => new StatRow(ModifierCatalog.Name(modifier), GameStatKeys.ModifierPicked(modifier)))
+                .Prepend(new StatRow("Times rerolled", GameStatKeys.TimesRerolled)).ToList(), true)
     };
 
     private static List<StatRow> RowsFor<T>(System.Func<T, StatRow> buildRow) where T : struct, System.Enum

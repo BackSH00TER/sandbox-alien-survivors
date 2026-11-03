@@ -22,6 +22,10 @@
 				</button>
 			}
 		</div>
+		<button class="reroll-button @(!player.CanRerollModifiers ? "unavailable" : "")"
+				disabled="@(!player.CanRerollModifiers)" @onclick="@(() => player.RerollModifiers(offerId))">
+			@($"R: Reroll (1 die) | {player.RerollDice} available")
+		</button>
 		@if (player.PendingModifierChoices > 1)
 		{
 			<div class="modifier-hint">@player.PendingModifierChoices upgrades waiting</div>
@@ -38,12 +42,22 @@
 		base.Tick();
 		_player = Game.ActiveScene.GetAllComponents<GamePlayer>().FirstOrDefault(x => !x.IsProxy);
 		if (!_player.IsValid() || _player.PendingModifierChoices <= 0)
+		{
 			return;
+		}
+
+		if (Input.Pressed("RerollModifiers") && _player.CanRerollModifiers)
+		{
+			_player.RerollModifiers(_player.ModifierOfferId);
+			return;
+		}
 
 		for (int index = 0; index < _player.ModifierOptions.Count; index++)
 		{
 			if (!Input.Pressed($"Slot{index + 1}"))
+			{
 				continue;
+			}
 
 			_player.SelectModifier(_player.ModifierOfferId, _player.ModifierOptions[index]);
 			break;
@@ -53,11 +67,21 @@
 	protected override int BuildHash()
 	{
 		if (!_player.IsValid())
+		{
 			return 0;
+		}
 
-		int hash = System.HashCode.Combine(_player, _player.PendingModifierChoices, _player.ModifierOfferId);
+		int hash = System.HashCode.Combine(
+			value1: _player,
+			value2: _player.PendingModifierChoices,
+			value3: _player.ModifierOfferId,
+			value4: _player.RerollDice,
+			value5: _player.CanRerollModifiers
+		);
 		foreach (var option in _player.ModifierOptions)
+		{
 			hash = System.HashCode.Combine(hash, option);
+		}
 		return hash;
 	}
 }

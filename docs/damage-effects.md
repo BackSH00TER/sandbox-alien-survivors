@@ -37,6 +37,33 @@ Unlocks and maxed chance upgrades stop appearing. Existing attack speed,
 range and vitality upgrades remain repeatable. All prerequisites must be owned;
 the host checks both the offer ID and eligibility when accepting a pick.
 
+## Reroll Dice
+
+Crates drop an equally likely number of items between their configured `MinDrops`
+and `MaxDrops` (1-3 by default), rolling each item's kind independently. Multiple
+pickups are spaced around the crate, while a single pickup stays centered.
+Crates can drop an ivory die with dark pips. It joins health, rifle and shotgun in
+the equally weighted common pool: each has a 22.5% chance when no flare is rolled,
+while armor keeps its separate 10% chance. A flare roll still takes priority.
+Walking over a die automatically grants one reroll to that living player. Dice
+accumulate for the round, persist through death/revive and weapon changes, and use
+the normal pickup range, line-of-sight and expiration rules.
+
+The HUD always shows the local player's remaining Reroll Dice. While choosing an
+upgrade, click the reroll button or press R (`RerollModifiers` input action) to spend
+one die. Rerolling preserves the pending choice count, owned upgrades and More Choices
+slot count (up to eight, limited by the eligible pool), draws
+distinct eligible modifiers and changes at least one card, rather than only changing
+their order. If a draw repeats the old set, one card is replaced by a weighted
+eligible alternative. The button is disabled with no dice, while dead/round-over,
+or if the current offer already contains every eligible modifier; no die is spent in those cases.
+The host validates the offer ID, ownership, round state and balance; a successful
+reroll invalidates the previous offer so duplicate requests cannot spend another die
+or select an old card. New rounds start with zero dice.
+Each successful reroll increments the player's round stat `times_rerolled`, shown
+as "Times rerolled" in the scorecard's Upgrades section. Like other upgrade rows,
+it is hidden if every player has zero. Rejected requests and dice pickups do not count.
+
 ## Bullet and effect behavior
 
 - The host chooses one unlocked effect type by its `DrawWeight`, then rolls that

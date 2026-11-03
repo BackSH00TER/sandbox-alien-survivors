@@ -8,6 +8,9 @@ var tests = new (string Name, Action Run)[]
 	("offers are eligible and distinct", Offers),
 	("extra options scale, cap and respect eligibility", ExtraOptions),
 	("extra option rarity uses reduced draw weight", ExtraOptionRarity),
+	("rerolls change the set without unlocking unavailable modifiers", Rerolls),
+	("expanded rerolls preserve size and eligible alternatives", ExpandedRerolls),
+	("reroll stat appears once in the upgrades scorecard", RerollStat),
 	("weighted draw boundaries", Weights),
 	("fire chance, defaults and upgrade caps", FireRolls),
 	("independent expiries and exact stacked damage", Expiries),
@@ -143,9 +146,98 @@ static void Weights()
 	Check(WeightedDraw.Pick(options, optionWeight => optionWeight, 0.25f) == 3, "Second bucket lower edge.");
 	Check(WeightedDraw.Pick(options, optionWeight => optionWeight, 1f) == 3, "Inclusive RNG endpoint.");
 	bool rejected = false;
-	try { WeightedDraw.Pick(options, _ => 0f, 0f); }
+	try
+	{
+		WeightedDraw.Pick(options, _ => 0f, 0f);
+	}
 	catch (ArgumentOutOfRangeException) { rejected = true; }
 	Check(rejected, "Invalid weights must fail explicitly.");
+}
+
+static void Rerolls()
+{
+	int NoPicks(GameModifier modifier) => 0;
+	var previous = ModifierCatalog.RollOffer(NoPicks, () => 0f);
+	var rerolled = ModifierCatalog.RollOffer(NoPicks, () => 0f, previousOffer: previous);
+	Check(ModifierCatalog.HasAlternativeOffer(NoPicks, previous), "A fresh player has four eligible options.");
+	Check(rerolled.Count == 3 && rerolled.Distinct().Count() == 3, "Rerolls must keep three distinct cards.");
+	Check(rerolled.Any(modifier => !previous.Contains(modifier)), "Repeating the RNG must still change a card.");
+	Check(rerolled.All(modifier => ModifierCatalog.Get(modifier).IsAvailable(NoPicks)), "Rerolls cannot bypass prerequisites.");
+	var random = new Random(81);
+	for (int draw = 0; draw < 1000; draw++)
+	{
+		var next = ModifierCatalog.RollOffer(NoPicks, () => (float)random.NextDouble(), previous);
+		Check(next.Any(modifier => !previous.Contains(modifier)), "A reroll cannot merely reorder cards.");
+		Check(next.Distinct().Count() == 3, "Rerolls cannot contain duplicates.");
+		previous = next;
+	}
+	var maxed = ModifierCatalog.All.ToDictionary(modifier => modifier.Id, modifier => modifier.MaxPicks);
+	maxed[GameModifier.AttackSpeed] = 0;
+	maxed[GameModifier.AttackRange] = 0;
+	maxed[GameModifier.Vitality] = 0;
+	int MaxedPicks(GameModifier modifier) => maxed[modifier];
+	var onlyOffer = ModifierCatalog.RollOffer(MaxedPicks, () => 0f);
+	Check(!ModifierCatalog.HasAlternativeOffer(MaxedPicks, onlyOffer), "With only three eligible cards, reroll must be unavailable.");
+}
+
+static void RerollStat()
+{
+	var section = GameStatCatalog.Sections.Single(section => section.Title == "Upgrades");
+	var row = section.Rows.Single(row => row.Key == GameStatKeys.TimesRerolled);
+	Check(row.Label == "Times rerolled", "The reroll count needs a readable scorecard label.");
+	Check(GameStatCatalog.Sections.SelectMany(section => section.Rows).Count(row => row.Key == GameStatKeys.TimesRerolled) == 1,
+		"The scorecard must not duplicate the reroll stat.");
+	Check(section.Rows.Count == ModifierCatalog.All.Count + 1, "All existing modifier rows must remain.");
+}
+
+static void ExpandedRerolls()
+{
+	var picks = new Dictionary<GameModifier, int>
+	{
+		[GameModifier.FireRounds] = 1
+	};
+	int Stacks(GameModifier modifier)
+	{
+		return picks.GetValueOrDefault(modifier);
+	}
+
+	for (int rank = 1; rank < 5; rank++)
+	{
+		picks[GameModifier.ExtraOption] = rank;
+		var previous = ModifierCatalog.RollOffer(Stacks, () => 0f);
+		Check(ModifierCatalog.HasAlternativeOffer(Stacks, previous), "Unlocked expanded offers must have alternatives.");
+		for (int draw = 0; draw < 100; draw++)
+		{
+			var next = ModifierCatalog.RollOffer(
+				getModifierPickCount: Stacks,
+				random: () => 0f,
+				previousOffer: previous
+			);
+			Check(next.Count == 3 + rank, "Reroll lost bonus choices.");
+			Check(next.Distinct().Count() == next.Count, "Expanded reroll duplicated a card.");
+			Check(next.Any(modifier => !previous.Contains(modifier)), "Expanded reroll must change the set.");
+			Check(next.All(modifier => ModifierCatalog.Get(modifier).IsAvailable(Stacks)), "Expanded reroll bypassed eligibility.");
+			previous = next;
+		}
+	}
+
+	picks[GameModifier.ExtraOption] = 5;
+	picks[GameModifier.FireSpread] = 1;
+	var fullyUnlocked = ModifierCatalog.RollOffer(Stacks, () => 0f);
+	Check(fullyUnlocked.Count == 8, "Fully unlocked rank five must show eight choices.");
+	Check(!ModifierCatalog.HasAlternativeOffer(Stacks, fullyUnlocked), "All eight eligible cards leave no reroll alternative.");
+
+	picks.Clear();
+	picks[GameModifier.ExtraOption] = 5;
+	var allEligible = ModifierCatalog.RollOffer(Stacks, () => 0f);
+	Check(allEligible.Count == 4, "Locked fire must leave four eligible choices at rank five.");
+	Check(!ModifierCatalog.HasAlternativeOffer(Stacks, allEligible), "Reroll must be disabled when every eligible choice is shown.");
+	var noAlternative = ModifierCatalog.RollOffer(
+		getModifierPickCount: Stacks,
+		random: () => 1f,
+		previousOffer: allEligible
+	);
+	Check(noAlternative.Count == 4 && noAlternative.All(allEligible.Contains), "A full-pool offer cannot invent an alternative.");
 }
 
 static void FireRolls()
@@ -231,7 +323,11 @@ static void TickCadence()
 	var effects = new TimedDamageEffects<string>();
 	float damage = 0f;
 	int ticks = 0;
-	void Damage(TimedDamageStack<string> stack, float amount) { damage += amount; ticks++; }
+	void Damage(TimedDamageStack<string> stack, float amount)
+	{
+		damage += amount;
+		ticks++;
+	}
 	effects.Apply(Settings(duration: 2.5f), "source", 0f);
 	effects.Advance(0.5f, Damage);
 	Check(ticks == 0, "Fire must not cause a hit reaction every frame.");
@@ -295,7 +391,10 @@ static void Invalid()
 		() => new(GameDamageType.Fire, 0.2f, 5f, 5f, 1, -0.1f, 120f)
 	})
 	{
-		try { create(); }
+		try
+		{
+			create();
+		}
 		catch (ArgumentOutOfRangeException) { failures++; }
 	}
 	Check(failures == 5, "Invalid settings must fail explicitly.");
