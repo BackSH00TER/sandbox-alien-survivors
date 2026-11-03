@@ -138,10 +138,7 @@ public abstract class GameEntity : Component
 			if (dealtHealthDamage > 0f)
 			{
 				GamePlayerStats.RecordDamage(attacker, this, dealtHealthDamage, type, wasKill);
-				if (this is GameEnemy)
-				{
-					ShowDamageNumber(dealtHealthDamage);
-				}
+				ShowDamageNumber(dealtHealthDamage);
 			}
 		}
 		FlashHit();
