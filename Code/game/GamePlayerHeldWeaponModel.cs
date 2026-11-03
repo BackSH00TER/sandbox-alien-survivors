@@ -20,9 +20,10 @@ public sealed class GamePlayerHeldWeaponModel : Component
 		UpdateModel();
 	}
 
-	public bool TryGetMuzzlePosition(out Vector3 position)
+	public bool TryGetMuzzleTransform(out Vector3 position, out Vector3 forward)
 	{
 		position = default;
+		forward = default;
 		if (!UpdateModel())
 			return false;
 
@@ -40,10 +41,12 @@ public sealed class GamePlayerHeldWeaponModel : Component
 			}
 
 			position = _model.WorldTransform.PointToWorld(muzzle.Position);
+			forward = (_model.WorldTransform.PointToWorld(muzzle.Position + muzzle.Rotation.Forward) - position).Normal;
 			return true;
 		}
 
 		position = _model.WorldTransform.PointToWorld(_muzzleOffset);
+		forward = (_model.WorldTransform.PointToWorld(_muzzleOffset + Vector3.Forward) - position).Normal;
 		return true;
 	}
 

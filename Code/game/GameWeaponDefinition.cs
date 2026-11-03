@@ -16,7 +16,7 @@ public sealed partial class GameWeaponDefinition : GameResource
 	[Property]
 	public Sandbox.Citizen.CitizenAnimationHelper.HoldTypes HoldType { get; set; }
 		= Sandbox.Citizen.CitizenAnimationHelper.HoldTypes.Pistol;
-	[Property, Description("Optional model aligned to hold_R, with a muzzle attachment for bullet spawning. Leave empty for a prototype model matching the hold type.")]
+	[Property, Description("Optional model aligned to hold_R, with a muzzle attachment for bullet position and forward direction. Leave empty for a prototype model matching the hold type.")]
 	public Model WorldModel { get; set; }
 
 	public bool Validate()
