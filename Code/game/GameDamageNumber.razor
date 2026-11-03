@@ -1,0 +1,44 @@
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace Sandbox
+
+<root>
+	<div class="damage-number" style="opacity: @Opacity;">@DamageText</div>
+</root>
+
+@code
+{
+	[Property] public float Damage { get; set; }
+
+	private const float Lifetime = 0.9f;
+	private const float RiseHeight = 48f;
+	private Vector3 _startPosition;
+	private float _startTime;
+	private float _opacity = 1f;
+
+	private string DamageText => Damage.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
+	private float Opacity => _opacity;
+
+	protected override void OnStart()
+	{
+		_startPosition = GameObject.WorldPosition;
+		_startTime = Time.Now;
+	}
+
+	protected override void OnUpdate()
+	{
+		var progress = ((Time.Now - _startTime) / Lifetime).Clamp(0f, 1f);
+		GameObject.WorldPosition = _startPosition + Vector3.Up * (RiseHeight * progress);
+		_opacity = 1f - progress;
+		if (progress >= 1f)
+		{
+			GameObject.Destroy();
+		}
+	}
+
+	protected override int BuildHash()
+	{
+		return System.HashCode.Combine(Damage, _opacity);
+	}
+}
