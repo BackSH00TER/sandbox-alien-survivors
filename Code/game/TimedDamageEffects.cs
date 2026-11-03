@@ -5,13 +5,34 @@ using System.Linq;
 /// <summary>Validated, immutable effect values captured when a projectile fires and reused when its effect spreads.</summary>
 public sealed class DamageEffectSettings
 {
-	public GameDamageType Type { get; }
-	public float ApplicationChance { get; }
-	public float Duration { get; }
-	public float DamagePerSecond { get; }
-	public int MaxStacks { get; }
-	public float SpreadChance { get; }
-	public float SpreadRadius { get; }
+	public GameDamageType Type
+	{
+		get;
+	}
+	public float ApplicationChance
+	{
+		get;
+	}
+	public float Duration
+	{
+		get;
+	}
+	public float DamagePerSecond
+	{
+		get;
+	}
+	public int MaxStacks
+	{
+		get;
+	}
+	public float SpreadChance
+	{
+		get;
+	}
+	public float SpreadRadius
+	{
+		get;
+	}
 
 	public DamageEffectSettings(GameDamageType type, float applicationChance, float duration,
 		float damagePerSecond, int maxStacks, float spreadChance, float spreadRadius)
@@ -22,7 +43,9 @@ public sealed class DamageEffectSettings
 			|| !float.IsFinite(damagePerSecond) || damagePerSecond <= 0f || maxStacks < 1
 			|| !float.IsFinite(spreadChance) || spreadChance < 0f || spreadChance > 1f
 			|| !float.IsFinite(spreadRadius) || spreadRadius <= 0f)
+		{
 			throw new ArgumentOutOfRangeException(nameof(type), "Invalid timed damage effect settings.");
+		}
 
 		Type = type;
 		ApplicationChance = applicationChance;
@@ -37,11 +60,23 @@ public sealed class DamageEffectSettings
 /// <summary>One application with its own expiry and damage source, independent of other applications of the same type.</summary>
 public sealed class TimedDamageStack<TSource>
 {
-	public DamageEffectSettings Settings { get; }
-	public TSource Source { get; }
-	public float ExpiresAt { get; }
+	public DamageEffectSettings Settings
+	{
+		get;
+	}
+	public TSource Source
+	{
+		get;
+	}
+	public float ExpiresAt
+	{
+		get;
+	}
 	// Advances only for time already paid out as damage, leaving partial tick time for the next update.
-	internal float LastDamageTime { get; set; }
+	internal float LastDamageTime
+	{
+		get; set;
+	}
 
 	internal TimedDamageStack(DamageEffectSettings settings, TSource source, float now)
 	{
@@ -73,13 +108,18 @@ public sealed class TimedDamageEffects<TSource>
 	public void Apply(DamageEffectSettings settings, TSource source, float now)
 	{
 		if (settings == null || !float.IsFinite(now))
+		{
 			throw new ArgumentException("Applying an effect requires settings and a finite time.");
+		}
 
 		_stacks.RemoveAll(effectStack => effectStack.ExpiresAt <= now);
 		var sameTypeStacks = _stacks.Where(effectStack => effectStack.Settings.Type == settings.Type).ToList();
 		// A lower-cap source cannot remove another player's stacks, but can renew the oldest.
 		if (sameTypeStacks.Count >= settings.MaxStacks)
+		{
 			_stacks.Remove(sameTypeStacks[0]);
+		}
+
 		_stacks.Add(new TimedDamageStack<TSource>(settings, source, now));
 	}
 
@@ -88,7 +128,9 @@ public sealed class TimedDamageEffects<TSource>
 	public void Advance(float now, Action<TimedDamageStack<TSource>, float> dealDamage, bool flush = false)
 	{
 		if (!float.IsFinite(now))
+		{
 			throw new ArgumentOutOfRangeException(nameof(now));
+		}
 
 		// The damage callback may kill the target and clear the collection while it is being processed.
 		foreach (var effectStack in _stacks.ToArray())
@@ -97,10 +139,15 @@ public sealed class TimedDamageEffects<TSource>
 			var elapsedDamageTime = MathF.Max(0f, damageEndTime - effectStack.LastDamageTime);
 			// Whole-second ticks avoid continuous hit reactions; expiry/reapplication pays the remaining fraction.
 			if (!flush && damageEndTime < effectStack.ExpiresAt)
+			{
 				elapsedDamageTime = MathF.Floor(elapsedDamageTime);
+			}
+
 			effectStack.LastDamageTime += elapsedDamageTime;
 			if (elapsedDamageTime > 0f)
+			{
 				dealDamage(effectStack, elapsedDamageTime * effectStack.Settings.DamagePerSecond);
+			}
 		}
 		_stacks.RemoveAll(effectStack => effectStack.ExpiresAt <= now);
 	}

@@ -19,11 +19,27 @@ public sealed class GameLootPickup : Component
 	private const float BlinkSeconds = 8f;
 	[Property, Range(5f, 300f), Description("Total seconds an unclaimed pickup stays before it disappears.")]
 	public float LifetimeSeconds { get; set; } = 45f;
-	[Sync(SyncFlags.FromHost)] public LootKind Kind { get; private set; }
-	[Sync(SyncFlags.FromHost)] public GameWeaponDefinition Weapon { get; private set; }
-	[Sync(SyncFlags.FromHost)] public bool Claimed { get; private set; }
+	[Sync(SyncFlags.FromHost)]
+	public LootKind Kind
+	{
+		get; private set;
+	}
+	[Sync(SyncFlags.FromHost)]
+	public GameWeaponDefinition Weapon
+	{
+		get; private set;
+	}
+	[Sync(SyncFlags.FromHost)]
+	public bool Claimed
+	{
+		get; private set;
+	}
 	/// <summary>True during the last <see cref="BlinkSeconds"/> before the pickup disappears. Set by the host so every client blinks it.</summary>
-	[Sync(SyncFlags.FromHost)] public bool IsBlinking { get; private set; }
+	[Sync(SyncFlags.FromHost)]
+	public bool IsBlinking
+	{
+		get; private set;
+	}
 	public string DisplayName => Kind switch
 	{
 		LootKind.Health => "Health +50",
@@ -125,7 +141,10 @@ public sealed class GameLootPickup : Component
 	{
 		var pipPositions = new List<Vector2>();
 		if (value % 2 == 1)
+		{
 			pipPositions.Add(Vector2.Zero);
+		}
+
 		if (value >= 2)
 		{
 			pipPositions.Add(new Vector2(-1f, -1f));
@@ -165,19 +184,31 @@ public sealed class GameLootPickup : Component
 	protected override void OnFixedUpdate()
 	{
 		if (!Networking.IsHost || IsProxy || Claimed || !GameInProgress())
+		{
 			return;
+		}
 
 		if (UpdateLifetime())
+		{
 			return;
+		}
 
 		if (Kind == LootKind.Health)
+		{
 			TryHealNearby();
+		}
 		else if (Kind == LootKind.Armor)
+		{
 			TryAddArmorNearby();
+		}
 		else if (Kind == LootKind.Flare)
+		{
 			TryFireFlareNearby();
+		}
 		else if (Kind == LootKind.RerollDice)
+		{
 			TryAddRerollDiceNearby();
+		}
 	}
 
 	// Returns true when the pickup ran out of time and was removed.
@@ -186,7 +217,9 @@ public sealed class GameLootPickup : Component
 		var remaining = LifetimeSeconds - (Time.Now - _spawnedAt);
 		IsBlinking = remaining <= BlinkSeconds;
 		if (remaining > 0f)
+		{
 			return false;
+		}
 
 		Claimed = true;
 		GameObject.Destroy();
@@ -198,7 +231,9 @@ public sealed class GameLootPickup : Component
 		foreach (var player in Scene.GetAllComponents<GamePlayer>())
 		{
 			if (!CanReach(player, ContactRange) || !player.RestoreHealth(50f))
+			{
 				continue;
+			}
 
 			Claimed = true;
 			GameObject.Destroy();
@@ -211,7 +246,9 @@ public sealed class GameLootPickup : Component
 		foreach (var player in Scene.GetAllComponents<GamePlayer>())
 		{
 			if (!CanReach(player, ContactRange) || !player.AddArmor(1))
+			{
 				continue;
+			}
 
 			Claimed = true;
 			GameObject.Destroy();
@@ -224,7 +261,9 @@ public sealed class GameLootPickup : Component
 		foreach (var player in Scene.GetAllComponents<GamePlayer>())
 		{
 			if (!CanReach(player, ContactRange) || !player.AddRerollDice(1))
+			{
 				continue;
+			}
 
 			Claimed = true;
 			GameObject.Destroy();
@@ -237,12 +276,16 @@ public sealed class GameLootPickup : Component
 	{
 		var players = Scene.GetAllComponents<GamePlayer>().ToList();
 		if (!players.Any(x => x.IsDead))
+		{
 			return;
+		}
 
 		foreach (var player in players)
 		{
 			if (!CanReach(player, ContactRange))
+			{
 				continue;
+			}
 
 			GameReviveFlare.Spawn(player.WorldPosition);
 			Claimed = true;
@@ -254,11 +297,15 @@ public sealed class GameLootPickup : Component
 	public static GameLootPickup FindNearestWeapon(GamePlayer player)
 	{
 		if (!player.IsValid())
+		{
 			return null;
+		}
 
 		var manager = player.Scene.GetAllComponents<GameManager>().FirstOrDefault();
 		if (manager != null && manager.State != GameState.InProgress)
+		{
 			return null;
+		}
 
 		return player.Scene.GetAllComponents<GameLootPickup>()
 			.Where(x => x.Kind != LootKind.Health && x.Weapon != null && x.CanReach(player, WeaponPickupRange))
@@ -285,7 +332,9 @@ public sealed class GameLootPickup : Component
 	{
 		if (!Active || Claimed || !player.IsValid() || !player.Active || player.Health <= 0f
 			|| (WorldPosition - (player.WorldPosition + Vector3.Up * 16f)).LengthSquared > range * range)
+		{
 			return false;
+		}
 
 		var trace = Scene.Trace.FromTo(player.WorldPosition + Vector3.Up * 36f, WorldPosition)
 			.IgnoreGameObjectHierarchy(player.GameObject).IgnoreGameObjectHierarchy(GameObject).Run();

@@ -3,7 +3,11 @@ using Sandbox;
 public sealed class GameEnemySpawner : Component
 {
 	[Group("Enemy Spawning")]
-	[Property] public GameObject EnemyPrefab { get; set; }
+	[Property]
+	public GameObject EnemyPrefab
+	{
+		get; set;
+	}
 
 	[Group("Enemy Spawning")]
 	[Property, Range(0.1f, 60f)] public float SpawnInterval { get; set; } = 3f;
@@ -27,7 +31,9 @@ public sealed class GameEnemySpawner : Component
 	protected override void OnUpdate()
 	{
 		if (!Networking.IsHost)
+		{
 			return;
+		}
 
 		if (SpawnInterval <= 0f)
 		{
@@ -44,11 +50,15 @@ public sealed class GameEnemySpawner : Component
 
 		var gameManager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
 		if (gameManager != null && gameManager.State != GameState.InProgress)
+		{
 			return;
+		}
 
 		_spawnTimer += Time.Delta;
 		if (_spawnTimer < SpawnInterval)
+		{
 			return;
+		}
 
 		_spawnTimer = 0f;
 		SpawnEnemy();
@@ -115,9 +125,13 @@ public sealed class GameEnemySpawner : Component
 			var variantRoll = _random.NextDouble() * 100f;
 			var explodingChance = ExplodingEnemyChance.Clamp(0f, 100f);
 			if (variantRoll < explodingChance)
+			{
 				enemy.GetOrAddComponent<GameEnemyExploding>();
+			}
 			else if (variantRoll < explodingChance + RangedEnemyChance.Clamp(0f, 100f))
+			{
 				enemy.GetOrAddComponent<GameEnemyRanged>();
+			}
 		}
 
 		if (!enemy.NetworkSpawn())

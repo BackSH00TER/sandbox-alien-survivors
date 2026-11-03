@@ -73,7 +73,9 @@ public sealed class GamePlayer : GameEntity
 			return false;
 		}
 		if (!Active || IsDead || IsRoundOver)
+		{
 			return false;
+		}
 
 		RerollDice += amount;
 		return true;
@@ -118,7 +120,10 @@ public sealed class GamePlayer : GameEntity
 	{
 		int hash = System.HashCode.Combine(AttackSpeedStacks, AttackRangeStacks, VitalityStacks);
 		foreach (var pair in EffectModifierStacks)
+		{
 			hash ^= System.HashCode.Combine(pair.Key, pair.Value);
+		}
+
 		return hash;
 	}
 
@@ -218,11 +223,15 @@ public sealed class GamePlayer : GameEntity
 		base.OnUpdate();
 		UpdateDeadState();
 		if (IsProxy)
+		{
 			return;
+		}
 
 		Mouse.Visibility = MouseVisibility.Visible;
 		if (IsRoundOver)
+		{
 			return;
+		}
 
 		if (IsDead)
 		{
@@ -236,11 +245,15 @@ public sealed class GamePlayer : GameEntity
 		{
 			var pickup = GameLootPickup.FindNearestWeapon(this);
 			if (pickup.IsValid())
+			{
 				PickupWeapon(pickup);
+			}
 		}
 
 		if (ShowAttackDebug && GameHUD.IsDebugEnabled(Scene))
+		{
 			DrawAttackRange();
+		}
 
 		var camera = Scene.Camera;
 		if (!camera.IsValid())
@@ -263,25 +276,33 @@ public sealed class GamePlayer : GameEntity
 		CursorRayDirection = ray.Forward;
 
 		if (TryGetAimDirection(WorldPosition + Vector3.Up * GameWeaponProjectile.CollisionHeight, out var direction))
+		{
 			Controller.EyeAngles = Rotation.LookAt(direction, Vector3.Up).Angles();
+		}
 	}
 
 	private bool TryGetAimDirection(Vector3 origin, out Vector3 direction)
 	{
 		direction = default;
 		if (System.MathF.Abs(CursorRayDirection.z) < 0.0001f)
+		{
 			return false;
+		}
 
 		// Intersect the cursor ray at shot height, without snapping to scene geometry.
 		var distance = (origin.z - CursorRayOrigin.z) / CursorRayDirection.z;
 		if (distance < 0f)
+		{
 			return false;
+		}
 
 		var aimPosition = CursorRayOrigin + CursorRayDirection * distance;
 		var offset = aimPosition - origin;
 		var horizontal = new Vector3(offset.x, offset.y, 0f);
 		if (horizontal.LengthSquared <= 0.001f)
+		{
 			return false;
+		}
 
 		direction = horizontal.Normal;
 		return true;
@@ -301,14 +322,20 @@ public sealed class GamePlayer : GameEntity
 		}
 
 		if (!Networking.IsHost)
+		{
 			return;
+		}
 
 		if (BloodOffset > base.BloodAmount)
+		{
 			BloodOffset = base.BloodAmount;
+		}
 
 		var gameManager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
 		if (gameManager != null && gameManager.State != GameState.InProgress)
+		{
 			return;
+		}
 
 		if (!IsDead && EquippedWeapon != null && Time.Now >= NextAttackTime)
 		{
@@ -326,7 +353,9 @@ public sealed class GamePlayer : GameEntity
 		}
 
 		if (!Active || Health <= 0f)
+		{
 			return;
+		}
 
 		StunEndTime = System.MathF.Max(StunEndTime, Time.Now + duration);
 		StopMovement();
@@ -346,18 +375,26 @@ public sealed class GamePlayer : GameEntity
 	{
 		bool isDead = IsDead;
 		if (isDead == _wasDead)
+		{
 			return;
+		}
 
 		_wasDead = isDead;
 		Controller.Enabled = !isDead;
 		if (Controller.Body.IsValid())
+		{
 			Controller.Body.MotionEnabled = !isDead;
+		}
 
 		if (Controller.Renderer.IsValid())
+		{
 			Controller.Renderer.GameObject.Enabled = !isDead;
+		}
 
 		if (isDead && !IsProxy)
+		{
 			WorldPosition += Vector3.Up * UavAltitude;
+		}
 	}
 
 	// Camera-relative WASD flight. The owner moves the object; the host reads its position to detect flare claims.
@@ -370,7 +407,9 @@ public sealed class GamePlayer : GameEntity
 
 		CameraComponent camera = Scene.Camera;
 		if (!camera.IsValid())
+		{
 			return;
+		}
 
 		camera.WorldPosition = WorldPosition + UavCameraOffset;
 		camera.WorldRotation = cameraRotation;
@@ -392,7 +431,9 @@ public sealed class GamePlayer : GameEntity
 		}
 
 		if (!weapon.Validate())
+		{
 			return;
+		}
 
 		EquippedWeapon = weapon;
 		NextAttackTime = Time.Now + EffectiveAttackInterval;
@@ -402,29 +443,43 @@ public sealed class GamePlayer : GameEntity
 	private void HandleDebugKeys()
 	{
 		if (!GameHUD.IsDebugEnabled(Scene))
+		{
 			return;
+		}
 
 		if (Input.Keyboard.Pressed("K"))
+		{
 			DebugKill();
+		}
 
 		if (Input.Keyboard.Pressed("G"))
+		{
 			DebugSpawnFlarePickup();
+		}
 
 		if (Input.Keyboard.Pressed("H"))
+		{
 			DebugToggleGodMode();
+		}
 
 		if (Input.Keyboard.Pressed("J"))
+		{
 			DebugSpawnArmorPickup();
+		}
 
 		if (Input.Keyboard.Pressed("L"))
+		{
 			DebugSpawnCrate();
+		}
 	}
 
 	[Rpc.Host(NetFlags.OwnerOnly)]
 	public void DebugKill()
 	{
 		if (IsDead)
+		{
 			return;
+		}
 
 		// Killing on purpose wins over god mode, so it is switched off first.
 		GodMode = false;
@@ -447,14 +502,18 @@ public sealed class GamePlayer : GameEntity
 	public void DebugSpawnArmorPickup()
 	{
 		if (TryGetDebugSpawnPosition(out var position))
+		{
 			GameLootPickup.Spawn(position, LootKind.Armor);
+		}
 	}
 
 	[Rpc.Host(NetFlags.OwnerOnly)]
 	public void DebugSpawnCrate()
 	{
 		if (!TryGetDebugSpawnPosition(out var position))
+		{
 			return;
+		}
 
 		var spawner = Scene.GetAllComponents<GameCrateSpawner>().FirstOrDefault();
 		var rifle = spawner?.Rifle ?? ResourceLibrary.Get<GameWeaponDefinition>("weapons/rifle.weapon");
@@ -466,7 +525,9 @@ public sealed class GamePlayer : GameEntity
 		}
 
 		if (!rifle.Validate() || !shotgun.Validate())
+		{
 			return;
+		}
 
 		GameSupplyCrate.Spawn(position, rifle, shotgun);
 	}
@@ -475,7 +536,9 @@ public sealed class GamePlayer : GameEntity
 	{
 		position = default;
 		if (IsDead || IsRoundOver || !GameHUD.IsDebugEnabled(Scene))
+		{
 			return false;
+		}
 
 		if (!Controller.IsValid())
 		{
@@ -515,10 +578,14 @@ public sealed class GamePlayer : GameEntity
 	public bool ReviveAt(Vector3 groundPosition)
 	{
 		if (!Networking.IsHost || !IsDead)
+		{
 			return false;
+		}
 
 		if (!Revive(MaxHealth * ReviveHealthFraction))
+		{
 			return false;
+		}
 
 		_invulnerableUntil = Time.Now + ReviveInvulnerableSeconds;
 		GamePlayerStats.Record(this, GameStatKeys.TimesRevived);
@@ -533,7 +600,9 @@ public sealed class GamePlayer : GameEntity
 	{
 		WorldPosition = position;
 		if (Controller.Body.IsValid())
+		{
 			Controller.Body.Velocity = Vector3.Zero;
+		}
 	}
 
 	[Rpc.Host(NetFlags.OwnerOnly)]
@@ -625,7 +694,9 @@ public sealed class GamePlayer : GameEntity
 	{
 		PendingModifierChoices++;
 		if (PendingModifierChoices == 1)
+		{
 			RollModifierOffer();
+		}
 	}
 
 	private void RollModifierOffer(IReadOnlyList<GameModifier> previousOffer = null)
@@ -693,9 +764,13 @@ public sealed class GamePlayer : GameEntity
 		PendingModifierChoices--;
 		// Invalidate the consumed offer so duplicate clicks cannot spend the next queued choice.
 		if (PendingModifierChoices > 0)
+		{
 			RollModifierOffer();
+		}
 		else
+		{
 			ModifierOfferId++;
+		}
 	}
 
 	[Rpc.Broadcast(NetFlags.HostOnly)]
@@ -717,7 +792,9 @@ public sealed class GamePlayer : GameEntity
 		{
 			Controller.Renderer.WorldRotation = Controller.EyeAngles.ToRotation();
 			if (EquippedWeapon != null)
+			{
 				Controller.Renderer.Set("holdtype", (int)EquippedWeapon.HoldType);
+			}
 		}
 	}
 
@@ -725,6 +802,8 @@ public sealed class GamePlayer : GameEntity
 	{
 		base.OnDisabled();
 		if (!IsProxy && Controller.IsValid())
+		{
 			Controller.WishVelocity = Vector3.Zero;
+		}
 	}
 }

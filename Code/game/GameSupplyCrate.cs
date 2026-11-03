@@ -94,10 +94,14 @@ public sealed class GameSupplyCrate : GameEntity
 	{
 		var spawner = Scene.GetAllComponents<GameCrateSpawner>().FirstOrDefault();
 		if (spawner != null && Game.Random.Float() < spawner.GetFlareDropChance())
+		{
 			return LootKind.Flare;
+		}
 
 		if (Game.Random.Float() < 0.1f)
+		{
 			return LootKind.Armor;
+		}
 
 		return NormalDrops[Game.Random.Int(0, NormalDrops.Length - 1)];
 	}

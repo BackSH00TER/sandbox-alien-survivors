@@ -45,6 +45,8 @@ public sealed class GameEnemyExploding : Component
 	protected override void OnDisabled()
 	{
 		if (_beacon.IsValid())
+		{
 			_beacon.Destroy();
+		}
 	}
 }

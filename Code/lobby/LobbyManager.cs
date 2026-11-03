@@ -8,7 +8,11 @@ using Sandbox;
 public sealed class LobbyManager : Component
 {
 	[Group("Scene Transition")]
-	[Property] public string GameScene { get; set; }
+	[Property]
+	public string GameScene
+	{
+		get; set;
+	}
 
 	/// <summary>Number of players currently in the lobby.</summary>
 	public int PlayerCount => Scene.GetAllComponents<LobbyPlayerReadyState>().Count();
@@ -23,10 +27,14 @@ public sealed class LobbyManager : Component
 	public void StartGame()
 	{
 		if (!Networking.IsHost)
+		{
 			return;
+		}
 
 		if (!AreAllPlayersReady)
+		{
 			return;
+		}
 
 		if (string.IsNullOrWhiteSpace(GameScene))
 		{
@@ -44,6 +52,8 @@ public sealed class LobbyManager : Component
 
 		bool wasSceneChanged = Game.ChangeScene(options);
 		if (!wasSceneChanged)
+		{
 			Log.Error($"Could not change to game scene: {GameScene}");
+		}
 	}
 }

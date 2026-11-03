@@ -3,12 +3,36 @@ using Sandbox;
 /// <summary>Host-authoritative death fuse configured by ExplodingEnemy, with a client-visible warning and blast.</summary>
 public sealed class GameEnemyExplosion : Component
 {
-	[Sync(SyncFlags.FromHost)] public float FuseDuration { get; set; }
-	[Sync(SyncFlags.FromHost)] public float BlastRadius { get; set; }
-	[Sync(SyncFlags.FromHost)] public float BlastDamage { get; set; }
-	[Sync(SyncFlags.FromHost)] private float DetonationTime { get; set; }
-	[Sync(SyncFlags.FromHost)] private bool HasExploded { get; set; }
-	[Sync(SyncFlags.FromHost)] private float ExplosionTime { get; set; }
+	[Sync(SyncFlags.FromHost)]
+	public float FuseDuration
+	{
+		get; set;
+	}
+	[Sync(SyncFlags.FromHost)]
+	public float BlastRadius
+	{
+		get; set;
+	}
+	[Sync(SyncFlags.FromHost)]
+	public float BlastDamage
+	{
+		get; set;
+	}
+	[Sync(SyncFlags.FromHost)]
+	private float DetonationTime
+	{
+		get; set;
+	}
+	[Sync(SyncFlags.FromHost)]
+	private bool HasExploded
+	{
+		get; set;
+	}
+	[Sync(SyncFlags.FromHost)]
+	private float ExplosionTime
+	{
+		get; set;
+	}
 
 	private const float BlastVisualDuration = 0.4f;
 	private GameObject _visual;
@@ -18,7 +42,9 @@ public sealed class GameEnemyExplosion : Component
 	protected override void OnStart()
 	{
 		if (Networking.IsHost && !IsProxy)
+		{
 			DetonationTime = Time.Now + System.MathF.Max(0.1f, FuseDuration);
+		}
 
 		_visual = new GameObject(GameObject, true, "Death Explosion Warning");
 		_visual.Flags |= GameObjectFlags.NotNetworked | GameObjectFlags.NotSaved;
@@ -26,7 +52,10 @@ public sealed class GameEnemyExplosion : Component
 		_ring.UseVectorPoints = true;
 		_ring.VectorPoints = new List<Vector3>();
 		for (var i = 0; i <= 48; i++)
+		{
 			_ring.VectorPoints.Add(Vector3.Zero);
+		}
+
 		_ring.Width = 4f;
 		_ring.Lighting = false;
 		_ring.CastShadows = false;
@@ -41,7 +70,9 @@ public sealed class GameEnemyExplosion : Component
 	protected override void OnUpdate()
 	{
 		if (!_ring.IsValid())
+		{
 			return;
+		}
 
 		var progress = HasExploded
 			? ((Time.Now - ExplosionTime) / BlastVisualDuration).Clamp(0f, 1f) : 0f;
@@ -64,7 +95,9 @@ public sealed class GameEnemyExplosion : Component
 	protected override void OnFixedUpdate()
 	{
 		if (!Networking.IsHost || IsProxy)
+		{
 			return;
+		}
 
 		var gameManager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
 		if (gameManager != null && gameManager.State != GameState.InProgress)
@@ -76,12 +109,17 @@ public sealed class GameEnemyExplosion : Component
 		if (HasExploded)
 		{
 			if (Time.Now >= ExplosionTime + BlastVisualDuration)
+			{
 				GameObject.Destroy();
+			}
+
 			return;
 		}
 
 		if (Time.Now < DetonationTime)
+		{
 			return;
+		}
 
 		HasExploded = true;
 		ExplosionTime = Time.Now;
@@ -97,23 +135,31 @@ public sealed class GameEnemyExplosion : Component
 		foreach (var target in targets)
 		{
 			if (target is GameEnemy or GamePlayer)
+			{
 				blastTrace = blastTrace.IgnoreGameObjectHierarchy(target.GameObject);
+			}
 		}
 
 		foreach (var target in targets)
 		{
 			if (!target.IsValid() || !target.Active || !target.CanTakeDamage || target.Health <= 0f
 				|| (target is not GameEnemy && target is not GamePlayer))
+			{
 				continue;
+			}
 
 			var targetPosition = target.WorldPosition + Vector3.Up * GameWeaponProjectile.CollisionHeight;
 			var offset = targetPosition - center;
 			if (offset.LengthSquared > BlastRadius * BlastRadius)
+			{
 				continue;
+			}
 
 			var trace = blastTrace.FromTo(center, targetPosition).Run();
 			if (trace.Hit || trace.StartedSolid)
+			{
 				continue;
+			}
 
 			target.TakeDamage(BlastDamage, offset.LengthSquared > 0.001f ? offset.Normal : Vector3.Up, GameDamageType.Explosive);
 		}
@@ -122,6 +168,8 @@ public sealed class GameEnemyExplosion : Component
 	protected override void OnDisabled()
 	{
 		if (_visual.IsValid())
+		{
 			_visual.Destroy();
+		}
 	}
 }

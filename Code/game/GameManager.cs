@@ -14,11 +14,23 @@ public sealed class GameManager : Component
 	[Group("Game Settings"), Description("Ends the game as soon as every player is dead, since nobody is left to fire a revive flare. Turn off while debugging revives.")]
 	[Property] public bool ShouldEndWhenAllDead { get; set; } = false;
 	[Sync(SyncFlags.FromHost)] public GameState State { get; set; } = GameState.InProgress;
-	[Sync(SyncFlags.FromHost)] public GameEnemy Boss { get; private set; }
-	[Sync(SyncFlags.FromHost)] public bool BossSpawned { get; private set; }
+	[Sync(SyncFlags.FromHost)]
+	public GameEnemy Boss
+	{
+		get; private set;
+	}
+	[Sync(SyncFlags.FromHost)]
+	public bool BossSpawned
+	{
+		get; private set;
+	}
 
 	[Group("Scene Transition")]
-	[Property] public string LobbyScene { get; set; }
+	[Property]
+	public string LobbyScene
+	{
+		get; set;
+	}
 	[Group("Scene Transition")]
 	[Property] public string GameScene { get; set; } = "scenes/game.scene";
 
@@ -37,7 +49,9 @@ public sealed class GameManager : Component
 	protected override void OnUpdate()
 	{
 		if (!Networking.IsHost || State == GameState.Ended)
+		{
 			return;
+		}
 
 		if (ShouldEndWhenAllDead && AreAllPlayersDead())
 		{
@@ -46,7 +60,9 @@ public sealed class GameManager : Component
 		}
 
 		if (RemainingSeconds <= 0 && !BossSpawned)
+		{
 			SpawnBoss();
+		}
 	}
 
 	private void SpawnBoss()
@@ -65,7 +81,9 @@ public sealed class GameManager : Component
 		_missingSpawnerLogged = false;
 		var boss = spawner.SpawnBoss();
 		if (!boss.IsValid())
+		{
 			return;
+		}
 
 		Boss = boss;
 		BossSpawned = true;
@@ -80,7 +98,9 @@ public sealed class GameManager : Component
 		}
 
 		if (State != GameState.InProgress)
+		{
 			return;
+		}
 
 		if (!BossSpawned || !enemy.IsValid() || enemy != Boss || enemy.Health > 0f)
 		{
@@ -122,7 +142,9 @@ public sealed class GameManager : Component
 		}
 
 		if (_isChangingScene)
+		{
 			return;
+		}
 
 		if (string.IsNullOrWhiteSpace(scenePath))
 		{

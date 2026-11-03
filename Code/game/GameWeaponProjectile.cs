@@ -3,13 +3,41 @@ using Sandbox;
 public sealed class GameWeaponProjectile : Component
 {
 	public const float CollisionHeight = 36f;
-	[Sync(SyncFlags.FromHost)] public GameEntity Shooter { get; private set; }
-	[Sync(SyncFlags.FromHost)] private bool IsEnemyProjectile { get; set; }
-	[Sync(SyncFlags.FromHost)] public Vector3 Direction { get; private set; }
-	[Sync(SyncFlags.FromHost)] public float Speed { get; private set; }
-	[Sync(SyncFlags.FromHost)] public float Radius { get; private set; }
-	[Sync(SyncFlags.FromHost)] public bool ShowHitbox { get; private set; }
-	[Sync(SyncFlags.FromHost)] public Vector3 CollisionOffset { get; private set; }
+	[Sync(SyncFlags.FromHost)]
+	public GameEntity Shooter
+	{
+		get; private set;
+	}
+	[Sync(SyncFlags.FromHost)]
+	private bool IsEnemyProjectile
+	{
+		get; set;
+	}
+	[Sync(SyncFlags.FromHost)]
+	public Vector3 Direction
+	{
+		get; private set;
+	}
+	[Sync(SyncFlags.FromHost)]
+	public float Speed
+	{
+		get; private set;
+	}
+	[Sync(SyncFlags.FromHost)]
+	public float Radius
+	{
+		get; private set;
+	}
+	[Sync(SyncFlags.FromHost)]
+	public bool ShowHitbox
+	{
+		get; private set;
+	}
+	[Sync(SyncFlags.FromHost)]
+	public Vector3 CollisionOffset
+	{
+		get; private set;
+	}
 	[Sync(SyncFlags.FromHost)] public GameDamageType EffectType { get; private set; } = GameDamageType.Physical;
 	public Vector3 CollisionPosition => WorldPosition + CollisionOffset;
 
@@ -60,7 +88,10 @@ public sealed class GameWeaponProjectile : Component
 			.Sphere(radius, shooter.WorldPosition + Vector3.Up * CollisionHeight, collisionOrigin)
 			.Run();
 		if (clearance.Hit || clearance.StartedSolid)
+		{
 			bullet.WorldPosition = clearance.EndPosition - projectile.CollisionOffset;
+		}
+
 		projectile._damage = damage;
 		projectile._remainingRange = range;
 		if (!bullet.NetworkSpawn())
@@ -82,20 +113,27 @@ public sealed class GameWeaponProjectile : Component
 			: EffectType != GameDamageType.Physical ? DamageEffectCatalog.Get(EffectType).BulletColor
 			: new Color(1f, 0.8f, 0.2f);
 		if (IsEnemyProjectile)
+		{
 			visual.LocalScale = Vector3.One * (Radius * 2f / renderer.Model.Bounds.Size.x);
+		}
+
 		renderer.RenderType = ModelRenderer.ShadowRenderType.Off;
 	}
 
 	protected override void OnUpdate()
 	{
 		if (ShowHitbox && GameHUD.IsDebugEnabled(Scene))
+		{
 			DebugOverlay.Sphere(new Sphere(CollisionPosition, Radius), Color.Yellow, 0f);
+		}
 	}
 
 	protected override void OnFixedUpdate()
 	{
 		if (!Networking.IsHost || IsProxy || _finished)
+		{
 			return;
+		}
 
 		var gameManager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
 		if ((!Shooter.IsValid() && !IsEnemyProjectile) || (gameManager != null && gameManager.State != GameState.InProgress))
@@ -118,7 +156,9 @@ public sealed class GameWeaponProjectile : Component
 			{
 				target.TakeDamage(_damage, Direction, GameDamageType.Physical, Shooter);
 				if (_effect != null && target.IsValid() && target is GameEnemy && target.CanTakeDamage && target.Health > 0f)
+				{
 					target.ApplyDamageEffect(_effect, Shooter);
+				}
 			}
 			Finish();
 			return;
@@ -127,9 +167,14 @@ public sealed class GameWeaponProjectile : Component
 		WorldPosition = end - CollisionOffset;
 		_remainingRange -= distance;
 		if (ShowHitbox)
+		{
 			DrawTravel(start, end, Color.Yellow);
+		}
+
 		if (_remainingRange <= 0f)
+		{
 			Finish();
+		}
 	}
 
 	private SceneTrace CreateCollisionTrace()
@@ -139,7 +184,9 @@ public sealed class GameWeaponProjectile : Component
 		{
 			// Apply to both muzzle clearance and travel, including enemies spawned after this shot.
 			foreach (var enemy in Scene.GetAllComponents<GameEnemy>())
+			{
 				trace = trace.IgnoreGameObjectHierarchy(enemy.GameObject);
+			}
 		}
 		else if (Shooter.IsValid())
 		{
@@ -159,7 +206,9 @@ public sealed class GameWeaponProjectile : Component
 	private void DrawTravel(Vector3 start, Vector3 end, Color color)
 	{
 		if (!ShowHitbox || !GameHUD.IsDebugEnabled(Scene))
+		{
 			return;
+		}
 
 		DebugOverlay.Line(start, end, color, 0.25f);
 		DebugOverlay.Sphere(new Sphere(end, Radius), color, 0.25f);
