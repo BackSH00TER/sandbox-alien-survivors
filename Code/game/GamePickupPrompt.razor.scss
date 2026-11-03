@@ -1,0 +1,71 @@
+GamePickupPrompt {
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	pointer-events: none;
+	font-family: Orbitron;
+	font-weight: bold;
+	color: #fff;
+
+	.pickup-marker {
+		position: absolute;
+		transform: translate(-50%, -100%);
+		flex-direction: column;
+		align-items: center;
+	}
+
+	.pickup-card {
+		min-width: 280px;
+		max-width: 340px;
+		padding: 14px 20px;
+		flex-direction: column;
+		align-items: center;
+		background-color: #101218f5;
+		border: 2px solid #4de38a;
+		border-radius: 8px;
+		box-shadow: 0 4px 16px #000c;
+	}
+
+	.pickup-action {
+		align-items: center;
+		margin-bottom: 8px;
+	}
+
+	.pickup-key {
+		min-width: 34px;
+		padding: 4px 8px;
+		margin-right: 10px;
+		justify-content: center;
+		background-color: #4de38a;
+		border-radius: 4px;
+		font-size: 22px;
+		color: #101218;
+	}
+
+	.pickup-label {
+		font-size: 14px;
+		color: #4de38a;
+	}
+
+	.pickup-name {
+		font-size: 26px;
+		text-align: center;
+	}
+
+	.pickup-replaces {
+		margin-top: 6px;
+		font-size: 14px;
+		text-align: center;
+		color: #c4cbd6;
+	}
+
+	.pickup-pointer {
+		width: 12px;
+		height: 12px;
+		margin-top: -6px;
+		background-color: #4de38a;
+		transform: rotate(45deg);
+	}
+}
