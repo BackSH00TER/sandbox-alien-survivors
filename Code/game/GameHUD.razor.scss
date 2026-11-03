@@ -79,6 +79,19 @@ GameHUD {
 		text-shadow: 0 1px 2px #000;
 	}
 
+	.reroll-dice {
+		position: absolute;
+		right: 24px;
+		bottom: 56px;
+		padding: 6px 12px;
+		background-color: #101218cc;
+		border-radius: 4px;
+		font-family: Orbitron;
+		font-size: 18px;
+		color: #d6b5ff;
+		text-shadow: 0 1px 2px #000;
+	}
+
 	.experience {
 		position: absolute;
 		left: 24px;
@@ -107,5 +120,6 @@ GameHUD {
 			color: #fff;
 			text-shadow: 0 0 3px #000;
 		}
+
 	}
 }

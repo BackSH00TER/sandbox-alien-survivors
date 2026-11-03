@@ -6,14 +6,15 @@ public enum LootKind
 	Rifle,
 	Shotgun,
 	Flare,
-	Armor
+	Armor,
+	RerollDice
 }
 
-/// <summary>Health restores 50 on contact when injured; armor adds one armor point on contact; a flare pickup fires a revive flare on contact; weapons replace the equipped weapon through an owner-only interaction. Unclaimed pickups disappear after <see cref="LifetimeSeconds"/>.</summary>
+/// <summary>Health, armor, reroll dice and flares are collected on contact; weapons require an owner-only interaction. Unclaimed pickups disappear after <see cref="LifetimeSeconds"/>.</summary>
 public sealed class GameLootPickup : Component
 {
 	public const float WeaponPickupRange = 72f;
-	private const float ContactRange = 32f; // walk-over range for health, armor and flare pickups
+	private const float ContactRange = 32f;
 	/// <summary>How many of the final seconds of <see cref="LifetimeSeconds"/> the pickup blinks as a warning that it is about to disappear.</summary>
 	private const float BlinkSeconds = 8f;
 	[Property, Range(5f, 300f), Description("Total seconds an unclaimed pickup stays before it disappears.")]
@@ -28,6 +29,7 @@ public sealed class GameLootPickup : Component
 		LootKind.Health => "Health +50",
 		LootKind.Armor => "Armor +1",
 		LootKind.Flare => "Flare Gun",
+		LootKind.RerollDice => "Reroll Dice +1",
 		_ => Weapon?.DisplayName
 	};
 	private GameObject _visual;
@@ -76,6 +78,10 @@ public sealed class GameLootPickup : Component
 			AddPart("Armor Base", new Vector3(0f, 0f, -16f), new Vector3(8f, 14f, 8f), armorColor);
 			AddPart("Armor Stripe", new Vector3(5f, 0f, 0f), new Vector3(2f, 4f, 20f), Color.White);
 		}
+		else if (Kind == LootKind.RerollDice)
+		{
+			BuildRerollDie();
+		}
 		else if (Kind == LootKind.Flare)
 		{
 			var flareColor = new Color(1f, 0.25f, 0.15f);
@@ -103,6 +109,49 @@ public sealed class GameLootPickup : Component
 		renderer.Tint = color;
 	}
 
+	private void BuildRerollDie()
+	{
+		AddPart("Die", Vector3.Zero, Vector3.One * 22f, new Color(0.95f, 0.9f, 0.75f));
+		// Opposite faces add to seven. Raised dark pips remain readable as the pickup rotates.
+		AddDiceFace(Vector3.Up, Vector3.Forward, Vector3.Left, 1);
+		AddDiceFace(Vector3.Down, Vector3.Forward, Vector3.Left, 6);
+		AddDiceFace(Vector3.Forward, Vector3.Left, Vector3.Up, 2);
+		AddDiceFace(Vector3.Backward, Vector3.Left, Vector3.Up, 5);
+		AddDiceFace(Vector3.Left, Vector3.Forward, Vector3.Up, 3);
+		AddDiceFace(Vector3.Right, Vector3.Forward, Vector3.Up, 4);
+	}
+
+	private void AddDiceFace(Vector3 normal, Vector3 horizontal, Vector3 vertical, int value)
+	{
+		var pipPositions = new List<Vector2>();
+		if (value % 2 == 1)
+			pipPositions.Add(Vector2.Zero);
+		if (value >= 2)
+		{
+			pipPositions.Add(new Vector2(-1f, -1f));
+			pipPositions.Add(new Vector2(1f, 1f));
+		}
+		if (value >= 4)
+		{
+			pipPositions.Add(new Vector2(-1f, 1f));
+			pipPositions.Add(new Vector2(1f, -1f));
+		}
+		if (value == 6)
+		{
+			pipPositions.Add(new Vector2(-1f, 0f));
+			pipPositions.Add(new Vector2(1f, 0f));
+		}
+		foreach (var position in pipPositions)
+		{
+			var pip = new GameObject(_visual, true, "Die Pip");
+			pip.LocalPosition = normal * 11f + horizontal * (position.x * 5.5f) + vertical * (position.y * 5.5f);
+			var renderer = pip.AddComponent<ModelRenderer>();
+			renderer.Model = Model.Load("models/dev/sphere.vmdl");
+			pip.LocalScale = Vector3.One * (3.5f / renderer.Model.Bounds.Size.x);
+			renderer.Tint = new Color(0.08f, 0.06f, 0.12f);
+		}
+	}
+
 	protected override void OnUpdate()
 	{
 		if (_visual.IsValid())
@@ -127,6 +176,8 @@ public sealed class GameLootPickup : Component
 			TryAddArmorNearby();
 		else if (Kind == LootKind.Flare)
 			TryFireFlareNearby();
+		else if (Kind == LootKind.RerollDice)
+			TryAddRerollDiceNearby();
 	}
 
 	// Returns true when the pickup ran out of time and was removed.
@@ -160,6 +211,19 @@ public sealed class GameLootPickup : Component
 		foreach (var player in Scene.GetAllComponents<GamePlayer>())
 		{
 			if (!CanReach(player, ContactRange) || !player.AddArmor(1))
+				continue;
+
+			Claimed = true;
+			GameObject.Destroy();
+			return;
+		}
+	}
+
+	private void TryAddRerollDiceNearby()
+	{
+		foreach (var player in Scene.GetAllComponents<GamePlayer>())
+		{
+			if (!CanReach(player, ContactRange) || !player.AddRerollDice(1))
 				continue;
 
 			Claimed = true;

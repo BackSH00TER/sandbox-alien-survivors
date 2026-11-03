@@ -6,6 +6,7 @@ var tests = new (string Name, Action Run)[]
 {
 	("catalog coverage and prerequisites", Catalog),
 	("offers are eligible and distinct", Offers),
+	("rerolls change the set without unlocking unavailable modifiers", Rerolls),
 	("weighted draw boundaries", Weights),
 	("fire chance, defaults and upgrade caps", FireRolls),
 	("independent expiries and exact stacked damage", Expiries),
@@ -86,6 +87,32 @@ static void Weights()
 	try { WeightedDraw.Pick(options, _ => 0f, 0f); }
 	catch (ArgumentOutOfRangeException) { rejected = true; }
 	Check(rejected, "Invalid weights must fail explicitly.");
+}
+
+static void Rerolls()
+{
+	int NoPicks(GameModifier modifier) => 0;
+	var previous = ModifierCatalog.RollOffer(NoPicks, () => 0f);
+	var rerolled = ModifierCatalog.RollOffer(NoPicks, () => 0f, previousOffer: previous);
+	Check(ModifierCatalog.HasAlternativeOffer(NoPicks, previous), "A fresh player has four eligible options.");
+	Check(rerolled.Count == 3 && rerolled.Distinct().Count() == 3, "Rerolls must keep three distinct cards.");
+	Check(rerolled.Any(modifier => !previous.Contains(modifier)), "Repeating the RNG must still change a card.");
+	Check(rerolled.All(modifier => ModifierCatalog.Get(modifier).IsAvailable(NoPicks)), "Rerolls cannot bypass prerequisites.");
+	var random = new Random(81);
+	for (int draw = 0; draw < 1000; draw++)
+	{
+		var next = ModifierCatalog.RollOffer(NoPicks, () => (float)random.NextDouble(), previous);
+		Check(next.Any(modifier => !previous.Contains(modifier)), "A reroll cannot merely reorder cards.");
+		Check(next.Distinct().Count() == 3, "Rerolls cannot contain duplicates.");
+		previous = next;
+	}
+	var maxed = ModifierCatalog.All.ToDictionary(modifier => modifier.Id, modifier => modifier.MaxPicks);
+	maxed[GameModifier.AttackSpeed] = 0;
+	maxed[GameModifier.AttackRange] = 0;
+	maxed[GameModifier.Vitality] = 0;
+	int MaxedPicks(GameModifier modifier) => maxed[modifier];
+	var onlyOffer = ModifierCatalog.RollOffer(MaxedPicks, () => 0f);
+	Check(!ModifierCatalog.HasAlternativeOffer(MaxedPicks, onlyOffer), "With only three eligible cards, reroll must be unavailable.");
 }
 
 static void FireRolls()

@@ -30,6 +30,26 @@ replacement. Unlocks and maxed chance upgrades stop appearing. Existing attack s
 range and vitality upgrades remain repeatable. All prerequisites must be owned;
 the host checks both the offer ID and eligibility when accepting a pick.
 
+## Reroll Dice
+
+Crates can drop an ivory die with dark pips. It joins health, rifle and shotgun in
+the equally weighted common pool: each has a 22.5% chance when no flare is rolled,
+while armor keeps its separate 10% chance. A flare roll still takes priority.
+Walking over a die automatically grants one reroll to that living player. Dice
+accumulate for the round, persist through death/revive and weapon changes, and use
+the normal pickup range, line-of-sight and expiration rules.
+
+The HUD always shows the local player's remaining Reroll Dice. While choosing an
+upgrade, click the reroll button or press R (`RerollModifiers` input action) to spend
+one die. Rerolling preserves the pending choice count and owned upgrades, draws three
+distinct eligible modifiers and changes at least one card, rather than only changing
+their order. If a draw repeats the old set, one card is replaced by a weighted
+eligible alternative. The button is disabled with no dice, while dead/round-over,
+or if only the same three modifiers are eligible; no die is spent in those cases.
+The host validates the offer ID, ownership, round state and balance; a successful
+reroll invalidates the previous offer so duplicate requests cannot spend another die
+or select an old card. New rounds start with zero dice.
+
 ## Bullet and effect behavior
 
 - The host chooses one unlocked effect type by its `DrawWeight`, then rolls that

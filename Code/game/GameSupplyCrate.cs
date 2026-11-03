@@ -1,6 +1,6 @@
 using Sandbox;
 
-/// <summary>A 30-health shootable crate. After the revive-flare roll, armor has a 10% chance; otherwise health, rifle and shotgun are equally weighted.</summary>
+/// <summary>A 30-health shootable crate. After the revive-flare roll, armor has a 10% chance; otherwise health, rifle, shotgun and reroll dice are equally weighted.</summary>
 public sealed class GameSupplyCrate : GameEntity
 {
 	[Sync(SyncFlags.FromHost)] public GameWeaponDefinition Rifle { get; set; }

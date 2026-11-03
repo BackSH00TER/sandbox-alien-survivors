@@ -28,6 +28,7 @@
 		}
 
 		<div class="armor">Armor: @LocalPlayer.Armor</div>
+		<div class="reroll-dice">Reroll Dice: @LocalPlayer.RerollDice</div>
 
 		<div class="experience">
 			<div class="fill"
@@ -110,6 +111,6 @@
 		return System.HashCode.Combine(MatchStatus, player, player?.Level, ExperiencePercent,
 			(DebugEnabled, player?.ShowAttackDebug, NearbyWeapon, player?.IsStunned, player?.IsDead, player?.GodMode, GamePlayerStats.HasRoundEnded(Scene), player?.Armor),
 			System.HashCode.Combine(player?.EffectiveAttackInterval, player?.EffectiveAttackRange,
-				player?.EquippedWeapon, player?.EquippedWeapon?.BulletsPerShot));
+				player?.EquippedWeapon, player?.EquippedWeapon?.BulletsPerShot, player?.RerollDice));
 	}
 }

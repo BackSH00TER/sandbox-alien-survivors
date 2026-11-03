@@ -29,6 +29,25 @@ public sealed class GamePlayer : GameEntity
 	public int ExperienceToNextLevel => System.Math.Max(1, BaseExperienceToLevel + ExperienceGrowthPerLevel * (Level - 1));
 
 	[Sync(SyncFlags.FromHost)] public int PendingModifierChoices { get; private set; }
+	[Sync(SyncFlags.FromHost)] public int RerollDice { get; private set; }
+	public bool CanRerollModifiers => Active && !IsDead && !IsRoundOver && PendingModifierChoices > 0 && RerollDice > 0
+		&& ModifierCatalog.HasAlternativeOffer(ModifierStacks, CurrentModifierOffer());
+
+	private GameModifier[] CurrentModifierOffer() => new[] { ModifierOptionOne, ModifierOptionTwo, ModifierOptionThree };
+
+	public bool AddRerollDice(int amount)
+	{
+		if (!Networking.IsHost || amount <= 0 || amount > int.MaxValue - RerollDice)
+		{
+			Log.Error("Reroll dice require the host, a positive amount and space in the counter.");
+			return false;
+		}
+		if (!Active || IsDead || IsRoundOver)
+			return false;
+
+		RerollDice += amount;
+		return true;
+	}
 	[Sync(SyncFlags.FromHost)] public int ModifierOfferId { get; private set; }
 	[Sync(SyncFlags.FromHost)] public GameModifier ModifierOptionOne { get; private set; }
 	[Sync(SyncFlags.FromHost)] public GameModifier ModifierOptionTwo { get; private set; }
@@ -534,14 +553,29 @@ public sealed class GamePlayer : GameEntity
 			RollModifierOffer();
 	}
 
-	private void RollModifierOffer()
+	private void RollModifierOffer(IReadOnlyList<GameModifier> previousOffer = null)
 	{
-		var options = ModifierCatalog.RollOffer(ModifierStacks, () => Game.Random.Float());
+		var options = ModifierCatalog.RollOffer(ModifierStacks, () => Game.Random.Float(), previousOffer);
 
 		ModifierOptionOne = options[0];
 		ModifierOptionTwo = options[1];
 		ModifierOptionThree = options[2];
 		ModifierOfferId++;
+	}
+
+	[Rpc.Host(NetFlags.OwnerOnly)]
+	public void RerollModifiers(int offerId)
+	{
+		var gameManager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
+		if (!CanRerollModifiers || offerId != ModifierOfferId
+			|| (gameManager != null && gameManager.State != GameState.InProgress))
+		{
+			Log.Warning("Rejected an unavailable or outdated modifier reroll.");
+			return;
+		}
+
+		RollModifierOffer(previousOffer: CurrentModifierOffer());
+		RerollDice--;
 	}
 
 	[Rpc.Host(NetFlags.OwnerOnly)]
