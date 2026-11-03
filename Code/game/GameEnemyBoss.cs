@@ -9,23 +9,15 @@ public sealed class GameEnemyBoss : Component
 	[Property, Range(1f, 1000f)] public float PunchDamage { get; set; } = 25f;
 	[Property, Range(1f, 500f)] public float PunchRange { get; set; } = 100f;
 
-	[Property, Group("Stun Attack"), Range(0.1f, 10f), Sync(SyncFlags.FromHost)]
-	public float StunChargeTime { get; set; } = 1.5f;
-	[Property, Group("Stun Attack"), Range(1f, 1000f), Sync(SyncFlags.FromHost)]
-	public float StunRadius { get; set; } = 120f;
-	[Property, Group("Stun Attack"), Range(0.1f, 10f)]
-	public float StunDuration { get; set; } = 1.5f;
-	[Property, Group("Stun Attack"), Range(0.1f, 30f)]
-	public float StunCooldown { get; set; } = 6f;
-	[Property, Group("Stun Attack"), Range(1f, 2000f)]
-	public float StunCastRange { get; set; } = 600f;
+	[Property, Group("Stun Attack"), Range(0.1f, 10f), Sync(SyncFlags.FromHost)] public float StunChargeTime { get; set; } = 1.5f;
+	[Property, Group("Stun Attack"), Range(1f, 1000f), Sync(SyncFlags.FromHost)] public float StunRadius { get; set; } = 120f;
+	[Property, Group("Stun Attack"), Range(0.1f, 10f)] public float StunDuration { get; set; } = 1.5f;
+	[Property, Group("Stun Attack"), Range(0.1f, 30f)] public float StunCooldown { get; set; } = 6f;
+	[Property, Group("Stun Attack"), Range(1f, 2000f)] public float StunCastRange { get; set; } = 600f;
 
-	[Sync(SyncFlags.FromHost)]
-	private bool IsChargingStun { get; set; }
-	[Sync(SyncFlags.FromHost)]
-	private Vector3 StunCenter { get; set; }
-	[Sync(SyncFlags.FromHost)]
-	private float ChargeEndTime { get; set; }
+	[Sync(SyncFlags.FromHost)] private bool IsChargingStun { get; set; }
+	[Sync(SyncFlags.FromHost)] private Vector3 StunCenter { get; set; }
+	[Sync(SyncFlags.FromHost)] private float ChargeEndTime { get; set; }
 	[Sync(SyncFlags.FromHost)] private float ImpactTime { get; set; } = -100f;
 	private float _nextStunTime;
 	private GameObject _warning;

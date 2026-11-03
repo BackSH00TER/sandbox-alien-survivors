@@ -9,12 +9,9 @@ public sealed class GameEnemy : GameEntity
 		: GetComponent<GameEnemyExploding>().IsValid() ? GameEnemyKind.Exploding
 		: GameEnemyKind.Melee;
 
-	[Property, RequireComponent]
-	public PlayerController Controller { get; set; }
-	[Property, Group("Movement"), Range(0f, 1000f), Description("Pursuit speed for melee and exploding enemies, in world units per second.")]
-	public float MoveSpeed { get; set; } = 100f;
-	[Property, Group("Movement"), Range(0f, 1000f), Description("Pursuit and wandering speed for ranged enemies, in world units per second.")]
-	public float RangedMoveSpeed { get; set; } = 77f;
+	[Property, RequireComponent] public PlayerController Controller { get; set; }
+	[Property, Group("Movement"), Range(0f, 1000f), Description("Pursuit speed for melee and exploding enemies, in world units per second.")] public float MoveSpeed { get; set; } = 100f;
+	[Property, Group("Movement"), Range(0f, 1000f), Description("Pursuit and wandering speed for ranged enemies, in world units per second.")] public float RangedMoveSpeed { get; set; } = 77f;
 	[Property, Range(1f, 200f)] public float PunchRange { get; set; } = 64f;
 	[Property, Range(0.1f, 10f)] public float PunchInterval { get; set; } = 1f;
 	[Property, Range(0f, 2f)] public float PunchWindup { get; set; } = 0.35f;
@@ -27,25 +24,17 @@ public sealed class GameEnemy : GameEntity
 	[Property, Group("Hit Reaction"), Range(0f, 2f)] public float HitStaggerDuration { get; set; } = 0.2f;
 
 	[Sync(SyncFlags.FromHost)] private bool IsDescending { get; set; } = true;
-	[Sync(SyncFlags.FromHost)]
-	private Vector3 LandingPosition { get; set; }
-	[Sync(SyncFlags.FromHost)]
-	private float DescentStartTime { get; set; }
+	[Sync(SyncFlags.FromHost)] private Vector3 LandingPosition { get; set; }
+	[Sync(SyncFlags.FromHost)] private float DescentStartTime { get; set; }
 	private LineRenderer _spawnBeam;
 	private bool _descentVisualsActive;
 
-	[Sync(SyncFlags.FromHost)]
-	private float NextPunchTime { get; set; }
-	[Sync(SyncFlags.FromHost)]
-	private bool IsWindingUp { get; set; }
-	[Sync(SyncFlags.FromHost)]
-	private float WindupEndTime { get; set; }
-	[Sync(SyncFlags.FromHost)]
-	private float MovementUnlockTime { get; set; }
-	[Sync(SyncFlags.FromHost)]
-	private bool IsTargetInPunchRange { get; set; }
-	[Sync(SyncFlags.FromHost)]
-	private float StaggerEndTime { get; set; }
+	[Sync(SyncFlags.FromHost)] private float NextPunchTime { get; set; }
+	[Sync(SyncFlags.FromHost)] private bool IsWindingUp { get; set; }
+	[Sync(SyncFlags.FromHost)] private float WindupEndTime { get; set; }
+	[Sync(SyncFlags.FromHost)] private float MovementUnlockTime { get; set; }
+	[Sync(SyncFlags.FromHost)] private bool IsTargetInPunchRange { get; set; }
+	[Sync(SyncFlags.FromHost)] private float StaggerEndTime { get; set; }
 
 	protected override void OnStart()
 	{

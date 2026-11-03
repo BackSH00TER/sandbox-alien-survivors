@@ -3,18 +3,12 @@ using Sandbox;
 /// <summary>Host-authoritative death fuse configured by ExplodingEnemy, with a client-visible warning and blast.</summary>
 public sealed class GameEnemyExplosion : Component
 {
-	[Sync(SyncFlags.FromHost)]
-	public float FuseDuration { get; set; }
-	[Sync(SyncFlags.FromHost)]
-	public float BlastRadius { get; set; }
-	[Sync(SyncFlags.FromHost)]
-	public float BlastDamage { get; set; }
-	[Sync(SyncFlags.FromHost)]
-	private float DetonationTime { get; set; }
-	[Sync(SyncFlags.FromHost)]
-	private bool HasExploded { get; set; }
-	[Sync(SyncFlags.FromHost)]
-	private float ExplosionTime { get; set; }
+	[Sync(SyncFlags.FromHost)] public float FuseDuration { get; set; }
+	[Sync(SyncFlags.FromHost)] public float BlastRadius { get; set; }
+	[Sync(SyncFlags.FromHost)] public float BlastDamage { get; set; }
+	[Sync(SyncFlags.FromHost)] private float DetonationTime { get; set; }
+	[Sync(SyncFlags.FromHost)] private bool HasExploded { get; set; }
+	[Sync(SyncFlags.FromHost)] private float ExplosionTime { get; set; }
 
 	private const float BlastVisualDuration = 0.4f;
 	private GameObject _visual;

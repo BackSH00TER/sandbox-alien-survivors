@@ -2,26 +2,18 @@ using Sandbox;
 
 public sealed class GameCrateSpawner : Component
 {
-	[Property, Range(1, 50), Description("Maximum live crates. Each broken crate frees one slot after the respawn delay.")]
-	public int MaxCrates { get; set; } = 5;
-	[Property, Range(0.1f, 120f), Description("Delay after a crate breaks, independent of when its loot is collected.")]
-	public float RespawnDelay { get; set; } = 10f;
+	[Property, Range(1, 50), Description("Maximum live crates. Each broken crate frees one slot after the respawn delay.")] public int MaxCrates { get; set; } = 5;
+	[Property, Range(0.1f, 120f), Description("Delay after a crate breaks, independent of when its loot is collected.")] public float RespawnDelay { get; set; } = 10f;
 	[Property, Range(100f, 5000f)] public float SpawnRadius { get; set; } = 900f;
-	[Property]
-	public GameWeaponDefinition Rifle { get; set; }
-	[Property]
-	public GameWeaponDefinition Shotgun { get; set; }
+	[Property] public GameWeaponDefinition Rifle { get; set; }
+	[Property] public GameWeaponDefinition Shotgun { get; set; }
 
 	// Copied to each new crate; changing these settings does not alter crates already spawned.
-	[Property, Group("Loot"), Description("Minimum items per crate, inclusive. Must be at least one.")]
-	public int MinDrops { get; set; } = GameSupplyCrate.DefaultMinDrops;
-	[Property, Group("Loot"), Description("Maximum items per crate, inclusive. Must be at least MinDrops. Each count is equally likely.")]
-	public int MaxDrops { get; set; } = GameSupplyCrate.DefaultMaxDrops;
+	[Property, Group("Loot"), Description("Minimum items per crate, inclusive. Must be at least one.")] public int MinDrops { get; set; } = GameSupplyCrate.DefaultMinDrops;
+	[Property, Group("Loot"), Description("Maximum items per crate, inclusive. Must be at least MinDrops. Each count is equally likely.")] public int MaxDrops { get; set; } = GameSupplyCrate.DefaultMaxDrops;
 
-	[Property, Group("Flare Gun"), Range(0f, 1f), Description("Chance a broken crate drops a flare gun the moment someone dies.")]
-	public float FlareBaseChance { get; set; } = 0.25f;
-	[Property, Group("Flare Gun"), Range(0f, 0.2f), Description("Extra drop chance gained for every second the longest-dead player stays dead.")]
-	public float FlareChanceGainPerSecond { get; set; } = 0.02f;
+	[Property, Group("Flare Gun"), Range(0f, 1f), Description("Chance a broken crate drops a flare gun the moment someone dies.")] public float FlareBaseChance { get; set; } = 0.25f;
+	[Property, Group("Flare Gun"), Range(0f, 0.2f), Description("Extra drop chance gained for every second the longest-dead player stays dead.")] public float FlareChanceGainPerSecond { get; set; } = 0.02f;
 	[Property, Group("Flare Gun"), Range(0f, 1f)] public float FlareMaxChance { get; set; } = 0.9f;
 
 	private sealed class Slot

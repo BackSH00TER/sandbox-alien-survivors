@@ -20,16 +20,11 @@ public abstract class GameEntity : Component
 			_armor = value;
 		}
 	}
-	[Property, Group("Armor"), Range(1, int.MaxValue), Description("Armor needed to fully block a physical hit.")]
-	public int PhysicalArmorCost { get; set; } = 1;
-	[Property, Group("Armor"), Range(1, int.MaxValue), Description("Armor needed to fully block an explosive hit.")]
-	public int ExplosiveArmorCost { get; set; } = 5;
-	[Property, Group("Armor"), Range(1, int.MaxValue), Description("Armor needed to fully block a fire hit.")]
-	public int FireArmorCost { get; set; } = 1;
-	[Property, Group("Armor"), Range(1, int.MaxValue), Description("Armor needed to fully block an ice hit.")]
-	public int IceArmorCost { get; set; } = 1;
-	[Property, Group("Armor"), Description("When armor cannot cover the full hit cost, the unprotected fraction damages health. If disabled, any remaining armor blocks the full hit.")]
-	public bool ArmorDamageOverflow { get; set; } = true;
+	[Property, Group("Armor"), Range(1, int.MaxValue), Description("Armor needed to fully block a physical hit.")] public int PhysicalArmorCost { get; set; } = 1;
+	[Property, Group("Armor"), Range(1, int.MaxValue), Description("Armor needed to fully block an explosive hit.")] public int ExplosiveArmorCost { get; set; } = 5;
+	[Property, Group("Armor"), Range(1, int.MaxValue), Description("Armor needed to fully block a fire hit.")] public int FireArmorCost { get; set; } = 1;
+	[Property, Group("Armor"), Range(1, int.MaxValue), Description("Armor needed to fully block an ice hit.")] public int IceArmorCost { get; set; } = 1;
+	[Property, Group("Armor"), Description("When armor cannot cover the full hit cost, the unprotected fraction damages health. If disabled, any remaining armor blocks the full hit.")] public bool ArmorDamageOverflow { get; set; } = true;
 	[Property, Group("Debug")] public bool ShowAttackHitboxes { get; set; } = true;
 	public virtual bool CanTakeDamage => true;
 	[Sync(SyncFlags.FromHost)] public NetDictionary<GameDamageType, int> EffectStacks { get; private set; } = new();

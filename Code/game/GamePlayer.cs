@@ -2,30 +2,21 @@ using Sandbox;
 
 public sealed class GamePlayer : GameEntity
 {
-	[Property, RequireComponent]
-	public PlayerController Controller { get; set; }
-	[Property, RequireComponent]
-	public GamePlayerStats Stats { get; set; }
+	[Property, RequireComponent] public PlayerController Controller { get; set; }
+	[Property, RequireComponent] public GamePlayerStats Stats { get; set; }
 	[Property, Range(0.25f, 4f)] public float Zoom { get; set; } = 1.5f;
-	[Property, Group("Spectate"), Range(0f, 2000f), Description("Height above the death position that the UAV flies at.")]
-	public float UavAltitude { get; set; } = 600f;
+	[Property, Group("Spectate"), Range(0f, 2000f), Description("Height above the death position that the UAV flies at.")] public float UavAltitude { get; set; } = 600f;
 	[Property, Group("Spectate"), Range(100f, 3000f)] public float UavSpeed { get; set; } = 900f;
-	[Property, Group("Spectate"), Description("Camera offset from the UAV. Higher and steeper than the alive camera.")]
-	public Vector3 UavCameraOffset { get; set; } = new Vector3(-350f, 0f, 800f);
-	[Property, Group("Revive"), Range(0.05f, 1f), Description("Fraction of max health a revived player comes back with.")]
-	public float ReviveHealthFraction { get; set; } = 0.5f;
-	[Property, Group("Revive"), Range(0f, 10f), Description("Seconds a revived player cannot take damage.")]
-	public float ReviveInvulnerableSeconds { get; set; } = 3f;
-	[Property, Group("Weapon"), Description("Weapon equipped on spawn. If unassigned, uses weapons/pistol.weapon.")]
-	public GameWeaponDefinition StartingWeapon { get; set; }
+	[Property, Group("Spectate"), Description("Camera offset from the UAV. Higher and steeper than the alive camera.")] public Vector3 UavCameraOffset { get; set; } = new Vector3(-350f, 0f, 800f);
+	[Property, Group("Revive"), Range(0.05f, 1f), Description("Fraction of max health a revived player comes back with.")] public float ReviveHealthFraction { get; set; } = 0.5f;
+	[Property, Group("Revive"), Range(0f, 10f), Description("Seconds a revived player cannot take damage.")] public float ReviveInvulnerableSeconds { get; set; } = 3f;
+	[Property, Group("Weapon"), Description("Weapon equipped on spawn. If unassigned, uses weapons/pistol.weapon.")] public GameWeaponDefinition StartingWeapon { get; set; }
 	[Sync(SyncFlags.FromHost)]
 	public GameWeaponDefinition EquippedWeapon { get; private set; }
 	[Property, Group("Debug")] public bool ShowAttackDebug { get; set; } = true;
 
-	[Group("Experience")]
-	[Property, Range(1, 1000)] public int BaseExperienceToLevel { get; set; } = 5;
-	[Group("Experience")]
-	[Property, Range(0, 1000)] public int ExperienceGrowthPerLevel { get; set; } = 5;
+	[Group("Experience")] [Property, Range(1, 1000)] public int BaseExperienceToLevel { get; set; } = 5;
+	[Group("Experience")] [Property, Range(0, 1000)] public int ExperienceGrowthPerLevel { get; set; } = 5;
 
 	[Sync(SyncFlags.FromHost)] public int Level { get; private set; } = 1;
 	[Sync(SyncFlags.FromHost)]
@@ -125,14 +116,10 @@ public sealed class GamePlayer : GameEntity
 	/// <summary>Host only: when this player died, used to raise the flare drop chance the longer they stay dead.</summary>
 	public float DeathTime { get; private set; }
 
-	[Sync(SyncFlags.FromHost)]
-	private float NextAttackTime { get; set; }
-	[Sync]
-	private Vector3 CursorRayOrigin { get; set; }
-	[Sync]
-	private Vector3 CursorRayDirection { get; set; }
-	[Sync(SyncFlags.FromHost)]
-	private float StunEndTime { get; set; }
+	[Sync(SyncFlags.FromHost)] private float NextAttackTime { get; set; }
+	[Sync] private Vector3 CursorRayOrigin { get; set; }
+	[Sync] private Vector3 CursorRayDirection { get; set; }
+	[Sync(SyncFlags.FromHost)] private float StunEndTime { get; set; }
 	public bool IsStunned => Time.Now < StunEndTime;
 
 	private static readonly Vector3 BaseCameraOffset = new Vector3(-500f, 0f, 800f);

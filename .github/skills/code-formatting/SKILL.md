@@ -29,6 +29,8 @@ rules that the standard formatter does not fully enforce.
 - Keep auto-property accessors (`get;`, `set;`, and `init;`) on the same line as
   the property declaration, for example `public string Name { get; init; }`.
   Do not put accessor keywords on separate lines.
+- Keep attributes for an auto-property on the same line as its declaration,
+  for example `[Sync] private float NextPunchTime { get; set; }`.
 - Prefer block-bodied methods and local functions. Keep simple expression-bodied
   accessors and properties where they fit the existing `.editorconfig`.
 - Do not replace clear conditional blocks with nested ternaries to save lines.

@@ -5,8 +5,7 @@ public sealed class GameWeaponProjectile : Component
 	public const float CollisionHeight = 36f;
 	[Sync(SyncFlags.FromHost)]
 	public GameEntity Shooter { get; private set; }
-	[Sync(SyncFlags.FromHost)]
-	private bool IsEnemyProjectile { get; set; }
+	[Sync(SyncFlags.FromHost)] private bool IsEnemyProjectile { get; set; }
 	[Sync(SyncFlags.FromHost)]
 	public Vector3 Direction { get; private set; }
 	[Sync(SyncFlags.FromHost)]

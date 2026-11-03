@@ -7,19 +7,13 @@ using Sandbox;
 public sealed class GameReviveFlare : Component
 {
 	[Property, Range(10f, 600f)] public float LifetimeSeconds { get; set; } = 120f;
-	[Property, Range(1f, 120f), Description("Seconds before burnout that the flare starts dimming and then blinks.")]
-	public float DimSeconds { get; set; } = 30f;
-	[Property, Range(50f, 2000f), Description("Height above the launch point the flare hangs at. Kept below the dead player's UAV altitude so the flare shows under the drone.")]
-	public float HangHeight { get; set; } = 400f;
+	[Property, Range(1f, 120f), Description("Seconds before burnout that the flare starts dimming and then blinks.")] public float DimSeconds { get; set; } = 30f;
+	[Property, Range(50f, 2000f), Description("Height above the launch point the flare hangs at. Kept below the dead player's UAV altitude so the flare shows under the drone.")] public float HangHeight { get; set; } = 400f;
 	[Property, Range(100f, 5000f)] public float RiseSpeed { get; set; } = 900f;
-	[Property, Range(10f, 500f), Description("How close sideways a dead player's UAV must get to the flare to claim it.")]
-	public float ClaimRadius { get; set; } = 90f;
-	[Property, Range(0f, 1000f), Description("How far above or below the flare the UAV can be and still claim it.")]
-	public float ClaimHeightTolerance { get; set; } = 300f;
-	[Property, Group("Light"), Range(100f, 2000f), Description("How far the flare's red light reaches at full strength.")]
-	public float LightRadius { get; set; } = 1000f;
-	[Property, Group("Light"), Range(0.1f, 10f), Description("Brightness multiplier of the flare's red light.")]
-	public float LightIntensity { get; set; } = 7.0f;
+	[Property, Range(10f, 500f), Description("How close sideways a dead player's UAV must get to the flare to claim it.")] public float ClaimRadius { get; set; } = 90f;
+	[Property, Range(0f, 1000f), Description("How far above or below the flare the UAV can be and still claim it.")] public float ClaimHeightTolerance { get; set; } = 300f;
+	[Property, Group("Light"), Range(100f, 2000f), Description("How far the flare's red light reaches at full strength.")] public float LightRadius { get; set; } = 1000f;
+	[Property, Group("Light"), Range(0.1f, 10f), Description("Brightness multiplier of the flare's red light.")] public float LightIntensity { get; set; } = 7.0f;
 
 	/// <summary>Seconds until the flare burns out. Counted down by the host and synced to everyone.</summary>
 	[Sync(SyncFlags.FromHost)]

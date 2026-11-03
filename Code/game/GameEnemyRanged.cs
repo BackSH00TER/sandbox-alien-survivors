@@ -5,14 +5,12 @@ public sealed class GameEnemyRanged : Component
 {
 	[Property, Range(1f, 2000f)] public float FiringRange { get; set; } = 400f;
 	[Property, Range(0.1f, 10f)] public float ShotInterval { get; set; } = 2f;
-	[Property, Range(0.1f, 5f), Description("Visible charge time before each shot, in seconds.")]
-	public float ShotWindup { get; set; } = 0.5f;
+	[Property, Range(0.1f, 5f), Description("Visible charge time before each shot, in seconds.")] public float ShotWindup { get; set; } = 0.5f;
 	[Property, Range(1f, 1000f)] public float Damage { get; set; } = 10f;
 	[Property, Range(1f, 2000f)] public float ProjectileSpeed { get; set; } = 300f;
 	[Property, Range(0.1f, 16f)] public float ProjectileRadius { get; set; } = 6f;
 
-	[Sync(SyncFlags.FromHost)]
-	private bool IsCharging { get; set; }
+	[Sync(SyncFlags.FromHost)] private bool IsCharging { get; set; }
 	private float _chargeEndTime;
 	private float _nextShotTime;
 	private Vector3 _wanderDirection;

@@ -6,14 +6,10 @@ public sealed class GameSupplyCrate : GameEntity
 	public const int DefaultMinDrops = 1;
 	public const int DefaultMaxDrops = 3;
 
-	[Sync(SyncFlags.FromHost)]
-	public GameWeaponDefinition Rifle { get; set; }
-	[Sync(SyncFlags.FromHost)]
-	public GameWeaponDefinition Shotgun { get; set; }
-	[Property, Group("Loot"), Description("Minimum items dropped, inclusive. Must be at least one.")]
-	public int MinDrops { get; set; } = DefaultMinDrops;
-	[Property, Group("Loot"), Description("Maximum items dropped, inclusive. Must be at least MinDrops.")]
-	public int MaxDrops { get; set; } = DefaultMaxDrops;
+	[Sync(SyncFlags.FromHost)] public GameWeaponDefinition Rifle { get; set; }
+	[Sync(SyncFlags.FromHost)] public GameWeaponDefinition Shotgun { get; set; }
+	[Property, Group("Loot"), Description("Minimum items dropped, inclusive. Must be at least one.")] public int MinDrops { get; set; } = DefaultMinDrops;
+	[Property, Group("Loot"), Description("Maximum items dropped, inclusive. Must be at least MinDrops.")] public int MaxDrops { get; set; } = DefaultMaxDrops;
 	public override bool CanTakeDamage => Health > 0f && !_opened;
 	private bool _opened;
 

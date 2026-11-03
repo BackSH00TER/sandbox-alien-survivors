@@ -17,8 +17,7 @@ public sealed class GameLootPickup : Component
 	private const float ContactRange = 32f;
 	/// <summary>How many of the final seconds of <see cref="LifetimeSeconds"/> the pickup blinks as a warning that it is about to disappear.</summary>
 	private const float BlinkSeconds = 8f;
-	[Property, Range(5f, 300f), Description("Total seconds an unclaimed pickup stays before it disappears.")]
-	public float LifetimeSeconds { get; set; } = 45f;
+	[Property, Range(5f, 300f), Description("Total seconds an unclaimed pickup stays before it disappears.")] public float LifetimeSeconds { get; set; } = 45f;
 	[Sync(SyncFlags.FromHost)]
 	public LootKind Kind { get; private set; }
 	[Sync(SyncFlags.FromHost)]

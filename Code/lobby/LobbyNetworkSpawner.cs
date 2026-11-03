@@ -18,8 +18,7 @@ public sealed class LobbyNetworkSpawner : Component, Component.INetworkListener
 	[Property] public List<SpawnPoint> LobbySpawnPoints { get; set; } = new();
 
 	/// <summary>Prefab cloned for each connected player.</summary>
-	[Property]
-	public GameObject PlayerPrefab { get; set; }
+	[Property] public GameObject PlayerPrefab { get; set; }
 
 	/// <summary>Height above the player origin where the bottom of the nameplate sits.</summary>
 	[Property] public float NameplateHeight { get; set; } = 80f;
