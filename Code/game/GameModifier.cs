@@ -13,21 +13,43 @@ public enum GameModifier
 	FireDamage,
 	FireStacks,
 	FireSpread,
-	FireSpreadChance
+	FireSpreadChance,
+	ExtraOption
 }
 
 public sealed class ModifierDefinition
 {
-	public GameModifier Id { get; init; }
-	public string Icon { get; init; }
-	public string Name { get; init; }
-	public string Description { get; init; }
+	public GameModifier Id
+	{
+		get; init;
+	}
+	public string Icon
+	{
+		get; init;
+	}
+	public string Name
+	{
+		get; init;
+	}
+	public string Description
+	{
+		get; init;
+	}
 	public float DrawWeight { get; init; } = 1f;
 	public int MaxPicks { get; init; } = int.MaxValue;
 	public IReadOnlyList<GameModifier> Prerequisites { get; init; } = Array.Empty<GameModifier>();
-	public GameDamageType? EffectType { get; init; }
-	public DamageEffectStat? EffectStat { get; init; }
-	public float Amount { get; init; }
+	public GameDamageType? EffectType
+	{
+		get; init;
+	}
+	public DamageEffectStat? EffectStat
+	{
+		get; init;
+	}
+	public float Amount
+	{
+		get; init;
+	}
 
 	public bool IsAvailable(Func<GameModifier, int> getModifierPickCount) =>
 		getModifierPickCount(Id) < MaxPicks && Prerequisites.All(prerequisite => getModifierPickCount(prerequisite) > 0);
@@ -35,7 +57,10 @@ public sealed class ModifierDefinition
 
 public static class ModifierCatalog
 {
-	public static IReadOnlyList<ModifierDefinition> All { get; } = new[]
+	public static IReadOnlyList<ModifierDefinition> All
+	{
+		get;
+	} = new[]
 	{
 		new ModifierDefinition { Id = GameModifier.AttackSpeed, Icon = "bolt", Name = "Rapid Strikes",
 			Description = "+100% attack rate per stack." },
@@ -81,16 +106,25 @@ public static class ModifierCatalog
 			stat: DamageEffectStat.SpreadChance,
 			amount: 0.1f,
 			maxPicks: 9,
-			prerequisite: GameModifier.FireSpread)
+			prerequisite: GameModifier.FireSpread),
+		new ModifierDefinition { Id = GameModifier.ExtraOption, Icon = "library_add", Name = "More Choices",
+			Description = "Rare: +1 modifier option on future upgrade picks, up to 8 options at rank 5. Limited by eligible upgrades.",
+			DrawWeight = 0.2f, MaxPicks = 5 }
 	};
 
 	private static ModifierDefinition FireUpgrade(GameModifier id, string name, string description,
 		DamageEffectStat stat, float amount, int maxPicks = int.MaxValue, GameModifier prerequisite = GameModifier.FireRounds) =>
 		new ModifierDefinition
 		{
-			Id = id, Icon = "local_fire_department", Name = name, Description = description,
-			EffectType = GameDamageType.Fire, EffectStat = stat, Amount = amount,
-			MaxPicks = maxPicks, Prerequisites = new[] { prerequisite }
+			Id = id,
+			Icon = "local_fire_department",
+			Name = name,
+			Description = description,
+			EffectType = GameDamageType.Fire,
+			EffectStat = stat,
+			Amount = amount,
+			MaxPicks = maxPicks,
+			Prerequisites = new[] { prerequisite }
 		};
 
 	public static ModifierDefinition Get(GameModifier modifier) =>
@@ -99,20 +133,46 @@ public static class ModifierCatalog
 	public static string Name(GameModifier modifier) => Get(modifier).Name;
 	public static string Description(GameModifier modifier) => Get(modifier).Description;
 
-	public static bool HasAlternativeOffer(Func<GameModifier, int> getModifierPickCount, IReadOnlyList<GameModifier> currentOffer) =>
-		All.Any(modifier => modifier.IsAvailable(getModifierPickCount) && !currentOffer.Contains(modifier.Id));
+	public static int OfferSize(Func<GameModifier, int> getModifierPickCount)
+	{
+		var definition = Get(GameModifier.ExtraOption);
+		int ranks = getModifierPickCount(GameModifier.ExtraOption);
+		int bonus = Math.Clamp(
+			value: ranks,
+			min: 0,
+			max: definition.MaxPicks
+		);
+		return 3 + bonus;
+	}
 
-	public static IReadOnlyList<GameModifier> RollOffer(Func<GameModifier, int> getModifierPickCount, Func<float> random,
-		IReadOnlyList<GameModifier> previousOffer = null)
+	public static bool HasAlternativeOffer(Func<GameModifier, int> getModifierPickCount, IReadOnlyList<GameModifier> currentOffer)
+	{
+		return All.Any(modifier => modifier.IsAvailable(getModifierPickCount) && !currentOffer.Contains(modifier.Id));
+	}
+
+	public static IReadOnlyList<GameModifier> RollOffer(
+		Func<GameModifier, int> getModifierPickCount,
+		Func<float> random,
+		IReadOnlyList<GameModifier> previousOffer = null
+	)
 	{
 		var available = All.Where(modifier => modifier.IsAvailable(getModifierPickCount)).ToList();
 		if (available.Count < 3)
-			throw new InvalidOperationException("GameModifier offers require at least three available upgrades.");
-
-		var result = new List<GameModifier>();
-		for (int i = 0; i < 3; i++)
 		{
-			var chosen = WeightedDraw.Pick(available, modifier => modifier.DrawWeight, random());
+			throw new InvalidOperationException("GameModifier offers require at least three available upgrades.");
+		}
+
+		int requestedCount = OfferSize(getModifierPickCount);
+		int count = Math.Min(requestedCount, available.Count);
+		var result = new List<GameModifier>(count);
+		for (int i = 0; i < count; i++)
+		{
+			float roll = random();
+			var chosen = WeightedDraw.Pick(
+				options: available,
+				weight: modifier => modifier.DrawWeight,
+				roll: roll
+			);
 			result.Add(chosen.Id);
 			available.Remove(chosen);
 		}
@@ -121,7 +181,15 @@ public static class ModifierCatalog
 		{
 			var alternatives = available.Where(modifier => !previousOffer.Contains(modifier.Id)).ToList();
 			if (alternatives.Count > 0)
-				result[2] = WeightedDraw.Pick(alternatives, modifier => modifier.DrawWeight, random()).Id;
+			{
+				float roll = random();
+				var replacement = WeightedDraw.Pick(
+					options: alternatives,
+					weight: modifier => modifier.DrawWeight,
+					roll: roll
+				);
+				result[count - 1] = replacement.Id;
+			}
 		}
 		return result;
 	}

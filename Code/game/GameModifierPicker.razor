@@ -9,11 +9,11 @@
 		GamePlayer player = _player;
 		int offerId = player.ModifierOfferId;
 		<div class="modifier-heading">Choose an upgrade</div>
-		<div class="modifier-hint">Press 1, 2, or 3, or click a card. Unlock effects to roll their upgrades. Gameplay continues.</div>
+		<div class="modifier-hint">Press 1-@(player.ModifierOptions.Count) or click a card. Unlock effects to roll their upgrades. Gameplay continues.</div>
 		<div class="modifier-options">
-			@for (int index = 0; index < 3; index++)
+			@for (int index = 0; index < player.ModifierOptions.Count; index++)
 			{
-				GameModifier option = ModifierOption(player, index);
+				GameModifier option = player.ModifierOptions[index];
 				<button class="modifier-card" @onclick="@(() => player.SelectModifier(offerId, option))">
 					<div class="modifier-key">@(index + 1)</div>
 					<div class="modifier-icon">@ModifierCatalog.Icon(option)</div>
@@ -37,20 +37,14 @@
 {
 	private GamePlayer _player;
 
-	private static GameModifier ModifierOption(GamePlayer player, int index) => index switch
-	{
-		0 => player.ModifierOptionOne,
-		1 => player.ModifierOptionTwo,
-		2 => player.ModifierOptionThree,
-		_ => throw new System.ArgumentOutOfRangeException(nameof(index))
-	};
-
 	public override void Tick()
 	{
 		base.Tick();
 		_player = Game.ActiveScene.GetAllComponents<GamePlayer>().FirstOrDefault(x => !x.IsProxy);
 		if (!_player.IsValid() || _player.PendingModifierChoices <= 0)
+		{
 			return;
+		}
 
 		if (Input.Pressed("RerollModifiers") && _player.CanRerollModifiers)
 		{
@@ -58,19 +52,36 @@
 			return;
 		}
 
-		for (int index = 0; index < 3; index++)
+		for (int index = 0; index < _player.ModifierOptions.Count; index++)
 		{
 			if (!Input.Pressed($"Slot{index + 1}"))
+			{
 				continue;
+			}
 
-			_player.SelectModifier(_player.ModifierOfferId, ModifierOption(_player, index));
+			_player.SelectModifier(_player.ModifierOfferId, _player.ModifierOptions[index]);
 			break;
 		}
 	}
 
-	protected override int BuildHash() => System.HashCode.Combine(_player,
-		_player.IsValid() ? _player.PendingModifierChoices : 0,
-		_player.IsValid() ? _player.ModifierOfferId : 0,
-		_player.IsValid() ? _player.RerollDice : 0,
-		_player.IsValid() && _player.CanRerollModifiers);
+	protected override int BuildHash()
+	{
+		if (!_player.IsValid())
+		{
+			return 0;
+		}
+
+		int hash = System.HashCode.Combine(
+			value1: _player,
+			value2: _player.PendingModifierChoices,
+			value3: _player.ModifierOfferId,
+			value4: _player.RerollDice,
+			value5: _player.CanRerollModifiers
+		);
+		foreach (var option in _player.ModifierOptions)
+		{
+			hash = System.HashCode.Combine(hash, option);
+		}
+		return hash;
+	}
 }

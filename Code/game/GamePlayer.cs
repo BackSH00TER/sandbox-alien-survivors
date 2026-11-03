@@ -60,7 +60,10 @@ public sealed class GamePlayer : GameEntity
 	public bool CanRerollModifiers => Active && !IsDead && !IsRoundOver && PendingModifierChoices > 0 && RerollDice > 0
 		&& ModifierCatalog.HasAlternativeOffer(ModifierStacks, CurrentModifierOffer());
 
-	private GameModifier[] CurrentModifierOffer() => new[] { ModifierOptionOne, ModifierOptionTwo, ModifierOptionThree };
+	private GameModifier[] CurrentModifierOffer()
+	{
+		return ModifierOptions.ToArray();
+	}
 
 	public bool AddRerollDice(int amount)
 	{
@@ -81,20 +84,10 @@ public sealed class GamePlayer : GameEntity
 		get; private set;
 	}
 	[Sync(SyncFlags.FromHost)]
-	public GameModifier ModifierOptionOne
+	public NetList<GameModifier> ModifierOptions
 	{
 		get; private set;
-	}
-	[Sync(SyncFlags.FromHost)]
-	public GameModifier ModifierOptionTwo
-	{
-		get; private set;
-	}
-	[Sync(SyncFlags.FromHost)]
-	public GameModifier ModifierOptionThree
-	{
-		get; private set;
-	}
+	} = new();
 	[Sync(SyncFlags.FromHost)]
 	public int AttackSpeedStacks
 	{
@@ -637,11 +630,14 @@ public sealed class GamePlayer : GameEntity
 
 	private void RollModifierOffer(IReadOnlyList<GameModifier> previousOffer = null)
 	{
-		var options = ModifierCatalog.RollOffer(ModifierStacks, () => Game.Random.Float(), previousOffer);
+		var options = ModifierCatalog.RollOffer(
+			getModifierPickCount: ModifierStacks,
+			random: () => Game.Random.Float(),
+			previousOffer: previousOffer
+		);
 
-		ModifierOptionOne = options[0];
-		ModifierOptionTwo = options[1];
-		ModifierOptionThree = options[2];
+		ModifierOptions.Clear();
+		ModifierOptions.AddRange(options);
 		ModifierOfferId++;
 	}
 
@@ -656,7 +652,8 @@ public sealed class GamePlayer : GameEntity
 			return;
 		}
 
-		RollModifierOffer(previousOffer: CurrentModifierOffer());
+		var previousOffer = CurrentModifierOffer();
+		RollModifierOffer(previousOffer: previousOffer);
 		RerollDice--;
 		GamePlayerStats.Record(this, GameStatKeys.TimesRerolled);
 	}
@@ -667,7 +664,7 @@ public sealed class GamePlayer : GameEntity
 		var gameManager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
 		if (!Active || (gameManager != null && gameManager.State != GameState.InProgress)
 			|| PendingModifierChoices <= 0 || offerId != ModifierOfferId
-			|| (modifier != ModifierOptionOne && modifier != ModifierOptionTwo && modifier != ModifierOptionThree)
+			|| !ModifierOptions.Contains(modifier)
 			|| !ModifierCatalog.Get(modifier).IsAvailable(ModifierStacks))
 		{
 			Log.Warning("Rejected an unavailable or outdated modifier choice.");
