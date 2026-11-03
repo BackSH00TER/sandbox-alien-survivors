@@ -25,8 +25,15 @@ to identify each value without introducing a separate options object.
 `DamageEffectDefinition.Resolve` adds each matching upgrade's increment multiplied
 by its pick count; these player picks are distinct from effect stacks on a target.
 
-Offers contain three distinct eligible modifiers, drawn by `DrawWeight` without
-replacement. Unlocks and maxed chance upgrades stop appearing. Existing attack speed,
+Offers start with three distinct eligible modifiers, drawn by `DrawWeight` without
+replacement. **More Choices** is a rare, prerequisite-free modifier with five ranks:
+each pick adds one option to future offers (including queued level-ups), up to eight.
+Its draw weight is `0.2`, versus `1` for normal modifiers; this is a relative weight,
+not a fixed appearance percentage. At rank five it stops appearing. If fewer eligible
+modifiers exist than the slot count, offers show all eligible modifiers without duplicates.
+The host synchronizes the full offer and validates membership before accepting a pick.
+Cards wrap into rows, and number keys 1 through the current offer size select a card.
+Unlocks and maxed chance upgrades stop appearing. Existing attack speed,
 range and vitality upgrades remain repeatable. All prerequisites must be owned;
 the host checks both the offer ID and eligibility when accepting a pick.
 
@@ -102,6 +109,7 @@ dotnet run --project .\Tests\DamageFramework.Tests.csproj -p:EngineDirectory="$e
 If the shell does not have the engine variable, use
 `[Environment]::GetEnvironmentVariable('FACEPUNCH_ENGINE', 'User')` or pass your install
 directory explicitly. Tests cover prerequisite gating, weighted draws, offer uniqueness,
+More Choices ranks and caps, small eligible pools, rare-modifier draw frequency,
 proc thresholds, independent expiries, exact damage, stack replacement, spread capacity,
 source attribution and cleanup.
 
@@ -111,3 +119,7 @@ the moving orange/yellow wisps, which disappear after the last fire stack expire
 Pick Layered Flames and Spreading
 Flames to verify stacking and spread; Wildfire must not appear before spread is owned.
 The editor validates networking and rendering as well as the C# compile.
+Pick More Choices through all five ranks: future offers should grow from three to
+eight cards when enough upgrades are unlocked. Verify keys 4-8, mouse selection,
+wrapped card rows, queued picks, and a remote player's synchronized offer. With fire
+locked, verify the picker shows fewer cards rather than duplicates.

@@ -30,9 +30,7 @@ public sealed class GamePlayer : GameEntity
 
 	[Sync(SyncFlags.FromHost)] public int PendingModifierChoices { get; private set; }
 	[Sync(SyncFlags.FromHost)] public int ModifierOfferId { get; private set; }
-	[Sync(SyncFlags.FromHost)] public GameModifier ModifierOptionOne { get; private set; }
-	[Sync(SyncFlags.FromHost)] public GameModifier ModifierOptionTwo { get; private set; }
-	[Sync(SyncFlags.FromHost)] public GameModifier ModifierOptionThree { get; private set; }
+	[Sync(SyncFlags.FromHost)] public NetList<GameModifier> ModifierOptions { get; private set; } = new();
 	[Sync(SyncFlags.FromHost)] public int AttackSpeedStacks { get; private set; }
 	[Sync(SyncFlags.FromHost)] public int AttackRangeStacks { get; private set; }
 	[Sync(SyncFlags.FromHost)] public int VitalityStacks { get; private set; }
@@ -538,9 +536,8 @@ public sealed class GamePlayer : GameEntity
 	{
 		var options = ModifierCatalog.RollOffer(ModifierStacks, () => Game.Random.Float());
 
-		ModifierOptionOne = options[0];
-		ModifierOptionTwo = options[1];
-		ModifierOptionThree = options[2];
+		ModifierOptions.Clear();
+		ModifierOptions.AddRange(options);
 		ModifierOfferId++;
 	}
 
@@ -550,7 +547,7 @@ public sealed class GamePlayer : GameEntity
 		var gameManager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
 		if (!Active || (gameManager != null && gameManager.State != GameState.InProgress)
 			|| PendingModifierChoices <= 0 || offerId != ModifierOfferId
-			|| (modifier != ModifierOptionOne && modifier != ModifierOptionTwo && modifier != ModifierOptionThree)
+			|| !ModifierOptions.Contains(modifier)
 			|| !ModifierCatalog.Get(modifier).IsAvailable(ModifierStacks))
 		{
 			Log.Warning("Rejected an unavailable or outdated modifier choice.");

@@ -13,7 +13,8 @@ public enum GameModifier
 	FireDamage,
 	FireStacks,
 	FireSpread,
-	FireSpreadChance
+	FireSpreadChance,
+	ExtraOption
 }
 
 public sealed class ModifierDefinition
@@ -81,7 +82,10 @@ public static class ModifierCatalog
 			stat: DamageEffectStat.SpreadChance,
 			amount: 0.1f,
 			maxPicks: 9,
-			prerequisite: GameModifier.FireSpread)
+			prerequisite: GameModifier.FireSpread),
+		new ModifierDefinition { Id = GameModifier.ExtraOption, Icon = "library_add", Name = "More Choices",
+			Description = "Rare: +1 modifier option on future upgrade picks, up to 8 options at rank 5. Limited by eligible upgrades.",
+			DrawWeight = 0.2f, MaxPicks = 5 }
 	};
 
 	private static ModifierDefinition FireUpgrade(GameModifier id, string name, string description,
@@ -99,14 +103,18 @@ public static class ModifierCatalog
 	public static string Name(GameModifier modifier) => Get(modifier).Name;
 	public static string Description(GameModifier modifier) => Get(modifier).Description;
 
+	public static int OfferSize(Func<GameModifier, int> getModifierPickCount) =>
+		3 + Math.Clamp(getModifierPickCount(GameModifier.ExtraOption), 0, Get(GameModifier.ExtraOption).MaxPicks);
+
 	public static IReadOnlyList<GameModifier> RollOffer(Func<GameModifier, int> getModifierPickCount, Func<float> random)
 	{
 		var available = All.Where(modifier => modifier.IsAvailable(getModifierPickCount)).ToList();
 		if (available.Count < 3)
 			throw new InvalidOperationException("GameModifier offers require at least three available upgrades.");
 
-		var result = new List<GameModifier>();
-		for (int i = 0; i < 3; i++)
+		int count = Math.Min(OfferSize(getModifierPickCount), available.Count);
+		var result = new List<GameModifier>(count);
+		for (int i = 0; i < count; i++)
 		{
 			var chosen = WeightedDraw.Pick(available, modifier => modifier.DrawWeight, random());
 			result.Add(chosen.Id);

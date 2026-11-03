@@ -6,6 +6,8 @@ var tests = new (string Name, Action Run)[]
 {
 	("catalog coverage and prerequisites", Catalog),
 	("offers are eligible and distinct", Offers),
+	("extra options scale, cap and respect eligibility", ExtraOptions),
+	("extra option rarity uses reduced draw weight", ExtraOptionRarity),
 	("weighted draw boundaries", Weights),
 	("fire chance, defaults and upgrade caps", FireRolls),
 	("independent expiries and exact stacked damage", Expiries),
@@ -72,7 +74,65 @@ static void Offers()
 	var maxed = ModifierCatalog.All.ToDictionary(modifier => modifier.Id,
 		modifier => modifier.MaxPicks == int.MaxValue ? 0 : modifier.MaxPicks);
 	var options = ModifierCatalog.RollOffer(modifier => maxed[modifier], () => 1f);
-	Check(options.Count == 3 && options.All(modifier => ModifierCatalog.Get(modifier).MaxPicks == int.MaxValue), "Repeatable fallbacks must remain.");
+	Check(options.Count == Math.Min(8, ModifierCatalog.All.Count(modifier => modifier.IsAvailable(id => maxed[id])))
+		&& options.All(modifier => ModifierCatalog.Get(modifier).MaxPicks == int.MaxValue), "Repeatable fallbacks must remain.");
+}
+
+static void ExtraOptions()
+{
+	var random = new Random(73);
+	var picks = new Dictionary<GameModifier, int>();
+	int Stacks(GameModifier modifier) => picks.GetValueOrDefault(modifier);
+	var extra = ModifierCatalog.Get(GameModifier.ExtraOption);
+	Check(extra.MaxPicks == 5 && extra.Prerequisites.Count == 0, "More Choices must have five ranks and no prerequisite.");
+	foreach (bool unlocked in new[] { false, true })
+	{
+		picks.Clear();
+		if (unlocked)
+		{
+			picks[GameModifier.FireRounds] = 1;
+			picks[GameModifier.FireSpread] = 1;
+		}
+		for (int rank = 0; rank <= 5; rank++)
+		{
+			picks[GameModifier.ExtraOption] = rank;
+			Check(ModifierCatalog.OfferSize(Stacks) == 3 + rank, "Each rank must add exactly one slot.");
+			Check(extra.IsAvailable(Stacks) == (rank < 5), "More Choices must stop appearing at rank five.");
+			int eligible = ModifierCatalog.All.Count(modifier => modifier.IsAvailable(Stacks));
+			for (int i = 0; i < 1000; i++)
+			{
+				var offer = ModifierCatalog.RollOffer(Stacks, () => (float)random.NextDouble());
+				Check(offer.Count == Math.Min(3 + rank, eligible), "Wrong expanded offer size.");
+				Check(offer.Distinct().Count() == offer.Count, "Expanded offers cannot duplicate cards.");
+				Check(offer.All(modifier => ModifierCatalog.Get(modifier).IsAvailable(Stacks)), "Expanded offer contains an ineligible upgrade.");
+			}
+		}
+	}
+	Check(ModifierCatalog.RollOffer(Stacks, () => 0f).Count == 8, "Fully unlocked rank five must offer eight choices.");
+	picks[GameModifier.ExtraOption] = 100;
+	Check(ModifierCatalog.OfferSize(Stacks) == 8, "Offer size cannot exceed eight.");
+	picks[GameModifier.ExtraOption] = -1;
+	Check(ModifierCatalog.OfferSize(Stacks) == 3, "Offer size cannot fall below three.");
+}
+
+static void ExtraOptionRarity()
+{
+	Near(ModifierCatalog.Get(GameModifier.ExtraOption).DrawWeight, 0.2f);
+	Check(ModifierCatalog.All.Where(modifier => modifier.Id != GameModifier.ExtraOption)
+		.All(modifier => modifier.DrawWeight == 1f), "Existing modifier weights must not change.");
+	Check(ModifierCatalog.RollOffer(_ => 0, () => 0.95f)[0] == GameModifier.FireRounds, "Normal weighted bucket must precede rare modifier.");
+	Check(ModifierCatalog.RollOffer(_ => 0, () => 0.96f)[0] == GameModifier.ExtraOption, "Rare modifier must be drawable in its weighted bucket.");
+
+	var random = new Random(101);
+	int rareOffers = 0;
+	const int trials = 20000;
+	for (int i = 0; i < trials; i++)
+	{
+		if (ModifierCatalog.RollOffer(_ => 0, () => (float)random.NextDouble()).Contains(GameModifier.ExtraOption))
+			rareOffers++;
+	}
+	float frequency = (float)rareOffers / trials;
+	Check(frequency > 0.17f && frequency < 0.21f, $"Expected roughly 19% rare offers in the starting pool, got {frequency:P2}.");
 }
 
 static void Weights()
