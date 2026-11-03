@@ -13,6 +13,7 @@
 
 	private const float Lifetime = 0.9f;
 	private const float RiseHeight = 48f;
+	private const float FadeStartProgress = 0.75f;
 	private Vector3 _startPosition;
 	private float _startTime;
 	private float _opacity = 1f;
@@ -30,7 +31,8 @@
 	{
 		var progress = ((Time.Now - _startTime) / Lifetime).Clamp(0f, 1f);
 		GameObject.WorldPosition = _startPosition + Vector3.Up * (RiseHeight * progress);
-		_opacity = 1f - progress;
+		var fadeProgress = ((progress - FadeStartProgress) / (1f - FadeStartProgress)).Clamp(0f, 1f);
+		_opacity = 1f - fadeProgress;
 		if (progress >= 1f)
 		{
 			GameObject.Destroy();
