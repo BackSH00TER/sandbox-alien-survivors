@@ -21,20 +21,11 @@ public sealed class GameEnemyBoss : Component
 	public float StunCastRange { get; set; } = 600f;
 
 	[Sync(SyncFlags.FromHost)]
-	private bool IsChargingStun
-	{
-		get; set;
-	}
+	private bool IsChargingStun { get; set; }
 	[Sync(SyncFlags.FromHost)]
-	private Vector3 StunCenter
-	{
-		get; set;
-	}
+	private Vector3 StunCenter { get; set; }
 	[Sync(SyncFlags.FromHost)]
-	private float ChargeEndTime
-	{
-		get; set;
-	}
+	private float ChargeEndTime { get; set; }
 	[Sync(SyncFlags.FromHost)] private float ImpactTime { get; set; } = -100f;
 	private float _nextStunTime;
 	private GameObject _warning;

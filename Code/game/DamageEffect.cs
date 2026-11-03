@@ -14,44 +14,17 @@ public enum DamageEffectStat
 
 public sealed class DamageEffectDefinition
 {
-	public GameDamageType Type
-	{
-		get; init;
-	}
-	public GameModifier Unlock
-	{
-		get; init;
-	}
-	public GameModifier SpreadUnlock
-	{
-		get; init;
-	}
-	public Color BulletColor
-	{
-		get; init;
-	}
+	public GameDamageType Type { get; init; }
+	public GameModifier Unlock { get; init; }
+	public GameModifier SpreadUnlock { get; init; }
+	public Color BulletColor { get; init; }
 	public float DrawWeight { get; init; } = 1f;
-	public float ApplicationChance
-	{
-		get; init;
-	}
-	public float Duration
-	{
-		get; init;
-	}
-	public float DamagePerSecond
-	{
-		get; init;
-	}
+	public float ApplicationChance { get; init; }
+	public float Duration { get; init; }
+	public float DamagePerSecond { get; init; }
 	public int MaxStacks { get; init; } = 1;
-	public float SpreadChance
-	{
-		get; init;
-	}
-	public float SpreadRadius
-	{
-		get; init;
-	}
+	public float SpreadChance { get; init; }
+	public float SpreadRadius { get; init; }
 
 	/// <summary>Builds a shot's immutable effect settings from the base values and the player's upgrade picks.</summary>
 	public DamageEffectSettings Resolve(Func<GameModifier, int> getModifierPickCount)
@@ -81,10 +54,7 @@ public sealed class DamageEffectDefinition
 public static class DamageEffectCatalog
 {
 	// Only implemented effects belong here; enum entries alone never enter the bullet draw.
-	public static IReadOnlyList<DamageEffectDefinition> All
-	{
-		get;
-	} = new[]
+	public static IReadOnlyList<DamageEffectDefinition> All { get; } = new[]
 	{
 		new DamageEffectDefinition
 		{

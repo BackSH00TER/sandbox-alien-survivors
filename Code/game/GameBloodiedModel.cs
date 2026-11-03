@@ -4,10 +4,7 @@ using Sandbox.Rendering;
 public sealed class GameBloodiedModel : Component
 {
 	[Property, Sync(SyncFlags.FromHost)]
-	public float Amount
-	{
-		get; set;
-	}
+	public float Amount { get; set; }
 
 	private readonly Dictionary<ModelRenderer, (CommandList Pass, CommandList Previous)> _passes = new();
 	private Material _material;

@@ -20,26 +20,14 @@ public sealed class GameLootPickup : Component
 	[Property, Range(5f, 300f), Description("Total seconds an unclaimed pickup stays before it disappears.")]
 	public float LifetimeSeconds { get; set; } = 45f;
 	[Sync(SyncFlags.FromHost)]
-	public LootKind Kind
-	{
-		get; private set;
-	}
+	public LootKind Kind { get; private set; }
 	[Sync(SyncFlags.FromHost)]
-	public GameWeaponDefinition Weapon
-	{
-		get; private set;
-	}
+	public GameWeaponDefinition Weapon { get; private set; }
 	[Sync(SyncFlags.FromHost)]
-	public bool Claimed
-	{
-		get; private set;
-	}
+	public bool Claimed { get; private set; }
 	/// <summary>True during the last <see cref="BlinkSeconds"/> before the pickup disappears. Set by the host so every client blinks it.</summary>
 	[Sync(SyncFlags.FromHost)]
-	public bool IsBlinking
-	{
-		get; private set;
-	}
+	public bool IsBlinking { get; private set; }
 	public string DisplayName => Kind switch
 	{
 		LootKind.Health => "Health +50",

@@ -4,40 +4,19 @@ public sealed class GameWeaponProjectile : Component
 {
 	public const float CollisionHeight = 36f;
 	[Sync(SyncFlags.FromHost)]
-	public GameEntity Shooter
-	{
-		get; private set;
-	}
+	public GameEntity Shooter { get; private set; }
 	[Sync(SyncFlags.FromHost)]
-	private bool IsEnemyProjectile
-	{
-		get; set;
-	}
+	private bool IsEnemyProjectile { get; set; }
 	[Sync(SyncFlags.FromHost)]
-	public Vector3 Direction
-	{
-		get; private set;
-	}
+	public Vector3 Direction { get; private set; }
 	[Sync(SyncFlags.FromHost)]
-	public float Speed
-	{
-		get; private set;
-	}
+	public float Speed { get; private set; }
 	[Sync(SyncFlags.FromHost)]
-	public float Radius
-	{
-		get; private set;
-	}
+	public float Radius { get; private set; }
 	[Sync(SyncFlags.FromHost)]
-	public bool ShowHitbox
-	{
-		get; private set;
-	}
+	public bool ShowHitbox { get; private set; }
 	[Sync(SyncFlags.FromHost)]
-	public Vector3 CollisionOffset
-	{
-		get; private set;
-	}
+	public Vector3 CollisionOffset { get; private set; }
 	[Sync(SyncFlags.FromHost)] public GameDamageType EffectType { get; private set; } = GameDamageType.Physical;
 	public Vector3 CollisionPosition => WorldPosition + CollisionOffset;
 

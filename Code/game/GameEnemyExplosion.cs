@@ -4,35 +4,17 @@ using Sandbox;
 public sealed class GameEnemyExplosion : Component
 {
 	[Sync(SyncFlags.FromHost)]
-	public float FuseDuration
-	{
-		get; set;
-	}
+	public float FuseDuration { get; set; }
 	[Sync(SyncFlags.FromHost)]
-	public float BlastRadius
-	{
-		get; set;
-	}
+	public float BlastRadius { get; set; }
 	[Sync(SyncFlags.FromHost)]
-	public float BlastDamage
-	{
-		get; set;
-	}
+	public float BlastDamage { get; set; }
 	[Sync(SyncFlags.FromHost)]
-	private float DetonationTime
-	{
-		get; set;
-	}
+	private float DetonationTime { get; set; }
 	[Sync(SyncFlags.FromHost)]
-	private bool HasExploded
-	{
-		get; set;
-	}
+	private bool HasExploded { get; set; }
 	[Sync(SyncFlags.FromHost)]
-	private float ExplosionTime
-	{
-		get; set;
-	}
+	private float ExplosionTime { get; set; }
 
 	private const float BlastVisualDuration = 0.4f;
 	private GameObject _visual;

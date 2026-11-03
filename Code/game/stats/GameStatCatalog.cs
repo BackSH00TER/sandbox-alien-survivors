@@ -1,13 +1,7 @@
 public sealed class StatRow
 {
-	public string Label
-	{
-		get;
-	}
-	public string Key
-	{
-		get;
-	}
+	public string Label { get; }
+	public string Key { get; }
 
 	public StatRow(string label, string key)
 	{
@@ -18,18 +12,9 @@ public sealed class StatRow
 
 public sealed class StatSection
 {
-	public string Title
-	{
-		get;
-	}
-	public IReadOnlyList<StatRow> Rows
-	{
-		get;
-	}
-	public bool ShouldHideEmptyRows
-	{
-		get;
-	}
+	public string Title { get; }
+	public IReadOnlyList<StatRow> Rows { get; }
+	public bool ShouldHideEmptyRows { get; }
 
 	public StatSection(string title, IReadOnlyList<StatRow> rows, bool shouldHideEmptyRows = false)
 	{
@@ -42,10 +27,7 @@ public sealed class StatSection
 /// <summary>What the end of round screen shows, in order. Add a stat by adding a row here.</summary>
 public static class GameStatCatalog
 {
-	public static IReadOnlyList<StatSection> Sections
-	{
-		get;
-	} = new List<StatSection>
+	public static IReadOnlyList<StatSection> Sections { get; } = new List<StatSection>
 	{
 		new StatSection("Combat", new List<StatRow>
 		{

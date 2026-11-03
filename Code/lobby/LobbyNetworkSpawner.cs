@@ -19,10 +19,7 @@ public sealed class LobbyNetworkSpawner : Component, Component.INetworkListener
 
 	/// <summary>Prefab cloned for each connected player.</summary>
 	[Property]
-	public GameObject PlayerPrefab
-	{
-		get; set;
-	}
+	public GameObject PlayerPrefab { get; set; }
 
 	/// <summary>Height above the player origin where the bottom of the nameplate sits.</summary>
 	[Property] public float NameplateHeight { get; set; } = 80f;

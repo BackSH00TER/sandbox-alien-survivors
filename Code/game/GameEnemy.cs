@@ -10,10 +10,7 @@ public sealed class GameEnemy : GameEntity
 		: GameEnemyKind.Melee;
 
 	[Property, RequireComponent]
-	public PlayerController Controller
-	{
-		get; set;
-	}
+	public PlayerController Controller { get; set; }
 	[Property, Group("Movement"), Range(0f, 1000f), Description("Pursuit speed for melee and exploding enemies, in world units per second.")]
 	public float MoveSpeed { get; set; } = 100f;
 	[Property, Group("Movement"), Range(0f, 1000f), Description("Pursuit and wandering speed for ranged enemies, in world units per second.")]
@@ -31,48 +28,24 @@ public sealed class GameEnemy : GameEntity
 
 	[Sync(SyncFlags.FromHost)] private bool IsDescending { get; set; } = true;
 	[Sync(SyncFlags.FromHost)]
-	private Vector3 LandingPosition
-	{
-		get; set;
-	}
+	private Vector3 LandingPosition { get; set; }
 	[Sync(SyncFlags.FromHost)]
-	private float DescentStartTime
-	{
-		get; set;
-	}
+	private float DescentStartTime { get; set; }
 	private LineRenderer _spawnBeam;
 	private bool _descentVisualsActive;
 
 	[Sync(SyncFlags.FromHost)]
-	private float NextPunchTime
-	{
-		get; set;
-	}
+	private float NextPunchTime { get; set; }
 	[Sync(SyncFlags.FromHost)]
-	private bool IsWindingUp
-	{
-		get; set;
-	}
+	private bool IsWindingUp { get; set; }
 	[Sync(SyncFlags.FromHost)]
-	private float WindupEndTime
-	{
-		get; set;
-	}
+	private float WindupEndTime { get; set; }
 	[Sync(SyncFlags.FromHost)]
-	private float MovementUnlockTime
-	{
-		get; set;
-	}
+	private float MovementUnlockTime { get; set; }
 	[Sync(SyncFlags.FromHost)]
-	private bool IsTargetInPunchRange
-	{
-		get; set;
-	}
+	private bool IsTargetInPunchRange { get; set; }
 	[Sync(SyncFlags.FromHost)]
-	private float StaggerEndTime
-	{
-		get; set;
-	}
+	private float StaggerEndTime { get; set; }
 
 	protected override void OnStart()
 	{

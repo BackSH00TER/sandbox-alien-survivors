@@ -5,34 +5,13 @@ using System.Linq;
 /// <summary>Validated, immutable effect values captured when a projectile fires and reused when its effect spreads.</summary>
 public sealed class DamageEffectSettings
 {
-	public GameDamageType Type
-	{
-		get;
-	}
-	public float ApplicationChance
-	{
-		get;
-	}
-	public float Duration
-	{
-		get;
-	}
-	public float DamagePerSecond
-	{
-		get;
-	}
-	public int MaxStacks
-	{
-		get;
-	}
-	public float SpreadChance
-	{
-		get;
-	}
-	public float SpreadRadius
-	{
-		get;
-	}
+	public GameDamageType Type { get; }
+	public float ApplicationChance { get; }
+	public float Duration { get; }
+	public float DamagePerSecond { get; }
+	public int MaxStacks { get; }
+	public float SpreadChance { get; }
+	public float SpreadRadius { get; }
 
 	public DamageEffectSettings(GameDamageType type, float applicationChance, float duration,
 		float damagePerSecond, int maxStacks, float spreadChance, float spreadRadius)
@@ -60,23 +39,11 @@ public sealed class DamageEffectSettings
 /// <summary>One application with its own expiry and damage source, independent of other applications of the same type.</summary>
 public sealed class TimedDamageStack<TSource>
 {
-	public DamageEffectSettings Settings
-	{
-		get;
-	}
-	public TSource Source
-	{
-		get;
-	}
-	public float ExpiresAt
-	{
-		get;
-	}
+	public DamageEffectSettings Settings { get; }
+	public TSource Source { get; }
+	public float ExpiresAt { get; }
 	// Advances only for time already paid out as damage, leaving partial tick time for the next update.
-	internal float LastDamageTime
-	{
-		get; set;
-	}
+	internal float LastDamageTime { get; set; }
 
 	internal TimedDamageStack(DamageEffectSettings settings, TSource source, float now)
 	{

@@ -6,8 +6,5 @@ using Sandbox;
 public sealed class LobbyPlayerReadyState : Component
 {
 	[Sync]
-	public bool IsReady
-	{
-		get; set;
-	}
+	public bool IsReady { get; set; }
 }

@@ -4,10 +4,7 @@ public sealed class GameEnemySpawner : Component
 {
 	[Group("Enemy Spawning")]
 	[Property]
-	public GameObject EnemyPrefab
-	{
-		get; set;
-	}
+	public GameObject EnemyPrefab { get; set; }
 
 	[Group("Enemy Spawning")]
 	[Property, Range(0.1f, 60f)] public float SpawnInterval { get; set; } = 3f;

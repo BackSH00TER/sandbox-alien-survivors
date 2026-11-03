@@ -8,10 +8,7 @@ using Sandbox;
 public sealed class LobbyPlayerMouseLook : Component
 {
 	[Property]
-	public PlayerController Controller
-	{
-		get; set;
-	}
+	public PlayerController Controller { get; set; }
 
 	/// <summary>Max yaw away from the spawn facing. Kept under the controller's body-turn limit so the body never rotates.</summary>
 	[Property, Range(0f, 45f)] public float MaxYaw { get; set; } = 40f;
@@ -37,10 +34,7 @@ public sealed class LobbyPlayerMouseLook : Component
 
 	/// <summary>World-space point the owner's cursor is aiming at, on the plane through the character's head.</summary>
 	[Sync]
-	public Vector3 LookTarget
-	{
-		get; set;
-	}
+	public Vector3 LookTarget { get; set; }
 
 	private Rotation _smoothedAim;
 	private Rotation _aimLead;

@@ -9,10 +9,7 @@ public sealed class LobbyManager : Component
 {
 	[Group("Scene Transition")]
 	[Property]
-	public string GameScene
-	{
-		get; set;
-	}
+	public string GameScene { get; set; }
 
 	/// <summary>Number of players currently in the lobby.</summary>
 	public int PlayerCount => Scene.GetAllComponents<LobbyPlayerReadyState>().Count();

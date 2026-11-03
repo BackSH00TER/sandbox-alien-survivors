@@ -3,15 +3,9 @@ using Sandbox;
 public sealed class GamePlayer : GameEntity
 {
 	[Property, RequireComponent]
-	public PlayerController Controller
-	{
-		get; set;
-	}
+	public PlayerController Controller { get; set; }
 	[Property, RequireComponent]
-	public GamePlayerStats Stats
-	{
-		get; set;
-	}
+	public GamePlayerStats Stats { get; set; }
 	[Property, Range(0.25f, 4f)] public float Zoom { get; set; } = 1.5f;
 	[Property, Group("Spectate"), Range(0f, 2000f), Description("Height above the death position that the UAV flies at.")]
 	public float UavAltitude { get; set; } = 600f;
@@ -23,15 +17,9 @@ public sealed class GamePlayer : GameEntity
 	[Property, Group("Revive"), Range(0f, 10f), Description("Seconds a revived player cannot take damage.")]
 	public float ReviveInvulnerableSeconds { get; set; } = 3f;
 	[Property, Group("Weapon"), Description("Weapon equipped on spawn. If unassigned, uses weapons/pistol.weapon.")]
-	public GameWeaponDefinition StartingWeapon
-	{
-		get; set;
-	}
+	public GameWeaponDefinition StartingWeapon { get; set; }
 	[Sync(SyncFlags.FromHost)]
-	public GameWeaponDefinition EquippedWeapon
-	{
-		get; private set;
-	}
+	public GameWeaponDefinition EquippedWeapon { get; private set; }
 	[Property, Group("Debug")] public bool ShowAttackDebug { get; set; } = true;
 
 	[Group("Experience")]
@@ -41,22 +29,13 @@ public sealed class GamePlayer : GameEntity
 
 	[Sync(SyncFlags.FromHost)] public int Level { get; private set; } = 1;
 	[Sync(SyncFlags.FromHost)]
-	public int Experience
-	{
-		get; private set;
-	}
+	public int Experience { get; private set; }
 	public int ExperienceToNextLevel => System.Math.Max(1, BaseExperienceToLevel + ExperienceGrowthPerLevel * (Level - 1));
 
 	[Sync(SyncFlags.FromHost)]
-	public int PendingModifierChoices
-	{
-		get; private set;
-	}
+	public int PendingModifierChoices { get; private set; }
 	[Sync(SyncFlags.FromHost)]
-	public int RerollDice
-	{
-		get; private set;
-	}
+	public int RerollDice { get; private set; }
 	public bool CanRerollModifiers => Active && !IsDead && !IsRoundOver && PendingModifierChoices > 0 && RerollDice > 0
 		&& ModifierCatalog.HasAlternativeOffer(ModifierStacks, CurrentModifierOffer());
 
@@ -81,30 +60,15 @@ public sealed class GamePlayer : GameEntity
 		return true;
 	}
 	[Sync(SyncFlags.FromHost)]
-	public int ModifierOfferId
-	{
-		get; private set;
-	}
+	public int ModifierOfferId { get; private set; }
 	[Sync(SyncFlags.FromHost)]
-	public NetList<GameModifier> ModifierOptions
-	{
-		get; private set;
-	} = new();
+	public NetList<GameModifier> ModifierOptions { get; private set; } = new();
 	[Sync(SyncFlags.FromHost)]
-	public int AttackSpeedStacks
-	{
-		get; private set;
-	}
+	public int AttackSpeedStacks { get; private set; }
 	[Sync(SyncFlags.FromHost)]
-	public int AttackRangeStacks
-	{
-		get; private set;
-	}
+	public int AttackRangeStacks { get; private set; }
 	[Sync(SyncFlags.FromHost)]
-	public int VitalityStacks
-	{
-		get; private set;
-	}
+	public int VitalityStacks { get; private set; }
 	[Sync(SyncFlags.FromHost)] private NetDictionary<GameModifier, int> EffectModifierStacks { get; set; } = new();
 
 	public int ModifierStacks(GameModifier modifier) => modifier switch
@@ -146,50 +110,29 @@ public sealed class GamePlayer : GameEntity
 
 	/// <summary>Debug only: while true this player takes no damage.</summary>
 	[Sync(SyncFlags.FromHost)]
-	public bool GodMode
-	{
-		get; private set;
-	}
+	public bool GodMode { get; private set; }
 
 	/// <summary>
 	/// Missing health that is not shown as blood. Set on revive so a revived player comes back clean, then
 	/// shrinks as they heal so blood only appears from damage taken after that.
 	/// </summary>
 	[Sync(SyncFlags.FromHost)]
-	public float BloodOffset
-	{
-		get; private set;
-	}
+	public float BloodOffset { get; private set; }
 
 	// A dead player shows no blood, so the UAV drone and the body on revive are clean.
 	public override float BloodAmount => IsDead ? 0f : System.MathF.Max(0f, base.BloodAmount - BloodOffset);
 
 	/// <summary>Host only: when this player died, used to raise the flare drop chance the longer they stay dead.</summary>
-	public float DeathTime
-	{
-		get; private set;
-	}
+	public float DeathTime { get; private set; }
 
 	[Sync(SyncFlags.FromHost)]
-	private float NextAttackTime
-	{
-		get; set;
-	}
+	private float NextAttackTime { get; set; }
 	[Sync]
-	private Vector3 CursorRayOrigin
-	{
-		get; set;
-	}
+	private Vector3 CursorRayOrigin { get; set; }
 	[Sync]
-	private Vector3 CursorRayDirection
-	{
-		get; set;
-	}
+	private Vector3 CursorRayDirection { get; set; }
 	[Sync(SyncFlags.FromHost)]
-	private float StunEndTime
-	{
-		get; set;
-	}
+	private float StunEndTime { get; set; }
 	public bool IsStunned => Time.Now < StunEndTime;
 
 	private static readonly Vector3 BaseCameraOffset = new Vector3(-500f, 0f, 800f);

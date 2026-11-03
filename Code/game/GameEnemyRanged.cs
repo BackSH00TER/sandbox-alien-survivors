@@ -12,10 +12,7 @@ public sealed class GameEnemyRanged : Component
 	[Property, Range(0.1f, 16f)] public float ProjectileRadius { get; set; } = 6f;
 
 	[Sync(SyncFlags.FromHost)]
-	private bool IsCharging
-	{
-		get; set;
-	}
+	private bool IsCharging { get; set; }
 	private float _chargeEndTime;
 	private float _nextShotTime;
 	private Vector3 _wanderDirection;

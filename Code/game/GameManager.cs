@@ -15,22 +15,13 @@ public sealed class GameManager : Component
 	[Property] public bool ShouldEndWhenAllDead { get; set; } = false;
 	[Sync(SyncFlags.FromHost)] public GameState State { get; set; } = GameState.InProgress;
 	[Sync(SyncFlags.FromHost)]
-	public GameEnemy Boss
-	{
-		get; private set;
-	}
+	public GameEnemy Boss { get; private set; }
 	[Sync(SyncFlags.FromHost)]
-	public bool BossSpawned
-	{
-		get; private set;
-	}
+	public bool BossSpawned { get; private set; }
 
 	[Group("Scene Transition")]
 	[Property]
-	public string LobbyScene
-	{
-		get; set;
-	}
+	public string LobbyScene { get; set; }
 	[Group("Scene Transition")]
 	[Property] public string GameScene { get; set; } = "scenes/game.scene";
 

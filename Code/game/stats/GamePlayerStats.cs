@@ -5,10 +5,7 @@ public sealed class GamePlayerStats : Component
 {
 	[Sync(SyncFlags.FromHost)] private NetDictionary<string, float> Values { get; set; } = new();
 	[Sync(SyncFlags.FromHost)]
-	public bool IsRoundOver
-	{
-		get; private set;
-	}
+	public bool IsRoundOver { get; private set; }
 
 	public string PlayerName => GameObject.Network.Owner?.DisplayName ?? GameObject.Name;
 

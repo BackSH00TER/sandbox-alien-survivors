@@ -19,37 +19,16 @@ public enum GameModifier
 
 public sealed class ModifierDefinition
 {
-	public GameModifier Id
-	{
-		get; init;
-	}
-	public string Icon
-	{
-		get; init;
-	}
-	public string Name
-	{
-		get; init;
-	}
-	public string Description
-	{
-		get; init;
-	}
+	public GameModifier Id { get; init; }
+	public string Icon { get; init; }
+	public string Name { get; init; }
+	public string Description { get; init; }
 	public float DrawWeight { get; init; } = 1f;
 	public int MaxPicks { get; init; } = int.MaxValue;
 	public IReadOnlyList<GameModifier> Prerequisites { get; init; } = Array.Empty<GameModifier>();
-	public GameDamageType? EffectType
-	{
-		get; init;
-	}
-	public DamageEffectStat? EffectStat
-	{
-		get; init;
-	}
-	public float Amount
-	{
-		get; init;
-	}
+	public GameDamageType? EffectType { get; init; }
+	public DamageEffectStat? EffectStat { get; init; }
+	public float Amount { get; init; }
 
 	public bool IsAvailable(Func<GameModifier, int> getModifierPickCount) =>
 		getModifierPickCount(Id) < MaxPicks && Prerequisites.All(prerequisite => getModifierPickCount(prerequisite) > 0);
@@ -57,10 +36,7 @@ public sealed class ModifierDefinition
 
 public static class ModifierCatalog
 {
-	public static IReadOnlyList<ModifierDefinition> All
-	{
-		get;
-	} = new[]
+	public static IReadOnlyList<ModifierDefinition> All { get; } = new[]
 	{
 		new ModifierDefinition { Id = GameModifier.AttackSpeed, Icon = "bolt", Name = "Rapid Strikes",
 			Description = "+100% attack rate per stack." },

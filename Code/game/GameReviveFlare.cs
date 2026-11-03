@@ -23,15 +23,9 @@ public sealed class GameReviveFlare : Component
 
 	/// <summary>Seconds until the flare burns out. Counted down by the host and synced to everyone.</summary>
 	[Sync(SyncFlags.FromHost)]
-	public float Remaining
-	{
-		get; private set;
-	}
+	public float Remaining { get; private set; }
 	[Sync(SyncFlags.FromHost)]
-	public Vector3 GroundPosition
-	{
-		get; private set;
-	}
+	public Vector3 GroundPosition { get; private set; }
 
 	private const float BlinkSeconds = 8f;
 	private const float GlowScale = 0.4f; // sphere model scale of the glowing flare head

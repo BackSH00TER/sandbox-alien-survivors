@@ -8,15 +8,9 @@ public sealed class GameCrateSpawner : Component
 	public float RespawnDelay { get; set; } = 10f;
 	[Property, Range(100f, 5000f)] public float SpawnRadius { get; set; } = 900f;
 	[Property]
-	public GameWeaponDefinition Rifle
-	{
-		get; set;
-	}
+	public GameWeaponDefinition Rifle { get; set; }
 	[Property]
-	public GameWeaponDefinition Shotgun
-	{
-		get; set;
-	}
+	public GameWeaponDefinition Shotgun { get; set; }
 
 	// Copied to each new crate; changing these settings does not alter crates already spawned.
 	[Property, Group("Loot"), Description("Minimum items per crate, inclusive. Must be at least one.")]

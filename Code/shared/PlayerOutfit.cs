@@ -10,10 +10,7 @@ using System.Threading.Tasks;
 public sealed class PlayerOutfit : Component
 {
 	[Property]
-	public Dresser Dresser
-	{
-		get; set;
-	}
+	public Dresser Dresser { get; set; }
 	[Property] public float StartDelay { get; set; } = 0.05f;
 
 	protected override void OnStart()
