@@ -576,6 +576,7 @@ public sealed class GamePlayer : GameEntity
 
 		RollModifierOffer(previousOffer: CurrentModifierOffer());
 		RerollDice--;
+		GamePlayerStats.Record(this, GameStatKeys.TimesRerolled);
 	}
 
 	[Rpc.Host(NetFlags.OwnerOnly)]

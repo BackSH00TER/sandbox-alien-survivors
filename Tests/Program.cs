@@ -7,6 +7,7 @@ var tests = new (string Name, Action Run)[]
 	("catalog coverage and prerequisites", Catalog),
 	("offers are eligible and distinct", Offers),
 	("rerolls change the set without unlocking unavailable modifiers", Rerolls),
+	("reroll stat appears once in the upgrades scorecard", RerollStat),
 	("weighted draw boundaries", Weights),
 	("fire chance, defaults and upgrade caps", FireRolls),
 	("independent expiries and exact stacked damage", Expiries),
@@ -113,6 +114,16 @@ static void Rerolls()
 	int MaxedPicks(GameModifier modifier) => maxed[modifier];
 	var onlyOffer = ModifierCatalog.RollOffer(MaxedPicks, () => 0f);
 	Check(!ModifierCatalog.HasAlternativeOffer(MaxedPicks, onlyOffer), "With only three eligible cards, reroll must be unavailable.");
+}
+
+static void RerollStat()
+{
+	var section = GameStatCatalog.Sections.Single(section => section.Title == "Upgrades");
+	var row = section.Rows.Single(row => row.Key == GameStatKeys.TimesRerolled);
+	Check(row.Label == "Times rerolled", "The reroll count needs a readable scorecard label.");
+	Check(GameStatCatalog.Sections.SelectMany(section => section.Rows).Count(row => row.Key == GameStatKeys.TimesRerolled) == 1,
+		"The scorecard must not duplicate the reroll stat.");
+	Check(section.Rows.Count == ModifierCatalog.All.Count + 1, "All existing modifier rows must remain.");
 }
 
 static void FireRolls()

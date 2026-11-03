@@ -49,6 +49,9 @@ or if only the same three modifiers are eligible; no die is spent in those cases
 The host validates the offer ID, ownership, round state and balance; a successful
 reroll invalidates the previous offer so duplicate requests cannot spend another die
 or select an old card. New rounds start with zero dice.
+Each successful reroll increments the player's round stat `times_rerolled`, shown
+as "Times rerolled" in the scorecard's Upgrades section. Like other upgrade rows,
+it is hidden if every player has zero. Rejected requests and dice pickups do not count.
 
 ## Bullet and effect behavior
 
