@@ -72,6 +72,9 @@ it is hidden if every player has zero. Rejected requests and dice pickups do not
 - A fire bullet is orange-red on every client. Normal player bullets stay yellow;
   enemy bullets stay magenta. All bullets retain their existing physical impact
   damage. Fire adds timed damage only to surviving enemies, not players or crates.
+- Bosses take damage and show hit feedback without interrupting movement, punch
+  windup, or their charged stun attack. Their zero `HitStaggerDuration` disables
+  gameplay stagger; regular enemies retain their configured hit stagger.
 - Burning enemies show five flickering orange/yellow wisps as placeholder flames.
   `BurningVisual` builds these locally from the synchronized fire stack count, so
   bullet ignition and spread use the same visual on every client. The wisps follow
