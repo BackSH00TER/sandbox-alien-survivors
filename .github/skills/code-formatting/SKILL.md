@@ -23,8 +23,12 @@ rules that the standard formatter does not fully enforce.
 - Always use `{ }` blocks for `if`, `else`, loops, and other control-flow
   constructs that accept a block, even for a single statement.
 - An `else if` chain is allowed; each conditional body must have braces.
-- Put opening and closing braces on separate lines. Do not put multiple
-  statements or a whole block on one line.
+- Put opening and closing braces on separate lines for control-flow blocks and
+  block-bodied members. Do not put multiple statements or a whole block on one
+  line.
+- Keep auto-property accessors (`get;`, `set;`, and `init;`) on the same line as
+  the property declaration, for example `public string Name { get; init; }`.
+  Do not put accessor keywords on separate lines.
 - Prefer block-bodied methods and local functions. Keep simple expression-bodied
   accessors and properties where they fit the existing `.editorconfig`.
 - Do not replace clear conditional blocks with nested ternaries to save lines.
