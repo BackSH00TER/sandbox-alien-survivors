@@ -146,8 +146,16 @@ public sealed class GameCrateSpawner : Component
 			}
 
 			candidate = ground.EndPosition;
-			if (Scene.GetAllComponents<GameSupplyCrate>().Any(x => (x.WorldPosition - candidate).Length < 100f)
-				|| Scene.GetAllComponents<GamePlayer>().Any(x => (x.WorldPosition - candidate).Length < 100f))
+			var hasNearbyCrate = Scene.GetAllComponents<GameSupplyCrate>()
+				.Any(crate => (crate.WorldPosition - candidate).Length < 100f);
+			if (hasNearbyCrate)
+			{
+				continue;
+			}
+
+			var hasNearbyPlayer = Scene.GetAllComponents<GamePlayer>()
+				.Any(player => (player.WorldPosition - candidate).Length < 100f);
+			if (hasNearbyPlayer)
 			{
 				continue;
 			}

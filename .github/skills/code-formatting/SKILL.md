@@ -54,6 +54,8 @@ else
   API actually expects a callback.
 - Prioritize extraction for nontrivial, nested, or side-effecting calls. Avoid
   pointless temporary variables for literals, constants, and simple property access.
+- Avoid long chained method calls inside conditions or as arguments to another
+  call; extract a descriptively named local so the main expression stays readable.
 - Preserve evaluation order, call count, short-circuit behavior, null-conditional
   behavior, and deferred execution. Do not hoist work outside its original branch
   or lambda, or out of a call that might be skipped.
