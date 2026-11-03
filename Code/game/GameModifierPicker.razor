@@ -22,6 +22,10 @@
 				</button>
 			}
 		</div>
+		<button class="reroll-button @(!player.CanRerollModifiers ? "unavailable" : "")"
+				disabled="@(!player.CanRerollModifiers)" @onclick="@(() => player.RerollModifiers(offerId))">
+			@($"R: Reroll (1 die) | {player.RerollDice} available")
+		</button>
 		@if (player.PendingModifierChoices > 1)
 		{
 			<div class="modifier-hint">@player.PendingModifierChoices upgrades waiting</div>
@@ -48,6 +52,12 @@
 		if (!_player.IsValid() || _player.PendingModifierChoices <= 0)
 			return;
 
+		if (Input.Pressed("RerollModifiers") && _player.CanRerollModifiers)
+		{
+			_player.RerollModifiers(_player.ModifierOfferId);
+			return;
+		}
+
 		for (int index = 0; index < 3; index++)
 		{
 			if (!Input.Pressed($"Slot{index + 1}"))
@@ -60,5 +70,7 @@
 
 	protected override int BuildHash() => System.HashCode.Combine(_player,
 		_player.IsValid() ? _player.PendingModifierChoices : 0,
-		_player.IsValid() ? _player.ModifierOfferId : 0);
+		_player.IsValid() ? _player.ModifierOfferId : 0,
+		_player.IsValid() ? _player.RerollDice : 0,
+		_player.IsValid() && _player.CanRerollModifiers);
 }

@@ -57,6 +57,30 @@ GameModifierPicker
 		margin-bottom: 10px;
 	}
 
+	.reroll-button {
+		margin-top: 12px;
+		padding: 10px 18px;
+		background-color: #302943;
+		border: 2px solid #d6b5ff;
+		border-radius: 6px;
+		color: #f0deff;
+		font-size: 15px;
+		pointer-events: all;
+		cursor: pointer;
+
+		&:hover {
+			background-color: #55416c;
+		}
+
+		&.unavailable {
+			background-color: #28282d;
+			border-color: #686870;
+			color: #888890;
+			pointer-events: none;
+			cursor: default;
+		}
+	}
+
 	.modifier-key {
 		position: absolute;
 		top: 8px;

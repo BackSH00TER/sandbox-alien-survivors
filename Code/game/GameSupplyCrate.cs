@@ -1,13 +1,21 @@
 using Sandbox;
 
-/// <summary>A 30-health shootable crate with an equally weighted, configurable drop count. For each item, after the revive-flare roll, armor has a 10% chance; otherwise health, rifle and shotgun are equally weighted.</summary>
+/// <summary>A 30-health shootable crate with an equally weighted, configurable drop count. For each item, after the revive-flare roll, armor has a 10% chance; otherwise health, rifle, shotgun and reroll dice are equally weighted.</summary>
 public sealed class GameSupplyCrate : GameEntity
 {
 	public const int DefaultMinDrops = 1;
 	public const int DefaultMaxDrops = 3;
 
-	[Sync(SyncFlags.FromHost)] public GameWeaponDefinition Rifle { get; set; }
-	[Sync(SyncFlags.FromHost)] public GameWeaponDefinition Shotgun { get; set; }
+	[Sync(SyncFlags.FromHost)]
+	public GameWeaponDefinition Rifle
+	{
+		get; set;
+	}
+	[Sync(SyncFlags.FromHost)]
+	public GameWeaponDefinition Shotgun
+	{
+		get; set;
+	}
 	[Property, Group("Loot"), Description("Minimum items dropped, inclusive. Must be at least one.")]
 	public int MinDrops { get; set; } = DefaultMinDrops;
 	[Property, Group("Loot"), Description("Maximum items dropped, inclusive. Must be at least MinDrops.")]
@@ -15,8 +23,13 @@ public sealed class GameSupplyCrate : GameEntity
 	public override bool CanTakeDamage => Health > 0f && !_opened;
 	private bool _opened;
 
-	public static GameSupplyCrate Spawn(Vector3 groundPosition, GameWeaponDefinition rifle, GameWeaponDefinition shotgun,
-		int minDrops = DefaultMinDrops, int maxDrops = DefaultMaxDrops)
+	public static GameSupplyCrate Spawn(
+		Vector3 groundPosition,
+		GameWeaponDefinition rifle,
+		GameWeaponDefinition shotgun,
+		int minDrops = DefaultMinDrops,
+		int maxDrops = DefaultMaxDrops
+	)
 	{
 		if (!Networking.IsHost)
 		{
@@ -92,7 +105,9 @@ public sealed class GameSupplyCrate : GameEntity
 	protected override void OnHealthDepleted()
 	{
 		if (_opened)
+		{
 			return;
+		}
 
 		if (MinDrops < 1 || MaxDrops < MinDrops)
 		{
@@ -114,9 +129,24 @@ public sealed class GameSupplyCrate : GameEntity
 			};
 			// Spread multiple pickups evenly around a 32-unit ring; keep a single pickup centered.
 			var angle = i * System.MathF.PI * 2f / dropCount;
-			var offset = dropCount == 1 ? Vector3.Zero
-				: new Vector3(System.MathF.Cos(angle), System.MathF.Sin(angle), 0f) * 32f;
-			GameLootPickup.Spawn(groundPosition + offset, kind, weapon);
+			var offset = Vector3.Zero;
+			if (dropCount > 1)
+			{
+				var directionX = System.MathF.Cos(angle);
+				var directionY = System.MathF.Sin(angle);
+				var direction = new Vector3(
+					directionX,
+					directionY,
+					0f
+				);
+				offset = direction * 32f;
+			}
+			var pickupPosition = groundPosition + offset;
+			GameLootPickup.Spawn(
+				groundPosition: pickupPosition,
+				kind: kind,
+				weapon: weapon
+			);
 		}
 		GameObject.Destroy();
 	}

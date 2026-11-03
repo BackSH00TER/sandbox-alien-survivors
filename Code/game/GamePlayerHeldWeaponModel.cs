@@ -41,12 +41,16 @@ public sealed class GamePlayerHeldWeaponModel : Component
 			}
 
 			position = _model.WorldTransform.PointToWorld(muzzle.Position);
-			forward = (_model.WorldTransform.PointToWorld(muzzle.Position + muzzle.Rotation.Forward) - position).Normal;
+			var muzzleForwardPosition = muzzle.Position + muzzle.Rotation.Forward;
+			var worldForwardPosition = _model.WorldTransform.PointToWorld(muzzleForwardPosition);
+			forward = (worldForwardPosition - position).Normal;
 			return true;
 		}
 
 		position = _model.WorldTransform.PointToWorld(_muzzleOffset);
-		forward = (_model.WorldTransform.PointToWorld(_muzzleOffset + Vector3.Forward) - position).Normal;
+		var fallbackForwardPosition = _muzzleOffset + Vector3.Forward;
+		var worldFallbackForwardPosition = _model.WorldTransform.PointToWorld(fallbackForwardPosition);
+		forward = (worldFallbackForwardPosition - position).Normal;
 		return true;
 	}
 

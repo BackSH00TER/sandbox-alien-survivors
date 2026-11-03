@@ -7,8 +7,16 @@ public sealed class GameCrateSpawner : Component
 	[Property, Range(0.1f, 120f), Description("Delay after a crate breaks, independent of when its loot is collected.")]
 	public float RespawnDelay { get; set; } = 10f;
 	[Property, Range(100f, 5000f)] public float SpawnRadius { get; set; } = 900f;
-	[Property] public GameWeaponDefinition Rifle { get; set; }
-	[Property] public GameWeaponDefinition Shotgun { get; set; }
+	[Property]
+	public GameWeaponDefinition Rifle
+	{
+		get; set;
+	}
+	[Property]
+	public GameWeaponDefinition Shotgun
+	{
+		get; set;
+	}
 
 	// Copied to each new crate; changing these settings does not alter crates already spawned.
 	[Property, Group("Loot"), Description("Minimum items per crate, inclusive. Must be at least one.")]
@@ -77,7 +85,13 @@ public sealed class GameCrateSpawner : Component
 
 			if (TryFindPosition(out var position))
 			{
-				slot.Crate = GameSupplyCrate.Spawn(position, Rifle, Shotgun, MinDrops, MaxDrops);
+				slot.Crate = GameSupplyCrate.Spawn(
+					groundPosition: position,
+					rifle: Rifle,
+					shotgun: Shotgun,
+					minDrops: MinDrops,
+					maxDrops: MaxDrops
+				);
 				if (slot.Crate.IsValid())
 				{
 					_spawnFailureLogged = false;

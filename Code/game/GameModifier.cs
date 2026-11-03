@@ -99,7 +99,11 @@ public static class ModifierCatalog
 	public static string Name(GameModifier modifier) => Get(modifier).Name;
 	public static string Description(GameModifier modifier) => Get(modifier).Description;
 
-	public static IReadOnlyList<GameModifier> RollOffer(Func<GameModifier, int> getModifierPickCount, Func<float> random)
+	public static bool HasAlternativeOffer(Func<GameModifier, int> getModifierPickCount, IReadOnlyList<GameModifier> currentOffer) =>
+		All.Any(modifier => modifier.IsAvailable(getModifierPickCount) && !currentOffer.Contains(modifier.Id));
+
+	public static IReadOnlyList<GameModifier> RollOffer(Func<GameModifier, int> getModifierPickCount, Func<float> random,
+		IReadOnlyList<GameModifier> previousOffer = null)
 	{
 		var available = All.Where(modifier => modifier.IsAvailable(getModifierPickCount)).ToList();
 		if (available.Count < 3)
@@ -111,6 +115,13 @@ public static class ModifierCatalog
 			var chosen = WeightedDraw.Pick(available, modifier => modifier.DrawWeight, random());
 			result.Add(chosen.Id);
 			available.Remove(chosen);
+		}
+		// Changing card order alone is not a new offer. Replace one card if the draw repeats the same set.
+		if (previousOffer != null && result.All(previousOffer.Contains))
+		{
+			var alternatives = available.Where(modifier => !previousOffer.Contains(modifier.Id)).ToList();
+			if (alternatives.Count > 0)
+				result[2] = WeightedDraw.Pick(alternatives, modifier => modifier.DrawWeight, random()).Id;
 		}
 		return result;
 	}
