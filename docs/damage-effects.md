@@ -32,6 +32,9 @@ the host checks both the offer ID and eligibility when accepting a pick.
 
 ## Reroll Dice
 
+Crates drop an equally likely number of items between their configured `MinDrops`
+and `MaxDrops` (1-3 by default), rolling each item's kind independently. Multiple
+pickups are spaced around the crate, while a single pickup stays centered.
 Crates can drop an ivory die with dark pips. It joins health, rifle and shotgun in
 the equally weighted common pool: each has a 22.5% chance when no flare is rolled,
 while armor keeps its separate 10% chance. A flare roll still takes priority.

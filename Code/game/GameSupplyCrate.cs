@@ -1,18 +1,45 @@
 using Sandbox;
 
-/// <summary>A 30-health shootable crate. After the revive-flare roll, armor has a 10% chance; otherwise health, rifle, shotgun and reroll dice are equally weighted.</summary>
+/// <summary>A 30-health shootable crate with an equally weighted, configurable drop count. For each item, after the revive-flare roll, armor has a 10% chance; otherwise health, rifle, shotgun and reroll dice are equally weighted.</summary>
 public sealed class GameSupplyCrate : GameEntity
 {
-	[Sync(SyncFlags.FromHost)] public GameWeaponDefinition Rifle { get; set; }
-	[Sync(SyncFlags.FromHost)] public GameWeaponDefinition Shotgun { get; set; }
+	public const int DefaultMinDrops = 1;
+	public const int DefaultMaxDrops = 3;
+
+	[Sync(SyncFlags.FromHost)]
+	public GameWeaponDefinition Rifle
+	{
+		get; set;
+	}
+	[Sync(SyncFlags.FromHost)]
+	public GameWeaponDefinition Shotgun
+	{
+		get; set;
+	}
+	[Property, Group("Loot"), Description("Minimum items dropped, inclusive. Must be at least one.")]
+	public int MinDrops { get; set; } = DefaultMinDrops;
+	[Property, Group("Loot"), Description("Maximum items dropped, inclusive. Must be at least MinDrops.")]
+	public int MaxDrops { get; set; } = DefaultMaxDrops;
 	public override bool CanTakeDamage => Health > 0f && !_opened;
 	private bool _opened;
 
-	public static GameSupplyCrate Spawn(Vector3 groundPosition, GameWeaponDefinition rifle, GameWeaponDefinition shotgun)
+	public static GameSupplyCrate Spawn(
+		Vector3 groundPosition,
+		GameWeaponDefinition rifle,
+		GameWeaponDefinition shotgun,
+		int minDrops = DefaultMinDrops,
+		int maxDrops = DefaultMaxDrops
+	)
 	{
 		if (!Networking.IsHost)
 		{
 			Log.Error("Supply crates must be spawned on the host.");
+			return null;
+		}
+
+		if (minDrops < 1 || maxDrops < minDrops)
+		{
+			Log.Error("Supply crates require 1 <= MinDrops <= MaxDrops.");
 			return null;
 		}
 
@@ -22,6 +49,8 @@ public sealed class GameSupplyCrate : GameEntity
 		crate.MaxHealth = 30f;
 		crate.Rifle = rifle;
 		crate.Shotgun = shotgun;
+		crate.MinDrops = minDrops;
+		crate.MaxDrops = maxDrops;
 		var collider = obj.AddComponent<BoxCollider>();
 		collider.Scale = new Vector3(40f, 40f, 44f);
 		if (!obj.NetworkSpawn())
@@ -58,7 +87,7 @@ public sealed class GameSupplyCrate : GameEntity
 		.Where(x => x != LootKind.Flare && x != LootKind.Armor).ToArray();
 
 	/// <summary>
-	/// Picks what the crate drops. A flare is rolled first, and only has a chance while someone is dead. Otherwise
+	/// Picks one item the crate drops. A flare is rolled first, and only has a chance while someone is dead. Otherwise
 	/// armor has a 10% chance, then one of the normal drops is chosen with equal weight.
 	/// </summary>
 	private LootKind RollKind()
@@ -76,18 +105,49 @@ public sealed class GameSupplyCrate : GameEntity
 	protected override void OnHealthDepleted()
 	{
 		if (_opened)
+		{
 			return;
+		}
+
+		if (MinDrops < 1 || MaxDrops < MinDrops)
+		{
+			Log.Error("Supply crates require 1 <= MinDrops <= MaxDrops.");
+			return;
+		}
 
 		_opened = true;
-		var kind = RollKind();
-		// Only weapon drops need a weapon definition.
-		GameWeaponDefinition weapon = kind switch
+		var dropCount = Game.Random.Int(MinDrops, MaxDrops);
+		var groundPosition = WorldPosition - Vector3.Up * 22f;
+		for (var i = 0; i < dropCount; i++)
 		{
-			LootKind.Rifle => Rifle,
-			LootKind.Shotgun => Shotgun,
-			_ => null
-		};
-		GameLootPickup.Spawn(WorldPosition - Vector3.Up * 22f, kind, weapon);
+			var kind = RollKind();
+			GameWeaponDefinition weapon = kind switch
+			{
+				LootKind.Rifle => Rifle,
+				LootKind.Shotgun => Shotgun,
+				_ => null
+			};
+			// Spread multiple pickups evenly around a 32-unit ring; keep a single pickup centered.
+			var angle = i * System.MathF.PI * 2f / dropCount;
+			var offset = Vector3.Zero;
+			if (dropCount > 1)
+			{
+				var directionX = System.MathF.Cos(angle);
+				var directionY = System.MathF.Sin(angle);
+				var direction = new Vector3(
+					directionX,
+					directionY,
+					0f
+				);
+				offset = direction * 32f;
+			}
+			var pickupPosition = groundPosition + offset;
+			GameLootPickup.Spawn(
+				groundPosition: pickupPosition,
+				kind: kind,
+				weapon: weapon
+			);
+		}
 		GameObject.Destroy();
 	}
 }
