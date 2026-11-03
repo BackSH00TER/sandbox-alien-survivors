@@ -9,22 +9,28 @@ using System.Threading.Tasks;
 /// </summary>
 public sealed class PlayerOutfit : Component
 {
-    [Property] public Dresser Dresser { get; set; }
-    [Property] public float StartDelay { get; set; } = 0.05f;
+	[Property] public Dresser Dresser { get; set; }
+	[Property] public float StartDelay { get; set; } = 0.05f;
 
-    protected override void OnStart()
-    {
-        _ = ApplyOutfitAsync();
-    }
+	protected override void OnStart()
+	{
+		_ = ApplyOutfitAsync();
+	}
 
-    private async Task ApplyOutfitAsync()
-    {
-        Dresser dresser = Dresser ?? GetComponent<Dresser>();
-        if (dresser == null) return;
+	private async Task ApplyOutfitAsync()
+	{
+		Dresser dresser = Dresser ?? GetComponent<Dresser>();
+		if (dresser == null)
+		{
+			return;
+		}
 
-        await Task.DelayRealtimeSeconds(StartDelay);
-        if (!this.IsValid()) return;
+		await Task.DelayRealtimeSeconds(StartDelay);
+		if (!this.IsValid())
+		{
+			return;
+		}
 
-        await dresser.Apply();
-    }
+		await dresser.Apply();
+	}
 }

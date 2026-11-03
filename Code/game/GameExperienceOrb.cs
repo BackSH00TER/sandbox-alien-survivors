@@ -20,7 +20,9 @@ public sealed class GameExperienceOrb : Component
 		}
 
 		if (amount <= 0)
+		{
 			return;
+		}
 
 		var orb = new GameObject(true, "Experience Orb");
 		orb.WorldPosition = position + Vector3.Up * 12f;
@@ -54,7 +56,9 @@ public sealed class GameExperienceOrb : Component
 	protected override void OnUpdate()
 	{
 		if (!_visual.IsValid())
+		{
 			return;
+		}
 
 		_visual.LocalPosition = Vector3.Up * (System.MathF.Sin((Time.Now + _bobOffset) * 4f) * 3f);
 	}
@@ -62,18 +66,24 @@ public sealed class GameExperienceOrb : Component
 	protected override void OnFixedUpdate()
 	{
 		if (!Networking.IsHost || IsProxy)
+		{
 			return;
+		}
 
 		var gameManager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
 		if (gameManager != null && gameManager.State != GameState.InProgress)
+		{
 			return;
+		}
 
 		GamePlayer target = null;
 		var nearestDistanceSquared = MagnetRange * MagnetRange;
 		foreach (var player in Scene.GetAllComponents<GamePlayer>())
 		{
 			if (!player.Active || player.Health <= 0f)
+			{
 				continue;
+			}
 
 			var distanceSquared = (player.WorldPosition + Vector3.Up * 12f - WorldPosition).LengthSquared;
 			if (distanceSquared <= nearestDistanceSquared)
@@ -84,7 +94,9 @@ public sealed class GameExperienceOrb : Component
 		}
 
 		if (target == null)
+		{
 			return;
+		}
 
 		if (nearestDistanceSquared <= PickupRange * PickupRange)
 		{

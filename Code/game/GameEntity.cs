@@ -20,16 +20,11 @@ public abstract class GameEntity : Component
 			_armor = value;
 		}
 	}
-	[Property, Group("Armor"), Range(1, int.MaxValue), Description("Armor needed to fully block a physical hit.")]
-	public int PhysicalArmorCost { get; set; } = 1;
-	[Property, Group("Armor"), Range(1, int.MaxValue), Description("Armor needed to fully block an explosive hit.")]
-	public int ExplosiveArmorCost { get; set; } = 5;
-	[Property, Group("Armor"), Range(1, int.MaxValue), Description("Armor needed to fully block a fire hit.")]
-	public int FireArmorCost { get; set; } = 1;
-	[Property, Group("Armor"), Range(1, int.MaxValue), Description("Armor needed to fully block an ice hit.")]
-	public int IceArmorCost { get; set; } = 1;
-	[Property, Group("Armor"), Description("When armor cannot cover the full hit cost, the unprotected fraction damages health. If disabled, any remaining armor blocks the full hit.")]
-	public bool ArmorDamageOverflow { get; set; } = true;
+	[Property, Group("Armor"), Range(1, int.MaxValue), Description("Armor needed to fully block a physical hit.")] public int PhysicalArmorCost { get; set; } = 1;
+	[Property, Group("Armor"), Range(1, int.MaxValue), Description("Armor needed to fully block an explosive hit.")] public int ExplosiveArmorCost { get; set; } = 5;
+	[Property, Group("Armor"), Range(1, int.MaxValue), Description("Armor needed to fully block a fire hit.")] public int FireArmorCost { get; set; } = 1;
+	[Property, Group("Armor"), Range(1, int.MaxValue), Description("Armor needed to fully block an ice hit.")] public int IceArmorCost { get; set; } = 1;
+	[Property, Group("Armor"), Description("When armor cannot cover the full hit cost, the unprotected fraction damages health. If disabled, any remaining armor blocks the full hit.")] public bool ArmorDamageOverflow { get; set; } = true;
 	[Property, Group("Debug")] public bool ShowAttackHitboxes { get; set; } = true;
 	public virtual bool CanTakeDamage => true;
 	[Sync(SyncFlags.FromHost)] public NetDictionary<GameDamageType, int> EffectStacks { get; private set; } = new();
@@ -43,7 +38,10 @@ public abstract class GameEntity : Component
 		{
 			// Reuse the scene lookup while the manager is alive; reacquire it if removed or the scene changes.
 			if (!_roundManager.IsValid() || _roundManager.Scene != Scene)
+			{
 				_roundManager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
+			}
+
 			return _roundManager;
 		}
 	}
@@ -78,7 +76,9 @@ public abstract class GameEntity : Component
 		var blood = GameObject.GetOrAddComponent<GameBloodiedModel>();
 		blood.Flags |= ComponentFlags.NotNetworked | ComponentFlags.NotSaved;
 		if (Networking.IsHost)
+		{
 			Health = MaxHealth;
+		}
 	}
 
 	public void TakeDamage(float amount, Vector3 hitDirection = default, GameDamageType type = GameDamageType.Physical, GameEntity attacker = null, bool bypassArmor = false)
@@ -102,7 +102,9 @@ public abstract class GameEntity : Component
 		}
 
 		if (Health <= 0f || !CanTakeDamage)
+		{
 			return;
+		}
 
 		float healthDamage = amount;
 		if (Armor > 0 && !bypassArmor)
@@ -133,7 +135,9 @@ public abstract class GameEntity : Component
 			Health = System.MathF.Max(0f, Health - healthDamage);
 			wasKill = Health <= 0f;
 			if (Health < previousHealth)
+			{
 				GamePlayerStats.RecordDamage(attacker, this, previousHealth - Health, type, wasKill);
+			}
 		}
 		FlashHit();
 		OnDamaged(hitDirection);
@@ -156,10 +160,15 @@ public abstract class GameEntity : Component
 		// Pay any partial tick before replacing an application, so the previous attacker keeps that damage credit.
 		UpdateDamageEffects(allowSpread: false);
 		if (!CanReceiveEffectDamage)
+		{
 			return;
+		}
 
 		if (_damageEffects.Count(settings.Type, Time.Now) == 0)
+		{
 			_nextSpreadTimes[settings.Type] = Time.Now + 1f;
+		}
+
 		_damageEffects.Apply(settings, attacker, Time.Now);
 		SyncEffectStacks();
 	}
@@ -167,7 +176,9 @@ public abstract class GameEntity : Component
 	private void UpdateDamageEffects(bool allowSpread)
 	{
 		if (!Networking.IsHost || _damageEffects.Stacks.Count == 0)
+		{
 			return;
+		}
 
 		if (!Active || Health <= 0f || !IsDamageRoundInProgress)
 		{
@@ -178,18 +189,25 @@ public abstract class GameEntity : Component
 		// Invulnerability consumes effect time without letting damage accumulate for a later tick.
 		_damageEffects.Advance(Time.Now, DealDamageEffectTick, flush: !allowSpread || !CanTakeDamage);
 		if (!this.IsValid() || Health <= 0f || !IsDamageRoundInProgress)
+		{
 			return;
+		}
+
 		SyncEffectStacks();
 
 		if (allowSpread && this is GameEnemy && CanTakeDamage)
+		{
 			SpreadDamageEffects();
+		}
 	}
 
 	private void DealDamageEffectTick(TimedDamageStack<GameEntity> effectStack, float amount)
 	{
 		// A previous tick can kill the target or end the round, so check again for every application.
 		if (!CanReceiveEffectDamage)
+		{
 			return;
+		}
 
 		var attacker = effectStack.Source.IsValid() ? effectStack.Source : null;
 		TakeDamage(amount, type: effectStack.Settings.Type, attacker: attacker);
@@ -206,27 +224,38 @@ public abstract class GameEntity : Component
 		// Each effect type gets one chance to spread per second, regardless of stack count.
 		// The newest spread-enabled application supplies the settings and original attacker.
 		foreach (var effectStack in spreadEffectStacks)
+		{
 			TrySpreadDamageEffect(effectStack);
+		}
 	}
 
 	private void TrySpreadDamageEffect(TimedDamageStack<GameEntity> effectStack)
 	{
 		var settings = effectStack.Settings;
 		if (Time.Now < _nextSpreadTimes[settings.Type])
+		{
 			return;
+		}
+
 		_nextSpreadTimes[settings.Type] = Time.Now + 1f;
 		if (!effectStack.Source.IsValid())
+		{
 			return;
+		}
 
 		var spreadRollSucceeded = settings.SpreadChance >= 1f || Game.Random.Float() < settings.SpreadChance;
 		if (!spreadRollSucceeded)
+		{
 			return;
+		}
 
 		var spreadTargets = Scene.GetAllComponents<GameEnemy>()
 			.Where(enemy => IsEligibleSpreadTarget(enemy, settings))
 			.ToList();
 		if (spreadTargets.Count == 0)
+		{
 			return;
+		}
 
 		var targetIndex = Game.Random.Int(0, spreadTargets.Count - 1);
 		spreadTargets[targetIndex].ApplyDamageEffect(settings, effectStack.Source);
@@ -235,13 +264,20 @@ public abstract class GameEntity : Component
 	private bool IsEligibleSpreadTarget(GameEnemy enemy, DamageEffectSettings settings)
 	{
 		if (enemy == this || !enemy.Active || !enemy.CanTakeDamage || enemy.Health <= 0f)
+		{
 			return false;
+		}
 
 		// Spread can add to burning enemies below the cap, but cannot refresh a full target.
 		if (!enemy._damageEffects.CanSpreadTo(settings, Time.Now))
+		{
 			return false;
+		}
+
 		if ((enemy.WorldPosition - WorldPosition).LengthSquared > settings.SpreadRadius * settings.SpreadRadius)
+		{
 			return false;
+		}
 
 		return HasSpreadLineOfSight(enemy);
 	}
@@ -263,7 +299,9 @@ public abstract class GameEntity : Component
 		{
 			var count = _damageEffects.Count(definition.Type, Time.Now);
 			if (EffectStackCount(definition.Type) != count)
+			{
 				EffectStacks[definition.Type] = count;
+			}
 		}
 	}
 
@@ -272,7 +310,9 @@ public abstract class GameEntity : Component
 		_damageEffects.Clear();
 		_nextSpreadTimes.Clear();
 		if (Networking.IsHost)
+		{
 			EffectStacks.Clear();
+		}
 	}
 
 	protected virtual void OnHealthDepleted()
@@ -289,11 +329,16 @@ public abstract class GameEntity : Component
 		}
 
 		if (Health <= 0f)
+		{
 			return false;
+		}
 
 		Armor += amount;
 		if (this is GamePlayer player)
+		{
 			GamePlayerStats.Record(player, GameStatKeys.ArmorGained, amount);
+		}
+
 		return true;
 	}
 
@@ -306,7 +351,9 @@ public abstract class GameEntity : Component
 		}
 
 		if (Health <= 0f || Health >= MaxHealth)
+		{
 			return false;
+		}
 
 		Health = System.MathF.Min(MaxHealth, Health + amount);
 		return true;
@@ -322,7 +369,9 @@ public abstract class GameEntity : Component
 		}
 
 		if (Health > 0f)
+		{
 			return false;
+		}
 
 		Health = System.MathF.Min(MaxHealth, health);
 		return true;
@@ -338,7 +387,9 @@ public abstract class GameEntity : Component
 
 		MaxHealth += amount;
 		if (Health > 0f)
+		{
 			Health = System.MathF.Min(MaxHealth, Health + amount);
+		}
 	}
 
 	protected virtual void OnDamaged(Vector3 hitDirection)
@@ -352,38 +403,50 @@ public abstract class GameEntity : Component
 		foreach (var candidate in Scene.GetAllComponents<T>())
 		{
 			if (!candidate.Active || !candidate.CanTakeDamage || candidate == this)
+			{
 				continue;
+			}
 
 			var offset = candidate.WorldPosition - WorldPosition;
 			var direction = new Vector3(offset.x, offset.y, 0f);
 			if (offset.LengthSquared > closestDistanceSquared
 				|| (direction.LengthSquared > 0.001f && direction.Normal.Dot(controller.EyeAngles.ToRotation().Forward) < PunchFacingThreshold))
+			{
 				continue;
+			}
 
 			var trace = Scene.Trace
 				.FromTo(WorldPosition + Vector3.Up * PunchTraceHeight, candidate.WorldPosition + Vector3.Up * PunchTraceHeight)
 				.IgnoreGameObjectHierarchy(GameObject)
 				.Run();
 			if (trace.Hit && trace.GameObject.GetComponentInParent<GameEntity>() != candidate)
+			{
 				continue;
+			}
 
 			target = candidate;
 			closestDistanceSquared = offset.LengthSquared;
 		}
 
 		if (ShowAttackHitboxes)
+		{
 			DrawPunchHitbox(WorldPosition, controller.EyeAngles.ToRotation().Forward, range,
 				target != null, target?.WorldPosition ?? WorldPosition);
+		}
 
 		if (target != null)
+		{
 			target.TakeDamage(damage, (target.WorldPosition - WorldPosition).Normal, GameDamageType.Physical, this);
+		}
 	}
 
 	[Rpc.Broadcast(NetFlags.HostOnly)]
 	private void DrawPunchHitbox(Vector3 origin, Vector3 forward, float range, bool hit, Vector3 targetPosition)
 	{
 		if (!ShowAttackHitboxes || !GameHUD.IsDebugEnabled(Scene))
+		{
 			return;
+		}
 
 		const float duration = 0.25f;
 		const int segments = 24;
@@ -406,9 +469,15 @@ public abstract class GameEntity : Component
 					var angle = yaw - halfAngle + 2f * halfAngle * i / segments;
 					var point = origin + height + new Vector3(System.MathF.Cos(angle), System.MathF.Sin(angle), 0f) * radius;
 					if (i > 0)
+					{
 						DebugOverlay.Line(previous, point, color, duration);
+					}
+
 					if (i == 0 || i == segments)
+					{
 						DebugOverlay.Line(origin, point, color, duration);
+					}
+
 					previous = point;
 				}
 			}
@@ -429,8 +498,10 @@ public abstract class GameEntity : Component
 		}
 
 		if (hit)
+		{
 			DebugOverlay.Line(origin + Vector3.Up * PunchTraceHeight,
 				targetPosition + Vector3.Up * PunchTraceHeight, Color.Yellow, duration);
+		}
 	}
 
 	[Rpc.Broadcast(NetFlags.HostOnly)]
@@ -446,7 +517,9 @@ public abstract class GameEntity : Component
 		foreach (var renderer in GetComponentsInChildren<ModelRenderer>())
 		{
 			if (!_originalMaterials.ContainsKey(renderer))
+			{
 				_originalMaterials.Add(renderer, renderer.MaterialOverride);
+			}
 
 			renderer.MaterialOverride = _flashMaterial;
 		}
@@ -456,12 +529,18 @@ public abstract class GameEntity : Component
 	{
 		UpdateDamageEffects(allowSpread: true);
 		if (_originalMaterials.Count == 0)
+		{
 			return;
+		}
 
 		if (Time.Now < _flashEndTime)
+		{
 			ApplyHitFlash();
+		}
 		else
+		{
 			RestoreMaterials();
+		}
 	}
 
 	protected void RestoreMaterials()
@@ -469,7 +548,9 @@ public abstract class GameEntity : Component
 		foreach (var entry in _originalMaterials)
 		{
 			if (entry.Key.IsValid())
+			{
 				entry.Key.MaterialOverride = entry.Value;
+			}
 		}
 
 		_originalMaterials.Clear();

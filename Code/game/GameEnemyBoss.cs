@@ -9,16 +9,11 @@ public sealed class GameEnemyBoss : Component
 	[Property, Range(1f, 1000f)] public float PunchDamage { get; set; } = 25f;
 	[Property, Range(1f, 500f)] public float PunchRange { get; set; } = 100f;
 
-	[Property, Group("Stun Attack"), Range(0.1f, 10f), Sync(SyncFlags.FromHost)]
-	public float StunChargeTime { get; set; } = 1.5f;
-	[Property, Group("Stun Attack"), Range(1f, 1000f), Sync(SyncFlags.FromHost)]
-	public float StunRadius { get; set; } = 120f;
-	[Property, Group("Stun Attack"), Range(0.1f, 10f)]
-	public float StunDuration { get; set; } = 1.5f;
-	[Property, Group("Stun Attack"), Range(0.1f, 30f)]
-	public float StunCooldown { get; set; } = 6f;
-	[Property, Group("Stun Attack"), Range(1f, 2000f)]
-	public float StunCastRange { get; set; } = 600f;
+	[Property, Group("Stun Attack"), Range(0.1f, 10f), Sync(SyncFlags.FromHost)] public float StunChargeTime { get; set; } = 1.5f;
+	[Property, Group("Stun Attack"), Range(1f, 1000f), Sync(SyncFlags.FromHost)] public float StunRadius { get; set; } = 120f;
+	[Property, Group("Stun Attack"), Range(0.1f, 10f)] public float StunDuration { get; set; } = 1.5f;
+	[Property, Group("Stun Attack"), Range(0.1f, 30f)] public float StunCooldown { get; set; } = 6f;
+	[Property, Group("Stun Attack"), Range(1f, 2000f)] public float StunCastRange { get; set; } = 600f;
 
 	[Sync(SyncFlags.FromHost)] private bool IsChargingStun { get; set; }
 	[Sync(SyncFlags.FromHost)] private Vector3 StunCenter { get; set; }
@@ -32,7 +27,9 @@ public sealed class GameEnemyBoss : Component
 	protected override void OnStart()
 	{
 		if (Networking.IsHost && !IsProxy)
+		{
 			_nextStunTime = Time.Now + StunCooldown;
+		}
 
 		_warning = new GameObject(GameObject, true, "Boss Stun Warning");
 		_warning.Flags |= GameObjectFlags.NotNetworked | GameObjectFlags.NotSaved;
@@ -47,7 +44,10 @@ public sealed class GameEnemyBoss : Component
 		ring.UseVectorPoints = true;
 		ring.VectorPoints = new List<Vector3>();
 		for (var i = 0; i <= 64; i++)
+		{
 			ring.VectorPoints.Add(Vector3.Zero);
+		}
+
 		ring.Width = 4f;
 		ring.Lighting = false;
 		ring.CastShadows = false;
@@ -59,7 +59,9 @@ public sealed class GameEnemyBoss : Component
 	protected override void OnUpdate()
 	{
 		if (!_warning.IsValid())
+		{
 			return;
+		}
 
 		var enemy = GetComponent<GameEnemy>();
 		var manager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
@@ -67,7 +69,9 @@ public sealed class GameEnemyBoss : Component
 			&& (manager == null || manager.State == GameState.InProgress)
 			&& (IsChargingStun || Time.Now < ImpactTime + 0.35f);
 		if (!_warning.Enabled)
+		{
 			return;
+		}
 
 		var progress = IsChargingStun
 			? (1f - (ChargeEndTime - Time.Now) / StunChargeTime).Clamp(0f, 1f) : 1f;
@@ -102,12 +106,16 @@ public sealed class GameEnemyBoss : Component
 				foreach (var player in Scene.GetAllComponents<GamePlayer>())
 				{
 					if (!player.Active || player.Health <= 0f)
+					{
 						continue;
+					}
 
 					var offset = player.WorldPosition - StunCenter;
 					if (new Vector3(offset.x, offset.y, 0f).LengthSquared <= StunRadius * StunRadius
 						&& System.MathF.Abs(offset.z) <= GameWeaponProjectile.CollisionHeight)
+					{
 						player.ApplyStun(StunDuration);
+					}
 				}
 			}
 			return true;
@@ -115,7 +123,9 @@ public sealed class GameEnemyBoss : Component
 
 		if (Time.Now < _nextStunTime || !target.IsValid()
 			|| (target.WorldPosition - WorldPosition).LengthSquared > StunCastRange * StunCastRange)
+		{
 			return false;
+		}
 
 		if (!target.Body.IsValid())
 		{
@@ -165,6 +175,8 @@ public sealed class GameEnemyBoss : Component
 	protected override void OnDisabled()
 	{
 		if (_warning.IsValid())
+		{
 			_warning.Destroy();
+		}
 	}
 }

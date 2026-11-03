@@ -59,7 +59,9 @@
 	private List<StatRow> VisibleRows(StatSection section)
 	{
 		if (!section.ShouldHideEmptyRows)
+		{
 			return section.Rows.ToList();
+		}
 
 		return section.Rows.Where(row => _players.Any(player => player.Get(row.Key) > 0f)).ToList();
 	}
@@ -74,7 +76,9 @@
 
 		int hash = _players.Count;
 		foreach (GamePlayerStats player in _players)
+		{
 			hash = System.HashCode.Combine(hash, player.ContentHash());
+		}
 
 		return hash;
 	}

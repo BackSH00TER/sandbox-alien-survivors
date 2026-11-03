@@ -16,7 +16,9 @@ public sealed class GameBloodiedModel : Component
 		_visibleAmount = float.Lerp(_visibleAmount, target.Clamp(0f, 1f), (Time.Delta * 12f).Clamp(0f, 1f));
 		var amount = entity.IsValid() && entity.IsHitFlashing ? 0f : _visibleAmount;
 		if (amount <= 0.001f && _passes.Count == 0)
+		{
 			return;
+		}
 
 		_material ??= Material.Create("enemy_blood", "shaders/enemy_blood.shader");
 		foreach (var renderer in GetComponentsInChildren<ModelRenderer>())
@@ -30,9 +32,14 @@ public sealed class GameBloodiedModel : Component
 
 			entry.Pass.Reset();
 			if (entry.Previous != null)
+			{
 				entry.Pass.InsertList(entry.Previous);
+			}
+
 			if (amount <= 0.001f)
+			{
 				continue;
+			}
 
 			entry.Pass.Attributes.Set("BloodAmount", amount);
 			entry.Pass.DrawRenderer(renderer, new RendererSetup { Material = _material });
@@ -44,7 +51,9 @@ public sealed class GameBloodiedModel : Component
 		foreach (var (renderer, entry) in _passes)
 		{
 			if (renderer.IsValid() && renderer.ExecuteAfter == entry.Pass)
+			{
 				renderer.ExecuteAfter = entry.Previous;
+			}
 		}
 		_passes.Clear();
 	}

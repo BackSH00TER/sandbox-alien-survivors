@@ -25,7 +25,9 @@
 	private int StacksOf(GameModifier modifier)
 	{
 		if (!_player.IsValid())
+		{
 			return 0;
+		}
 
 		return _player.ModifierStacks(modifier);
 	}
@@ -34,7 +36,9 @@
 	{
 		_player = Game.ActiveScene.GetAllComponents<GamePlayer>().FirstOrDefault(x => !x.IsProxy);
 		if (!_player.IsValid())
+		{
 			return 0;
+		}
 
 		return System.HashCode.Combine(_player, _player.ModifierContentHash());
 	}

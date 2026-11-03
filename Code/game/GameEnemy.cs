@@ -10,10 +10,8 @@ public sealed class GameEnemy : GameEntity
 		: GameEnemyKind.Melee;
 
 	[Property, RequireComponent] public PlayerController Controller { get; set; }
-	[Property, Group("Movement"), Range(0f, 1000f), Description("Pursuit speed for melee and exploding enemies, in world units per second.")]
-	public float MoveSpeed { get; set; } = 100f;
-	[Property, Group("Movement"), Range(0f, 1000f), Description("Pursuit and wandering speed for ranged enemies, in world units per second.")]
-	public float RangedMoveSpeed { get; set; } = 77f;
+	[Property, Group("Movement"), Range(0f, 1000f), Description("Pursuit speed for melee and exploding enemies, in world units per second.")] public float MoveSpeed { get; set; } = 100f;
+	[Property, Group("Movement"), Range(0f, 1000f), Description("Pursuit and wandering speed for ranged enemies, in world units per second.")] public float RangedMoveSpeed { get; set; } = 77f;
 	[Property, Range(1f, 200f)] public float PunchRange { get; set; } = 64f;
 	[Property, Range(0.1f, 10f)] public float PunchInterval { get; set; } = 1f;
 	[Property, Range(0f, 2f)] public float PunchWindup { get; set; } = 0.35f;
@@ -52,7 +50,9 @@ public sealed class GameEnemy : GameEntity
 		_descentVisualsActive = true;
 
 		if (!Networking.IsHost || IsProxy)
+		{
 			return;
+		}
 
 		var ground = Scene.Trace
 			.FromTo(WorldPosition + Vector3.Up * 64f, WorldPosition - Vector3.Up * 2000f)
@@ -126,7 +126,9 @@ public sealed class GameEnemy : GameEntity
 		{
 			_descentVisualsActive = false;
 			if (_spawnBeam.IsValid())
+			{
 				_spawnBeam.Destroy();
+			}
 
 			Controller.Body.MotionEnabled = true;
 			Controller.Enabled = true;
@@ -141,7 +143,9 @@ public sealed class GameEnemy : GameEntity
 	protected override void OnFixedUpdate()
 	{
 		if (!Networking.IsHost || IsProxy)
+		{
 			return;
+		}
 
 		Controller.WishVelocity = Vector3.Zero;
 		if (IsDescending)
@@ -150,13 +154,17 @@ public sealed class GameEnemy : GameEntity
 			var eased = progress * progress * (3f - 2f * progress);
 			WorldPosition = LandingPosition + Vector3.Up * SpawnHeight * (1f - eased);
 			if (progress >= 1f)
+			{
 				IsDescending = false;
+			}
 
 			return;
 		}
 
 		if (Health <= 0f)
+		{
 			return;
+		}
 
 		var gameManager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
 		if (gameManager != null && gameManager.State != GameState.InProgress)
@@ -182,10 +190,15 @@ public sealed class GameEnemy : GameEntity
 		foreach (var controller in Scene.GetAllComponents<PlayerController>())
 		{
 			if (!controller.Active || controller.GameObject.GetComponent<GameEnemy>() != null)
+			{
 				continue;
+			}
+
 			GamePlayer player = controller.GameObject.GetComponent<GamePlayer>();
 			if (player != null && player.IsDead)
+			{
 				continue;
+			}
 
 			var distanceSquared = (controller.WorldPosition - WorldPosition).LengthSquared;
 			if (distanceSquared < nearestDistanceSquared)
@@ -217,18 +230,27 @@ public sealed class GameEnemy : GameEntity
 			var aim = target.WorldPosition - WorldPosition;
 			var horizontal = new Vector3(aim.x, aim.y, 0f);
 			if (horizontal.LengthSquared > 0.001f)
+			{
 				Controller.EyeAngles = Rotation.LookAt(horizontal).Angles();
+			}
 
 			var rangedStoppingDistance = Controller.BodyRadius + target.BodyRadius;
 			if (ranged.TryAttack(this, target, out var combatVelocity))
 			{
 				if (combatVelocity.LengthSquared <= 0.001f)
+				{
 					StopAttackMovement();
+				}
 				else
+				{
 					Controller.WishVelocity = combatVelocity;
+				}
 			}
 			else if (horizontal.LengthSquared > rangedStoppingDistance * rangedStoppingDistance)
+			{
 				Controller.WishVelocity = horizontal.Normal * RangedMoveSpeed;
+			}
+
 			return;
 		}
 
@@ -257,12 +279,16 @@ public sealed class GameEnemy : GameEntity
 		}
 
 		if (target == null)
+		{
 			return;
+		}
 
 		var offset = target.WorldPosition - WorldPosition;
 		var direction = new Vector3(offset.x, offset.y, 0f);
 		if (direction.LengthSquared > 0.001f)
+		{
 			Controller.EyeAngles = Rotation.LookAt(direction).Angles();
+		}
 
 		if (IsTargetInPunchRange)
 		{
@@ -278,7 +304,9 @@ public sealed class GameEnemy : GameEntity
 
 		var stoppingDistance = Controller.BodyRadius + target.BodyRadius;
 		if (direction.LengthSquared <= stoppingDistance * stoppingDistance)
+		{
 			return;
+		}
 
 		Controller.WishVelocity = direction.Normal * MoveSpeed;
 	}
@@ -296,7 +324,9 @@ public sealed class GameEnemy : GameEntity
 	protected override void OnDamaged(Vector3 hitDirection)
 	{
 		if (Health <= 0f || IsDescending)
+		{
 			return;
+		}
 
 		IsWindingUp = false;
 		IsTargetInPunchRange = false;
@@ -352,7 +382,9 @@ public sealed class GameEnemy : GameEntity
 		ragdoll.AddComponent<GameBloodiedModel>().Amount = 1f;
 		var exploder = GetComponent<GameEnemyExploding>();
 		if (exploder.IsValid())
+		{
 			exploder.ConfigureDeathExplosion(ragdoll);
+		}
 
 		if (!ragdoll.NetworkSpawn())
 		{
@@ -381,7 +413,10 @@ public sealed class GameEnemy : GameEntity
 	{
 		base.OnDisabled();
 		if (_spawnBeam.IsValid())
+		{
 			_spawnBeam.Destroy();
+		}
+
 		if (Networking.IsHost && !IsProxy && Controller.IsValid())
 		{
 			IsWindingUp = false;

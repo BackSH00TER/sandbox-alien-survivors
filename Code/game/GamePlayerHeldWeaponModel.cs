@@ -25,7 +25,9 @@ public sealed class GamePlayerHeldWeaponModel : Component
 		position = default;
 		forward = default;
 		if (!UpdateModel())
+		{
 			return false;
+		}
 
 		if (_authoredRenderer.IsValid())
 		{
@@ -57,21 +59,30 @@ public sealed class GamePlayerHeldWeaponModel : Component
 	private bool UpdateModel()
 	{
 		if (!_player.IsValid() || !_player.Controller.Renderer.IsValid())
+		{
 			return false;
+		}
 
 		if (_weapon != _player.EquippedWeapon)
 		{
 			_weapon = _player.EquippedWeapon;
 			if (_model.IsValid())
+			{
 				_model.Destroy();
+			}
+
 			_authoredRenderer = null;
 			_missingMuzzleLogged = false;
 			if (_weapon != null)
+			{
 				CreateModel();
+			}
 		}
 
 		if (!_model.IsValid())
+		{
 			return false;
+		}
 
 		if (_player.IsDead)
 		{
@@ -140,7 +151,10 @@ public sealed class GamePlayerHeldWeaponModel : Component
 	protected override void OnDisabled()
 	{
 		if (_model.IsValid())
+		{
 			_model.Destroy();
+		}
+
 		_weapon = null;
 	}
 }

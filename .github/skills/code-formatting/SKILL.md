@@ -29,6 +29,8 @@ rules that the standard formatter does not fully enforce.
 - Keep auto-property accessors (`get;`, `set;`, and `init;`) on the same line as
   the property declaration, for example `public string Name { get; init; }`.
   Do not put accessor keywords on separate lines.
+- Keep attributes for an auto-property on the same line as its declaration,
+  for example `[Sync] private float NextPunchTime { get; set; }`.
 - Prefer block-bodied methods and local functions. Keep simple expression-bodied
   accessors and properties where they fit the existing `.editorconfig`.
 - Do not replace clear conditional blocks with nested ternaries to save lines.
@@ -52,6 +54,8 @@ else
   API actually expects a callback.
 - Prioritize extraction for nontrivial, nested, or side-effecting calls. Avoid
   pointless temporary variables for literals, constants, and simple property access.
+- Avoid long chained method calls inside conditions or as arguments to another
+  call; extract a descriptively named local so the main expression stays readable.
 - Preserve evaluation order, call count, short-circuit behavior, null-conditional
   behavior, and deferred execution. Do not hoist work outside its original branch
   or lambda, or out of a call that might be skipped.

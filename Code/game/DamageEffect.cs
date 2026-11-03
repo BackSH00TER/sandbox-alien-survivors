@@ -77,7 +77,9 @@ public static class DamageEffectCatalog
 	{
 		var unlockedEffects = All.Where(effect => getModifierPickCount(effect.Unlock) > 0).ToList();
 		if (unlockedEffects.Count == 0)
+		{
 			return null;
+		}
 
 		// Only the chosen type gets a chance check; do not retry another effect when it fails.
 		var definition = WeightedDraw.Pick(unlockedEffects, effect => effect.DrawWeight, random());

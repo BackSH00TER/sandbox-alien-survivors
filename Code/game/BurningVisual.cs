@@ -24,11 +24,19 @@ public sealed class BurningVisual : Component
 		var isBurning = _enemy.IsValid() && _enemy.Active && _enemy.Health > 0f
 			&& _enemy.EffectStackCount(GameDamageType.Fire) > 0;
 		if (isBurning && !_visualRoot.IsValid())
+		{
 			BuildFlames();
+		}
+
 		if (_visualRoot.IsValid() && _visualRoot.Enabled != isBurning)
+		{
 			_visualRoot.Enabled = isBurning;
+		}
+
 		if (!isBurning)
+		{
 			return;
+		}
 
 		UpdateFlames();
 	}
@@ -79,7 +87,10 @@ public sealed class BurningVisual : Component
 	protected override void OnDisabled()
 	{
 		if (_visualRoot.IsValid())
+		{
 			_visualRoot.Destroy();
+		}
+
 		_flames.Clear();
 	}
 }
