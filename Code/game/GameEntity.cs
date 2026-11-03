@@ -163,6 +163,7 @@ public abstract class GameEntity : Component
 
 		var worldPanel = damageNumberObject.Components.Create<WorldPanel>();
 		worldPanel.PanelSize = new Vector2(320f, 160f);
+		worldPanel.Lighting = false;
 		worldPanel.LookAtCamera = true;
 
 		damageNumberObject.Components.Create<GameDamageNumber>().Damage = damage;
