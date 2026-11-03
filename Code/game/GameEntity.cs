@@ -161,11 +161,7 @@ public abstract class GameEntity : Component
 		damageNumberObject.Flags |= GameObjectFlags.NotNetworked | GameObjectFlags.NotSaved;
 		damageNumberObject.WorldPosition = WorldPosition + Vector3.Up * 72f;
 
-		var worldPanel = damageNumberObject.Components.Create<WorldPanel>();
-		worldPanel.PanelSize = new Vector2(320f, 160f);
-		worldPanel.Lighting = false;
-		worldPanel.LookAtCamera = true;
-
+		damageNumberObject.Components.Create<ScreenPanel>();
 		damageNumberObject.Components.Create<GameDamageNumber>().Damage = damage;
 	}
 
