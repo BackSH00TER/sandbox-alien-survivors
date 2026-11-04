@@ -77,7 +77,7 @@ public sealed class GameExperienceOrb : Component
 		}
 
 		GamePlayer target = null;
-		var nearestDistanceSquared = MagnetRange * MagnetRange;
+		var nearestDistanceSquared = float.PositiveInfinity;
 		foreach (var player in Scene.GetAllComponents<GamePlayer>())
 		{
 			if (!player.Active || player.Health <= 0f)
@@ -86,7 +86,8 @@ public sealed class GameExperienceOrb : Component
 			}
 
 			var distanceSquared = (player.WorldPosition + Vector3.Up * 12f - WorldPosition).LengthSquared;
-			if (distanceSquared <= nearestDistanceSquared)
+			var collectionRange = MagnetRange * player.ExperienceCollectionRangeMultiplier;
+			if (distanceSquared <= collectionRange * collectionRange && distanceSquared <= nearestDistanceSquared)
 			{
 				target = player;
 				nearestDistanceSquared = distanceSquared;

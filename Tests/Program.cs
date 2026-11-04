@@ -8,6 +8,7 @@ var tests = new (string Name, Action Run)[]
 	("offers are eligible and distinct", Offers),
 	("extra options scale, cap and respect eligibility", ExtraOptions),
 	("extra option rarity uses reduced draw weight", ExtraOptionRarity),
+	("vacuum range scales, caps and uses common weight", Vacuum),
 	("rerolls change the set without unlocking unavailable modifiers", Rerolls),
 	("expanded rerolls preserve size and eligible alternatives", ExpandedRerolls),
 	("reroll stat appears once in the upgrades scorecard", RerollStat),
@@ -123,8 +124,8 @@ static void ExtraOptionRarity()
 	Near(ModifierCatalog.Get(GameModifier.ExtraOption).DrawWeight, 0.2f);
 	Check(ModifierCatalog.All.Where(modifier => modifier.Id != GameModifier.ExtraOption)
 		.All(modifier => modifier.DrawWeight == 1f), "Existing modifier weights must not change.");
-	Check(ModifierCatalog.RollOffer(_ => 0, () => 0.95f)[0] == GameModifier.FireRounds, "Normal weighted bucket must precede rare modifier.");
-	Check(ModifierCatalog.RollOffer(_ => 0, () => 0.96f)[0] == GameModifier.ExtraOption, "Rare modifier must be drawable in its weighted bucket.");
+	Check(ModifierCatalog.RollOffer(_ => 0, () => 0.7f)[0] == GameModifier.FireRounds, "Normal weighted bucket must precede rare modifier.");
+	Check(ModifierCatalog.RollOffer(_ => 0, () => 0.78f)[0] == GameModifier.ExtraOption, "Rare modifier must be drawable in its weighted bucket.");
 
 	var random = new Random(101);
 	int rareOffers = 0;
@@ -135,7 +136,37 @@ static void ExtraOptionRarity()
 			rareOffers++;
 	}
 	float frequency = (float)rareOffers / trials;
-	Check(frequency > 0.17f && frequency < 0.21f, $"Expected roughly 19% rare offers in the starting pool, got {frequency:P2}.");
+	Check(frequency > 0.13f && frequency < 0.16f, $"Expected roughly 14% rare offers in the starting pool, got {frequency:P2}.");
+}
+
+static void Vacuum()
+{
+	var vacuum = ModifierCatalog.Get(GameModifier.Vacuum);
+	Check(vacuum.MaxPicks == 5 && vacuum.Prerequisites.Count == 0, "Vacuum must have five ranks and no prerequisite.");
+	Check(vacuum.Name == "Vacuum" && vacuum.Description.Contains("+10%"), "Vacuum must describe its range increase.");
+	Near(vacuum.DrawWeight, 1f);
+	Near(vacuum.Amount, 0.1f);
+	for (int rank = 0; rank <= 5; rank++)
+	{
+		int Stacks(GameModifier modifier)
+		{
+			return modifier == GameModifier.Vacuum ? rank : 0;
+		}
+
+		float multiplier = ModifierCatalog.ExperienceCollectionRangeMultiplier(Stacks);
+		Near(multiplier, 1f + rank * 0.1f);
+		Near(150f * multiplier, 150f + rank * 15f);
+		Check(vacuum.IsAvailable(Stacks) == (rank < 5), "Vacuum must stop appearing at rank five.");
+		var offer = ModifierCatalog.RollOffer(Stacks, () => 1f);
+		Check(offer.Contains(GameModifier.Vacuum) == (rank < 5), "Offers must include eligible Vacuum and exclude capped Vacuum.");
+	}
+
+	Near(ModifierCatalog.ExperienceCollectionRangeMultiplier(_ => 100), 1.5f);
+	Near(ModifierCatalog.ExperienceCollectionRangeMultiplier(_ => -1), 1f);
+	Near(ModifierCatalog.ExperienceCollectionRangeMultiplier(modifier => modifier == GameModifier.AttackRange ? 5 : 0), 1f);
+	var upgrades = GameStatCatalog.Sections.Single(section => section.Title == "Upgrades");
+	var vacuumKey = GameStatKeys.ModifierPicked(GameModifier.Vacuum);
+	Check(upgrades.Rows.Single(row => row.Key == vacuumKey).Label == "Vacuum", "The scorecard must include Vacuum.");
 }
 
 static void Weights()
@@ -159,7 +190,7 @@ static void Rerolls()
 	int NoPicks(GameModifier modifier) => 0;
 	var previous = ModifierCatalog.RollOffer(NoPicks, () => 0f);
 	var rerolled = ModifierCatalog.RollOffer(NoPicks, () => 0f, previousOffer: previous);
-	Check(ModifierCatalog.HasAlternativeOffer(NoPicks, previous), "A fresh player has four eligible options.");
+	Check(ModifierCatalog.HasAlternativeOffer(NoPicks, previous), "A fresh player must have alternative eligible options.");
 	Check(rerolled.Count == 3 && rerolled.Distinct().Count() == 3, "Rerolls must keep three distinct cards.");
 	Check(rerolled.Any(modifier => !previous.Contains(modifier)), "Repeating the RNG must still change a card.");
 	Check(rerolled.All(modifier => ModifierCatalog.Get(modifier).IsAvailable(NoPicks)), "Rerolls cannot bypass prerequisites.");
@@ -225,19 +256,22 @@ static void ExpandedRerolls()
 	picks[GameModifier.FireSpread] = 1;
 	var fullyUnlocked = ModifierCatalog.RollOffer(Stacks, () => 0f);
 	Check(fullyUnlocked.Count == 8, "Fully unlocked rank five must show eight choices.");
+	Check(ModifierCatalog.HasAlternativeOffer(Stacks, fullyUnlocked), "Vacuum must add an eligible reroll alternative.");
+	picks[GameModifier.Vacuum] = 5;
+	fullyUnlocked = ModifierCatalog.RollOffer(Stacks, () => 0f);
 	Check(!ModifierCatalog.HasAlternativeOffer(Stacks, fullyUnlocked), "All eight eligible cards leave no reroll alternative.");
 
 	picks.Clear();
 	picks[GameModifier.ExtraOption] = 5;
 	var allEligible = ModifierCatalog.RollOffer(Stacks, () => 0f);
-	Check(allEligible.Count == 4, "Locked fire must leave four eligible choices at rank five.");
+	Check(allEligible.Count == 5, "Locked fire must leave five eligible choices at rank five.");
 	Check(!ModifierCatalog.HasAlternativeOffer(Stacks, allEligible), "Reroll must be disabled when every eligible choice is shown.");
 	var noAlternative = ModifierCatalog.RollOffer(
 		getModifierPickCount: Stacks,
 		random: () => 1f,
 		previousOffer: allEligible
 	);
-	Check(noAlternative.Count == 4 && noAlternative.All(allEligible.Contains), "A full-pool offer cannot invent an alternative.");
+	Check(noAlternative.Count == 5 && noAlternative.All(allEligible.Contains), "A full-pool offer cannot invent an alternative.");
 }
 
 static void FireRolls()
