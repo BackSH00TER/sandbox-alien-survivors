@@ -143,9 +143,9 @@ static void Vacuum()
 {
 	var vacuum = ModifierCatalog.Get(GameModifier.Vacuum);
 	Check(vacuum.MaxPicks == 5 && vacuum.Prerequisites.Count == 0, "Vacuum must have five ranks and no prerequisite.");
-	Check(vacuum.Name == "Vacuum" && vacuum.Description.Contains("+10%"), "Vacuum must describe its range increase.");
+	Check(vacuum.Name == "Vacuum" && vacuum.Description == "Common: +20% base XP collection range per pick.", "Vacuum must describe its range increase.");
 	Near(vacuum.DrawWeight, 1f);
-	Near(vacuum.Amount, 0.1f);
+	Near(vacuum.Amount, 0.2f);
 	for (int rank = 0; rank <= 5; rank++)
 	{
 		int Stacks(GameModifier modifier)
@@ -154,14 +154,23 @@ static void Vacuum()
 		}
 
 		float multiplier = ModifierCatalog.ExperienceCollectionRangeMultiplier(Stacks);
-		Near(multiplier, 1f + rank * 0.1f);
-		Near(150f * multiplier, 150f + rank * 15f);
+		Near(multiplier, 1f + rank * 0.2f);
+		Near(150f * multiplier, 150f + rank * 30f);
 		Check(vacuum.IsAvailable(Stacks) == (rank < 5), "Vacuum must stop appearing at rank five.");
 		var offer = ModifierCatalog.RollOffer(Stacks, () => 1f);
 		Check(offer.Contains(GameModifier.Vacuum) == (rank < 5), "Offers must include eligible Vacuum and exclude capped Vacuum.");
+		if (rank == 5)
+		{
+			var rerolled = ModifierCatalog.RollOffer(
+				getModifierPickCount: Stacks,
+				random: () => 1f,
+				previousOffer: offer
+			);
+			Check(!rerolled.Contains(GameModifier.Vacuum), "Rerolls must exclude capped Vacuum.");
+		}
 	}
 
-	Near(ModifierCatalog.ExperienceCollectionRangeMultiplier(_ => 100), 1.5f);
+	Near(ModifierCatalog.ExperienceCollectionRangeMultiplier(_ => 100), 2f);
 	Near(ModifierCatalog.ExperienceCollectionRangeMultiplier(_ => -1), 1f);
 	Near(ModifierCatalog.ExperienceCollectionRangeMultiplier(modifier => modifier == GameModifier.AttackRange ? 5 : 0), 1f);
 	var upgrades = GameStatCatalog.Sections.Single(section => section.Title == "Upgrades");

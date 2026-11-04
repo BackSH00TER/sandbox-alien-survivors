@@ -88,6 +88,7 @@ public sealed class GameExperienceOrb : Component
 
 			var distanceSquared = (player.WorldPosition + Vector3.Up * 12f - WorldPosition).LengthSquared;
 			var collectionRange = MagnetRange * player.ExperienceCollectionRangeMultiplier;
+			// Compare squared distances to find the nearest player within their upgraded collection radius.
 			if (distanceSquared <= collectionRange * collectionRange && distanceSquared <= nearestDistanceSquared)
 			{
 				target = player;

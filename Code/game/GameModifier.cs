@@ -85,15 +85,15 @@ public static class ModifierCatalog
 			maxPicks: 9,
 			prerequisite: GameModifier.FireSpread),
 		new ModifierDefinition { Id = GameModifier.ExtraOption, Icon = "library_add", Name = "More Choices",
-			Description = "Rare: +1 modifier option on future upgrade picks, up to 8 options at rank 5. Limited by eligible upgrades.",
+			Description = "Rare: +1 modifier option on future upgrade picks.",
 			DrawWeight = 0.2f, MaxPicks = 5 },
 		new ModifierDefinition
 		{
 			Id = GameModifier.Vacuum,
 			Icon = "air",
 			Name = "Vacuum",
-			Description = "Common: +10% base XP collection range per pick, up to +50% at rank 5.",
-			Amount = 0.1f,
+			Description = "Common: +20% base XP collection range per pick.",
+			Amount = 0.2f,
 			MaxPicks = 5
 		}
 	};
