@@ -110,7 +110,8 @@ public sealed class GameExperienceOrb : Component
 		var targetPosition = target.WorldPosition + Vector3.Up * 12f;
 		var direction = (targetPosition - WorldPosition).Normal;
 		var distance = System.MathF.Sqrt(nearestDistanceSquared);
-		var attractionDistance = MagnetRange - PickupRange;
+		var targetCollectionRange = MagnetRange * target.ExperienceCollectionRangeMultiplier;
+		var attractionDistance = targetCollectionRange - PickupRange;
 		var proximity = 1f - (distance - PickupRange) / attractionDistance;
 		var speed = MagnetSpeed * (0.05f + 0.95f * proximity * proximity * proximity);
 		var step = System.MathF.Min(speed * Time.Delta, distance);
