@@ -1,0 +1,19 @@
+GameDamageNumber {
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	pointer-events: none;
+
+	.damage-number {
+		position: absolute;
+		transform: translate(-50%, -50%);
+		font-family: Orbitron;
+		font-size: 25px;
+		font-weight: bold;
+		color: #fff;
+		text-shadow: 0 1px 2px #000;
+		white-space: nowrap;
+	}
+}

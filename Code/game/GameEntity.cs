@@ -134,9 +134,11 @@ public abstract class GameEntity : Component
 			float previousHealth = Health;
 			Health = System.MathF.Max(0f, Health - healthDamage);
 			wasKill = Health <= 0f;
-			if (Health < previousHealth)
+			var dealtHealthDamage = previousHealth - Health;
+			if (dealtHealthDamage > 0f)
 			{
-				GamePlayerStats.RecordDamage(attacker, this, previousHealth - Health, type, wasKill);
+				GamePlayerStats.RecordDamage(attacker, this, dealtHealthDamage, type, wasKill);
+				ShowDamageNumber(dealtHealthDamage);
 			}
 		}
 		FlashHit();
@@ -146,6 +148,18 @@ public abstract class GameEntity : Component
 			ClearDamageEffects();
 			OnHealthDepleted();
 		}
+	}
+
+	[Rpc.Broadcast(NetFlags.HostOnly)]
+	private void ShowDamageNumber(float damage)
+	{
+		var damageNumberObject = Scene.CreateObject();
+		damageNumberObject.Name = "Damage Number";
+		damageNumberObject.Flags |= GameObjectFlags.NotNetworked | GameObjectFlags.NotSaved;
+		damageNumberObject.WorldPosition = WorldPosition + Vector3.Up * 72f;
+
+		damageNumberObject.Components.Create<ScreenPanel>();
+		damageNumberObject.Components.Create<GameDamageNumber>().Damage = damage;
 	}
 
 	public void ApplyDamageEffect(DamageEffectSettings settings, GameEntity attacker)

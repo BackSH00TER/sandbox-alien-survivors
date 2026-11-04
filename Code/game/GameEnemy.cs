@@ -328,13 +328,17 @@ public sealed class GameEnemy : GameEntity
 			return;
 		}
 
-		IsWindingUp = false;
-		IsTargetInPunchRange = false;
-		GetComponent<GameEnemyRanged>()?.CancelAttack();
-		StaggerEndTime = Time.Now + HitStaggerDuration;
-		MovementUnlockTime = System.MathF.Max(MovementUnlockTime, StaggerEndTime);
-		NextPunchTime = System.MathF.Max(NextPunchTime, StaggerEndTime);
-		StopAttackMovement();
+		if (HitStaggerDuration > 0f)
+		{
+			IsWindingUp = false;
+			IsTargetInPunchRange = false;
+			GetComponent<GameEnemyRanged>()?.CancelAttack();
+			StaggerEndTime = Time.Now + HitStaggerDuration;
+			MovementUnlockTime = System.MathF.Max(MovementUnlockTime, StaggerEndTime);
+			NextPunchTime = System.MathF.Max(NextPunchTime, StaggerEndTime);
+			StopAttackMovement();
+		}
+
 		PlayHitReaction(hitDirection);
 	}
 

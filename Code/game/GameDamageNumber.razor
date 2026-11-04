@@ -1,0 +1,76 @@
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace Sandbox
+
+<root>
+	@if (_visible)
+	{
+		<div class="damage-number" style="left: @ScreenLeft; top: @ScreenTop; opacity: @Opacity;">@DamageText</div>
+	}
+</root>
+
+@code
+{
+	[Property] public float Damage { get; set; }
+
+	private const float Lifetime = 0.9f;
+	private const float RiseHeight = 48f;
+	private const float FadeStartProgress = 0.75f;
+	private Vector3 _startPosition;
+	private float _startTime;
+	private float _opacity = 1f;
+	private Vector2 _screenPosition;
+	private bool _visible;
+
+	private string DamageText => Damage.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture);
+	private string Opacity => _opacity.ToString(System.Globalization.CultureInfo.InvariantCulture);
+	private string ScreenLeft => (_screenPosition.x * 100f).ToString(System.Globalization.CultureInfo.InvariantCulture) + "%";
+	private string ScreenTop => (_screenPosition.y * 100f).ToString(System.Globalization.CultureInfo.InvariantCulture) + "%";
+
+	protected override void OnStart()
+	{
+		_startPosition = GameObject.WorldPosition;
+		_startTime = Time.Now;
+	}
+
+	protected override void OnUpdate()
+	{
+		var progress = ((Time.Now - _startTime) / Lifetime).Clamp(0f, 1f);
+		GameObject.WorldPosition = _startPosition + Vector3.Up * (RiseHeight * progress);
+		var fadeProgress = ((progress - FadeStartProgress) / (1f - FadeStartProgress)).Clamp(0f, 1f);
+		_opacity = 1f - fadeProgress;
+		if (progress >= 1f)
+		{
+			GameObject.Destroy();
+			return;
+		}
+
+		_visible = false;
+		var camera = Scene.Camera;
+		if (!camera.IsValid())
+		{
+			return;
+		}
+
+		var position = GameObject.WorldPosition;
+		if ((position - camera.WorldPosition).Dot(camera.WorldRotation.Forward) <= 0f)
+		{
+			return;
+		}
+
+		_screenPosition = camera.PointToScreenNormal(position);
+		_visible = _screenPosition.x >= 0f && _screenPosition.x <= 1f
+			&& _screenPosition.y >= 0f && _screenPosition.y <= 1f;
+	}
+
+	protected override int BuildHash()
+	{
+		return System.HashCode.Combine(
+			value1: Damage,
+			value2: _opacity,
+			value3: _screenPosition,
+			value4: _visible
+		);
+	}
+}
