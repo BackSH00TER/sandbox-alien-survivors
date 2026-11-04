@@ -78,7 +78,7 @@ public sealed class GameExperienceOrb : Component
 		}
 
 		GamePlayer target = null;
-		var nearestDistanceSquared = MagnetRange * MagnetRange;
+		var nearestDistanceSquared = float.PositiveInfinity;
 		foreach (var player in Scene.GetAllComponents<GamePlayer>())
 		{
 			if (!player.Active || player.Health <= 0f)
@@ -87,7 +87,9 @@ public sealed class GameExperienceOrb : Component
 			}
 
 			var distanceSquared = (player.WorldPosition + Vector3.Up * 12f - WorldPosition).LengthSquared;
-			if (distanceSquared <= nearestDistanceSquared)
+			var collectionRange = MagnetRange * player.ExperienceCollectionRangeMultiplier;
+			// Compare squared distances to find the nearest player within their upgraded collection radius.
+			if (distanceSquared <= collectionRange * collectionRange && distanceSquared <= nearestDistanceSquared)
 			{
 				target = player;
 				nearestDistanceSquared = distanceSquared;
@@ -109,7 +111,8 @@ public sealed class GameExperienceOrb : Component
 		var targetPosition = target.WorldPosition + Vector3.Up * 12f;
 		var direction = (targetPosition - WorldPosition).Normal;
 		var distance = System.MathF.Sqrt(nearestDistanceSquared);
-		var attractionDistance = MagnetRange - PickupRange;
+		var targetCollectionRange = MagnetRange * target.ExperienceCollectionRangeMultiplier;
+		var attractionDistance = targetCollectionRange - PickupRange;
 		var proximity = 1f - (distance - PickupRange) / attractionDistance;
 		var speed = MagnetSpeed * (0.05f + 0.95f * proximity * proximity * proximity);
 		var step = System.MathF.Min(speed * Time.Delta, distance);

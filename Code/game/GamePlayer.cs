@@ -86,6 +86,7 @@ public sealed class GamePlayer : GameEntity
 		: System.MathF.Max(0.1f, 1f / (EquippedWeapon.FireRate * (1f + AttackSpeedStacks)));
 	public float EffectiveAttackRange => EquippedWeapon == null ? 0f
 		: EquippedWeapon.Range * (1f + AttackRangeStacks);
+	public float ExperienceCollectionRangeMultiplier => ModifierCatalog.ExperienceCollectionRangeMultiplier(ModifierStacks);
 
 	public bool IsDead => Health <= 0f;
 

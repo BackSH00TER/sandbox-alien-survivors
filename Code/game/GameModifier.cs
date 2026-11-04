@@ -14,7 +14,8 @@ public enum GameModifier
 	FireStacks,
 	FireSpread,
 	FireSpreadChance,
-	ExtraOption
+	ExtraOption,
+	Vacuum
 }
 
 public sealed class ModifierDefinition
@@ -84,8 +85,17 @@ public static class ModifierCatalog
 			maxPicks: 9,
 			prerequisite: GameModifier.FireSpread),
 		new ModifierDefinition { Id = GameModifier.ExtraOption, Icon = "library_add", Name = "More Choices",
-			Description = "Rare: +1 modifier option on future upgrade picks, up to 8 options at rank 5. Limited by eligible upgrades.",
-			DrawWeight = 0.2f, MaxPicks = 5 }
+			Description = "Rare: +1 modifier option on future upgrade picks.",
+			DrawWeight = 0.2f, MaxPicks = 5 },
+		new ModifierDefinition
+		{
+			Id = GameModifier.Vacuum,
+			Icon = "air",
+			Name = "Vacuum",
+			Description = "Common: +20% base XP collection range per pick.",
+			Amount = 0.2f,
+			MaxPicks = 5
+		}
 	};
 
 	private static ModifierDefinition FireUpgrade(GameModifier id, string name, string description,
@@ -108,6 +118,18 @@ public static class ModifierCatalog
 	public static string Icon(GameModifier modifier) => Get(modifier).Icon;
 	public static string Name(GameModifier modifier) => Get(modifier).Name;
 	public static string Description(GameModifier modifier) => Get(modifier).Description;
+
+	public static float ExperienceCollectionRangeMultiplier(Func<GameModifier, int> getModifierPickCount)
+	{
+		var definition = Get(GameModifier.Vacuum);
+		int ranks = getModifierPickCount(GameModifier.Vacuum);
+		int bonus = Math.Clamp(
+			value: ranks,
+			min: 0,
+			max: definition.MaxPicks
+		);
+		return 1f + definition.Amount * bonus;
+	}
 
 	public static int OfferSize(Func<GameModifier, int> getModifierPickCount)
 	{
