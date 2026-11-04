@@ -4,7 +4,8 @@
 @namespace Sandbox
 
 <root>
-	<div class="title">@MatchStatus@(LocalPlayer?.IsStunned == true ? " | STUNNED" : "")</div>
+	<GameTimeline />
+	<div class="title">@MatchStatus@(LocalPlayer?.IsStunned == true ? " STUNNED" : "")</div>
 
 	@if (LocalPlayer.IsValid())
 	{
@@ -63,7 +64,6 @@
 
 	public static bool IsDebugEnabled(Scene scene) => scene.GetAllComponents<GameHUD>().Any(x => x.DebugEnabled);
 
-	private int CountdownTime => Scene.GetAllComponents<GameManager>().FirstOrDefault()?.RemainingSeconds ?? 0;
 	private string MatchStatus
 	{
 		get
@@ -72,7 +72,7 @@
 			GameEnemy boss = bossEnemy.IsValid() ? bossEnemy.GetComponent<GameEnemy>() : null;
 			if (!boss.IsValid())
 			{
-				return $"Boss in: {CountdownTime}";
+				return "";
 			}
 
 			return boss.Health > 0f

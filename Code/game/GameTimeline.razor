@@ -1,0 +1,94 @@
+@using Sandbox;
+@using Sandbox.UI;
+@using System.Globalization;
+@inherits Panel
+@namespace Sandbox
+
+<root>
+	@if (Manager.IsValid() && Manager.TimelineReady)
+	{
+		var elapsed = Manager.ElapsedSeconds;
+		<div class="timeline-track">
+			<div class="past-track" style="width: @(Percent(GameTimelineEvent.NowPositionPercent))%;"></div>
+			@for (var offset = -30; offset <= GameTimelineEvent.FutureSeconds + 30f; offset += 30)
+			{
+				var seconds = (int)(System.MathF.Floor(elapsed / 30f) * 30f) + offset;
+				var tick = new GameTimelineEvent(
+					Seconds: seconds,
+					Icon: "",
+					Label: ""
+				);
+				if (seconds >= 0 && tick.IsInView(elapsed) && System.MathF.Abs(seconds - elapsed) >= 8f)
+				{
+					<div class="time-tick" style="left: @(Percent(tick.PositionPercent(elapsed)))%;">
+						<div class="tick-line"></div>
+						<div class="tick-label">@FormatTime(seconds)</div>
+					</div>
+				}
+			}
+			@foreach (var timelineEvent in Manager.TimelineEvents)
+			{
+				if (timelineEvent.IsInView(elapsed))
+				{
+					<div class="timeline-event @(timelineEvent.IsPast(elapsed) ? "past" : "")"
+						 style="left: @(Percent(timelineEvent.PositionPercent(elapsed)))%;"
+						 title="@timelineEvent.Label">
+						<div class="event-label">@timelineEvent.Label</div>
+						<div class="event-icon">@timelineEvent.Icon</div>
+					</div>
+				}
+			}
+			<div class="now-marker" style="left: @(Percent(GameTimelineEvent.NowPositionPercent))%;">
+				<div class="now-line"></div>
+				<div class="now-time">@FormatTime((int)elapsed)</div>
+			</div>
+		</div>
+		<div class="pipeline">
+			@foreach (var timelineEvent in Manager.TimelineEvents)
+			{
+				var minutes = timelineEvent.MinutesUntilView(elapsed);
+				if (minutes > 0)
+				{
+					<div class="pipeline-event" title="@timelineEvent.Label - in view in @minutes min">
+						<div class="event-icon">@timelineEvent.Icon</div>
+						<div class="pipeline-time">@minutes min</div>
+					</div>
+				}
+			}
+		</div>
+	}
+</root>
+
+@code
+{
+	private GameManager Manager => Game.ActiveScene?.GetAllComponents<GameManager>().FirstOrDefault();
+
+	private static string Percent(float value)
+	{
+		return value.ToString("0.###", CultureInfo.InvariantCulture);
+	}
+
+	private static string FormatTime(int seconds)
+	{
+		return $"{seconds / 60}:{seconds % 60:00}";
+	}
+
+	protected override int BuildHash()
+	{
+		var manager = Manager;
+		if (!manager.IsValid())
+		{
+			return 0;
+		}
+
+		var hash = new System.HashCode();
+		hash.Add(manager.TimelineReady);
+		hash.Add((int)(manager.ElapsedSeconds * 10f));
+		foreach (var timelineEvent in manager.TimelineEvents)
+		{
+			hash.Add(timelineEvent);
+		}
+
+		return hash.ToHashCode();
+	}
+}

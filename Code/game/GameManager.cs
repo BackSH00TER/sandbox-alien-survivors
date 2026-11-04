@@ -11,24 +11,46 @@ public sealed class GameManager : Component
 	[Group("Game Settings")] [Property, Description("Seconds until the boss spawns. Defeating the boss ends the match.")] public int CountdownTime { get; set; } = 60;
 	[Group("Game Settings"), Description("Ends the game as soon as every player is dead, since nobody is left to fire a revive flare. Turn off while debugging revives.")] [Property] public bool ShouldEndWhenAllDead { get; set; } = false;
 	[Sync(SyncFlags.FromHost)] public GameState State { get; set; } = GameState.InProgress;
-	[Sync(SyncFlags.FromHost)]
-	public GameEnemy Boss { get; private set; }
-	[Sync(SyncFlags.FromHost)]
-	public bool BossSpawned { get; private set; }
+	[Sync(SyncFlags.FromHost)] public GameEnemy Boss { get; private set; }
+	[Sync(SyncFlags.FromHost)] public bool BossSpawned { get; private set; }
 
 	[Group("Scene Transition")] [Property] public string LobbyScene { get; set; }
 	[Group("Scene Transition")] [Property] public string GameScene { get; set; } = "scenes/game.scene";
 
-	private float _countdownEndTime;
+	[Sync(SyncFlags.FromHost)] public TimeSince RoundClock { get; private set; }
+	[Sync(SyncFlags.FromHost)] public bool TimelineReady { get; private set; }
+	[Sync(SyncFlags.FromHost)] public float BossEventSeconds { get; private set; }
+	[Sync(SyncFlags.FromHost)] private float RoundEndedAt { get; set; }
 	private bool _isChangingScene;
 
-	public int RemainingSeconds => System.Math.Max(0, (int)System.MathF.Ceiling(_countdownEndTime - Time.Now));
+	public float ElapsedSeconds => State == GameState.Ended ? RoundEndedAt : System.Math.Max(0f, RoundClock.Relative);
+	public int RemainingSeconds => System.Math.Max(0, (int)System.MathF.Ceiling(BossEventSeconds - ElapsedSeconds));
+
+	public IEnumerable<GameTimelineEvent> TimelineEvents
+	{
+		get
+		{
+			if (TimelineReady)
+			{
+				yield return new GameTimelineEvent(
+					Seconds: BossEventSeconds,
+					Icon: "star",
+					Label: "Boss spawn"
+				);
+			}
+		}
+	}
 
 	private bool _missingSpawnerLogged;
 
 	protected override void OnStart()
 	{
-		_countdownEndTime = Time.Now + CountdownTime;
+		if (Networking.IsHost)
+		{
+			RoundClock = 0f;
+			BossEventSeconds = System.Math.Max(0, CountdownTime);
+			TimelineReady = true;
+		}
 	}
 
 	protected override void OnUpdate()
@@ -72,6 +94,7 @@ public sealed class GameManager : Component
 
 		Boss = boss;
 		BossSpawned = true;
+		BossEventSeconds = ElapsedSeconds;
 	}
 
 	public void BossDefeated(GameEnemy enemy)
@@ -104,6 +127,7 @@ public sealed class GameManager : Component
 
 	private void EndGame()
 	{
+		RoundEndedAt = ElapsedSeconds;
 		State = GameState.Ended;
 		GamePlayerStats.EndRound(Scene);
 	}
