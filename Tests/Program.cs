@@ -18,7 +18,8 @@ var tests = new (string Name, Action Run)[]
 	("oldest replacement and attacker credit", Replacement),
 	("spread accepts burning targets only below cap", Spread),
 	("clearing and advancing cannot repeat damage", Clear),
-	("invalid settings are rejected", Invalid)
+	("invalid settings are rejected", Invalid),
+	("timeline positions, dimming and pipeline boundaries", Timeline)
 };
 foreach (var test in tests)
 {
@@ -26,6 +27,35 @@ foreach (var test in tests)
 	Console.WriteLine($"PASS {test.Name}");
 }
 Console.WriteLine($"{tests.Length} tests passed.");
+
+static void Timeline()
+{
+	var boss = new GameTimelineEvent(
+		Seconds: 300f,
+		Icon: "star",
+		Label: "Boss spawn"
+	);
+	Check(boss.MinutesUntilView(elapsedSeconds: 0f) == 4, "Pipeline counts minutes until entering view, not spawning.");
+	Check(boss.MinutesUntilView(elapsedSeconds: 239f) == 1, "A partial minute must round up.");
+	Check(!boss.IsInView(elapsedSeconds: 239f), "Future events outside the window belong in the pipeline.");
+	Check(boss.IsInView(elapsedSeconds: 240f), "Right edge must be included.");
+	Check(boss.MinutesUntilView(elapsedSeconds: 240f) == 0, "In-view events must leave the pipeline.");
+	Near(actual: boss.PositionPercent(elapsedSeconds: 240f), expected: 100f);
+	Near(actual: boss.PositionPercent(elapsedSeconds: 300f), expected: 50f);
+	Check(!boss.IsPast(elapsedSeconds: 300f), "An event at Now must remain bright.");
+	Check(boss.IsPast(elapsedSeconds: 300.01f), "An event must dim immediately after passing Now.");
+	Near(actual: boss.PositionPercent(elapsedSeconds: 330f), expected: 25f);
+	Near(actual: boss.PositionPercent(elapsedSeconds: 360f), expected: 0f);
+	Check(boss.IsInView(elapsedSeconds: 360f), "Left edge must be included.");
+	Check(!boss.IsInView(elapsedSeconds: 360.01f), "Old events must leave the moving window.");
+	Check(boss.MinutesUntilView(elapsedSeconds: 360.01f) == 0, "Past events must not return to the pipeline.");
+	var lateEvent = boss with
+	{
+		Seconds = 86400f
+	};
+	Near(actual: lateEvent.PositionPercent(elapsedSeconds: 86400f), expected: 50f);
+	Check(lateEvent.IsInView(elapsedSeconds: 86400f), "The timeline must not have a fixed end.");
+}
 
 static void Check(bool condition, string message)
 {

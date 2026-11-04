@@ -1,0 +1,132 @@
+GameTimeline {
+	position: absolute;
+	top: 24px;
+	left: 50%;
+	width: 600px;
+	height: 72px;
+	margin-left: -300px;
+	font-family: Orbitron;
+	pointer-events: none;
+	color: #fff;
+
+	.timeline-track {
+		position: absolute;
+		left: 0;
+		right: 0;
+		top: 18px;
+		height: 12px;
+		background-color: #18242ee6;
+		border: 1px solid #69c9ff66;
+		border-radius: 6px;
+	}
+
+	.past-track {
+		position: absolute;
+		left: 0;
+		top: 0;
+		bottom: 0;
+		width: 50%;
+		background-color: #101218cc;
+		border-radius: 6px 0 0 6px;
+	}
+
+	.time-tick {
+		position: absolute;
+		top: 0;
+		width: 48px;
+		margin-left: -24px;
+		flex-direction: column;
+		align-items: center;
+		color: #84929f;
+
+		.tick-line {
+			width: 1px;
+			height: 10px;
+			background-color: #69c9ff66;
+		}
+
+		.tick-label {
+			margin-top: 22px;
+			font-size: 10px;
+		}
+	}
+
+	.event-icon {
+		font-family: Material Icons;
+		font-size: 32px;
+		color: #ff9169;
+		text-shadow: 0 0 6px #000;
+	}
+
+	.timeline-event {
+		position: absolute;
+		top: -28px;
+		width: 100px;
+		margin-left: -50px;
+		flex-direction: column;
+		align-items: center;
+
+		.event-label {
+			margin-bottom: 2px;
+			font-size: 11px;
+			text-shadow: 0 1px 3px #000;
+		}
+
+		&.past {
+			opacity: 0.3;
+		}
+	}
+
+	.now-marker {
+		position: absolute;
+		top: -12px;
+		left: 50%;
+		width: 64px;
+		margin-left: -32px;
+		flex-direction: column;
+		align-items: center;
+
+		.now-line {
+			height: 32px;
+			width: 3px;
+			background-color: #fff;
+			box-shadow: 0 0 6px #69c9ff;
+		}
+
+		.now-label {
+			margin-top: 3px;
+			font-size: 11px;
+			color: #69c9ff;
+		}
+
+		.now-time {
+			margin-top: 2px;
+			font-size: 12px;
+			text-shadow: 0 1px 3px #000;
+		}
+	}
+
+	.pipeline {
+		position: absolute;
+		left: 100%;
+		top: 9px;
+		margin-left: 12px;
+		gap: 8px;
+
+		.pipeline-event {
+			flex-direction: column;
+			align-items: center;
+			opacity: 0.7;
+		}
+
+		.event-icon {
+			font-size: 20px;
+		}
+
+		.pipeline-time {
+			margin-top: 2px;
+			font-size: 9px;
+			color: #b6c6d5;
+		}
+	}
+}
