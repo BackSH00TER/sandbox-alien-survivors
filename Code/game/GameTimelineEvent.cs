@@ -6,16 +6,20 @@ public readonly record struct GameTimelineEvent(
 	string Label
 )
 {
-	public const float ViewRadiusSeconds = 60f;
+	public const float ViewDurationSeconds = 120f;
+	public const float NowPositionPercent = 15f;
+	public const float PastSeconds = ViewDurationSeconds * NowPositionPercent / 100f;
+	public const float FutureSeconds = ViewDurationSeconds - PastSeconds;
 
 	public float PositionPercent(float elapsedSeconds)
 	{
-		return 50f + (Seconds - elapsedSeconds) / ViewRadiusSeconds * 50f;
+		return NowPositionPercent + (Seconds - elapsedSeconds) / ViewDurationSeconds * 100f;
 	}
 
 	public bool IsInView(float elapsedSeconds)
 	{
-		return MathF.Abs(Seconds - elapsedSeconds) <= ViewRadiusSeconds;
+		var relativeSeconds = Seconds - elapsedSeconds;
+		return relativeSeconds >= -PastSeconds && relativeSeconds <= FutureSeconds;
 	}
 
 	public bool IsPast(float elapsedSeconds)
@@ -25,7 +29,7 @@ public readonly record struct GameTimelineEvent(
 
 	public int MinutesUntilView(float elapsedSeconds)
 	{
-		var secondsUntilView = Seconds - elapsedSeconds - ViewRadiusSeconds;
+		var secondsUntilView = Seconds - elapsedSeconds - FutureSeconds;
 		return Math.Max(0, (int)MathF.Ceiling(secondsUntilView / 60f));
 	}
 }

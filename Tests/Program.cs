@@ -36,24 +36,27 @@ static void Timeline()
 		Label: "Boss spawn"
 	);
 	Check(boss.MinutesUntilView(elapsedSeconds: 0f) == 4, "Pipeline counts minutes until entering view, not spawning.");
-	Check(boss.MinutesUntilView(elapsedSeconds: 239f) == 1, "A partial minute must round up.");
-	Check(!boss.IsInView(elapsedSeconds: 239f), "Future events outside the window belong in the pipeline.");
-	Check(boss.IsInView(elapsedSeconds: 240f), "Right edge must be included.");
-	Check(boss.MinutesUntilView(elapsedSeconds: 240f) == 0, "In-view events must leave the pipeline.");
-	Near(actual: boss.PositionPercent(elapsedSeconds: 240f), expected: 100f);
-	Near(actual: boss.PositionPercent(elapsedSeconds: 300f), expected: 50f);
+	Near(actual: GameTimelineEvent.ViewDurationSeconds, expected: 120f);
+	Near(actual: GameTimelineEvent.PastSeconds, expected: 18f);
+	Near(actual: GameTimelineEvent.FutureSeconds, expected: 102f);
+	Check(boss.MinutesUntilView(elapsedSeconds: 197f) == 1, "A partial minute must round up.");
+	Check(!boss.IsInView(elapsedSeconds: 197f), "Future events outside the window belong in the pipeline.");
+	Check(boss.IsInView(elapsedSeconds: 198f), "Right edge must be included.");
+	Check(boss.MinutesUntilView(elapsedSeconds: 198f) == 0, "In-view events must leave the pipeline.");
+	Near(actual: boss.PositionPercent(elapsedSeconds: 198f), expected: 100f);
+	Near(actual: boss.PositionPercent(elapsedSeconds: 300f), expected: 15f);
 	Check(!boss.IsPast(elapsedSeconds: 300f), "An event at Now must remain bright.");
 	Check(boss.IsPast(elapsedSeconds: 300.01f), "An event must dim immediately after passing Now.");
-	Near(actual: boss.PositionPercent(elapsedSeconds: 330f), expected: 25f);
-	Near(actual: boss.PositionPercent(elapsedSeconds: 360f), expected: 0f);
-	Check(boss.IsInView(elapsedSeconds: 360f), "Left edge must be included.");
-	Check(!boss.IsInView(elapsedSeconds: 360.01f), "Old events must leave the moving window.");
-	Check(boss.MinutesUntilView(elapsedSeconds: 360.01f) == 0, "Past events must not return to the pipeline.");
+	Near(actual: boss.PositionPercent(elapsedSeconds: 309f), expected: 7.5f);
+	Near(actual: boss.PositionPercent(elapsedSeconds: 318f), expected: 0f);
+	Check(boss.IsInView(elapsedSeconds: 318f), "Left edge must be included.");
+	Check(!boss.IsInView(elapsedSeconds: 318.01f), "Old events must leave the moving window.");
+	Check(boss.MinutesUntilView(elapsedSeconds: 318.01f) == 0, "Past events must not return to the pipeline.");
 	var lateEvent = boss with
 	{
 		Seconds = 86400f
 	};
-	Near(actual: lateEvent.PositionPercent(elapsedSeconds: 86400f), expected: 50f);
+	Near(actual: lateEvent.PositionPercent(elapsedSeconds: 86400f), expected: 15f);
 	Check(lateEvent.IsInView(elapsedSeconds: 86400f), "The timeline must not have a fixed end.");
 }
 

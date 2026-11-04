@@ -1,15 +1,16 @@
 # Game timeline
 
-The HUD shows a rolling two-minute window: one minute of history to the left
-and one minute of upcoming events to the right. **NOW** stays in the center;
+The HUD shows a 780-pixel-wide rolling two-minute window: 18 seconds of history
+to the left and 102 seconds of upcoming events to the right. **NOW** stays 15%
+from the left edge, reserving most of the timeline for the future;
 event icons move left as the host-synchronized round clock advances. Events
-dim once their timestamp has passed and leave the view after another minute.
+dim once their timestamp has passed and leave the view after another 18 seconds.
 Time labels show total elapsed minutes and seconds, without a fixed endpoint.
 
 Events beyond the right edge appear as smaller pipeline icons. Their tiny
 `min` labels round up the time until they enter the visible window, **not**
 the time until they occur. For example, a boss due at 5:00 starts in the
-pipeline with `4 min` and enters the view at 4:00.
+pipeline with `4 min` and enters the view at 3:18.
 
 `GameManager.TimelineEvents` is the event source. Currently it exposes only
 the existing boss spawn, using `CountdownTime` and then the actual spawn time

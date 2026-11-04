@@ -2,9 +2,9 @@ GameTimeline {
 	position: absolute;
 	top: 24px;
 	left: 50%;
-	width: 600px;
+	width: 780px;
 	height: 72px;
-	margin-left: -300px;
+	margin-left: -390px;
 	font-family: Orbitron;
 	pointer-events: none;
 	color: #fff;
@@ -25,7 +25,6 @@ GameTimeline {
 		left: 0;
 		top: 0;
 		bottom: 0;
-		width: 50%;
 		background-color: #101218cc;
 		border-radius: 6px 0 0 6px;
 	}
@@ -80,7 +79,6 @@ GameTimeline {
 	.now-marker {
 		position: absolute;
 		top: -12px;
-		left: 50%;
 		width: 64px;
 		margin-left: -32px;
 		flex-direction: column;
@@ -91,12 +89,6 @@ GameTimeline {
 			width: 3px;
 			background-color: #fff;
 			box-shadow: 0 0 6px #69c9ff;
-		}
-
-		.now-label {
-			margin-top: 3px;
-			font-size: 11px;
-			color: #69c9ff;
 		}
 
 		.now-time {
