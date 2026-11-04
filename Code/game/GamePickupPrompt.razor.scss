@@ -5,8 +5,8 @@ GamePickupPrompt {
 	bottom: 0;
 	left: 0;
 	pointer-events: none;
-	font-family: Orbitron;
-	font-weight: bold;
+	font-family: Oxanium;
+	font-weight: 600;
 	color: #fff;
 
 	.pickup-marker {
@@ -46,6 +46,7 @@ GamePickupPrompt {
 
 	.pickup-label {
 		font-size: 14px;
+		letter-spacing: 0.5px;
 		color: #4de38a;
 	}
 
@@ -57,6 +58,7 @@ GamePickupPrompt {
 	.pickup-replaces {
 		margin-top: 6px;
 		font-size: 14px;
+		letter-spacing: 0.5px;
 		text-align: center;
 		color: #c4cbd6;
 	}

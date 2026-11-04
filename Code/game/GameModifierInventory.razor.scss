@@ -7,15 +7,17 @@ GameModifierInventory
 	justify-content: center;
 	gap: 10px;
 	pointer-events: none;
-	font-weight: bold;
+	font-weight: 600;
 
-	.modifier-icon {
+	.modifier-icon
+	{
 		font-family: Material Icons;
 		font-size: 34px;
 		color: #4de38a;
 	}
 
-	.modifier-item {
+	.modifier-item
+	{
 		pointer-events: all;
 		position: relative;
 		width: 54px;
@@ -26,40 +28,49 @@ GameModifierInventory
 		border: 2px solid #4de38a;
 		border-radius: 6px;
 
-		&.attackspeed {
+		&.attackspeed
+		{
 			border-color: #f5ce61;
 
-			.modifier-icon {
+			.modifier-icon
+			{
 				color: #f5ce61;
 			}
 		}
 
-		&.attackrange {
+		&.attackrange
+		{
 			border-color: #69c9ff;
 
-			.modifier-icon {
+			.modifier-icon
+			{
 				color: #69c9ff;
 			}
 		}
 
-		&.vitality {
+		&.vitality
+		{
 			border-color: #ff7c91;
 
-			.modifier-icon {
+			.modifier-icon
+			{
 				color: #ff7c91;
 			}
 
-			&.damage-effect {
+			&.damage-effect
+			{
 				border-color: #ff651a;
 
-				.modifier-icon {
+				.modifier-icon
+				{
 					color: #ff651a;
 				}
 			}
 		}
 	}
 
-	.modifier-count {
+	.modifier-count
+	{
 		position: absolute;
 		right: -5px;
 		bottom: -5px;
@@ -71,8 +82,9 @@ GameModifierInventory
 		background-color: #101218;
 		border: 1px solid #ffffff66;
 		border-radius: 4px;
-		font-family: Orbitron;
+		font-family: Oxanium;
 		font-size: 14px;
+		letter-spacing: 0.5px;
 		color: #fff;
 	}
 }
