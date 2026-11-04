@@ -36,11 +36,7 @@
 			<div class="label">Lv @LocalPlayer.Level</div>
 		</div>
 
-		@if (NearbyWeapon.IsValid() && !LocalPlayer.IsDead)
-		{
-			<div class="weapon-prompt">E: Replace @(LocalPlayer.EquippedWeapon?.DisplayName ?? "weapon") with
-				@NearbyWeapon.DisplayName</div>
-		}
+		<GamePickupPrompt />
 
 		@if (LocalPlayer.IsDead)
 		{
@@ -86,7 +82,6 @@
 	}
 
 	private GamePlayer LocalPlayer => Scene.GetAllComponents<GamePlayer>().FirstOrDefault(x => !x.IsProxy);
-	private GameLootPickup NearbyWeapon => GameLootPickup.FindNearestWeapon(LocalPlayer);
 
 	protected override void OnUpdate()
 	{
@@ -116,7 +111,7 @@
 			value2: player,
 			value3: player?.Level,
 			value4: ExperiencePercent,
-			value5: (DebugEnabled, player?.ShowAttackDebug, NearbyWeapon, player?.IsStunned, player?.IsDead, player?.GodMode, GamePlayerStats.HasRoundEnded(Scene), player?.Armor),
+			value5: (DebugEnabled, player?.ShowAttackDebug, player?.IsStunned, player?.IsDead, player?.GodMode, GamePlayerStats.HasRoundEnded(Scene), player?.Armor),
 			value6: System.HashCode.Combine(
 				value1: player?.EffectiveAttackInterval,
 				value2: player?.EffectiveAttackRange,

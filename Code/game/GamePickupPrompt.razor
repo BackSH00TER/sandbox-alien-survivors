@@ -1,0 +1,87 @@
+@using Sandbox;
+@using Sandbox.UI;
+@inherits Panel
+@namespace Sandbox
+
+<root>
+	@if (_visible)
+	{
+		<div class="pickup-marker" style="left: @ScreenLeft; top: @ScreenTop;">
+			<div class="pickup-card">
+				<div class="pickup-action">
+					<div class="pickup-key">@_useBinding</div>
+					<div class="pickup-label">PICK UP WEAPON</div>
+				</div>
+				<div class="pickup-name">@_weaponName</div>
+				<div class="pickup-replaces">Replaces @_equippedWeaponName</div>
+			</div>
+			<div class="pickup-pointer"></div>
+		</div>
+	}
+</root>
+
+@code
+{
+	private bool _visible;
+	private Vector2 _screenPosition;
+	private string _weaponName;
+	private string _equippedWeaponName;
+	private string _useBinding;
+
+	private string ScreenLeft => (_screenPosition.x * 100f).ToString(System.Globalization.CultureInfo.InvariantCulture) + "%";
+	private string ScreenTop => (_screenPosition.y * 100f).ToString(System.Globalization.CultureInfo.InvariantCulture) + "%";
+
+	public override void Tick()
+	{
+		base.Tick();
+		_visible = false;
+
+		var scene = Game.ActiveScene;
+		if (!scene.IsValid())
+		{
+			return;
+		}
+
+		var player = scene.GetAllComponents<GamePlayer>().FirstOrDefault(x => !x.IsProxy);
+		var camera = scene.Camera;
+		if (!player.IsValid() || player.IsDead || !camera.IsValid())
+		{
+			return;
+		}
+
+		var pickup = GameLootPickup.FindNearestWeapon(player);
+		if (!pickup.IsValid())
+		{
+			return;
+		}
+
+		var position = pickup.WorldPosition + Vector3.Up * 28f;
+		if ((position - camera.WorldPosition).Dot(camera.WorldRotation.Forward) <= 0f)
+		{
+			return;
+		}
+
+		var screen = camera.PointToScreenNormal(position);
+		if (screen.x < 0f || screen.x > 1f || screen.y < 0f || screen.y > 1f)
+		{
+			return;
+		}
+
+		_screenPosition = new Vector2(screen.x.Clamp(0.18f, 0.82f), screen.y.Clamp(0.22f, 0.92f));
+		_weaponName = pickup.DisplayName;
+		_equippedWeaponName = player.EquippedWeapon?.DisplayName ?? "weapon";
+		_useBinding = Input.GetButtonOrigin("Use") ?? "UNBOUND";
+		_visible = true;
+	}
+
+	protected override int BuildHash()
+	{
+		return System.HashCode.Combine(
+			value1: _visible,
+			value2: _screenPosition,
+			value3: _weaponName,
+			value4: _equippedWeaponName,
+			value5: _useBinding
+		);
+	}
+}
