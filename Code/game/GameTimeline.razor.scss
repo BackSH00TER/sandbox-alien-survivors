@@ -5,7 +5,8 @@ GameTimeline {
 	width: 780px;
 	height: 72px;
 	margin-left: -390px;
-	font-family: Poppins;
+	font-family: Oxanium;
+	font-weight: 600;
 	pointer-events: none;
 	color: #fff;
 
@@ -47,6 +48,7 @@ GameTimeline {
 		.tick-label {
 			margin-top: 22px;
 			font-size: 10px;
+			letter-spacing: 0.5px;
 		}
 	}
 
@@ -68,6 +70,7 @@ GameTimeline {
 		.event-label {
 			margin-bottom: 2px;
 			font-size: 11px;
+			letter-spacing: 0.5px;
 			text-shadow: 0 1px 3px #000;
 		}
 
@@ -94,6 +97,7 @@ GameTimeline {
 		.now-time {
 			margin-top: 2px;
 			font-size: 12px;
+			letter-spacing: 0.5px;
 			text-shadow: 0 1px 3px #000;
 		}
 	}
@@ -118,6 +122,7 @@ GameTimeline {
 		.pipeline-time {
 			margin-top: 2px;
 			font-size: 9px;
+			letter-spacing: 0.5px;
 			color: #b6c6d5;
 		}
 	}

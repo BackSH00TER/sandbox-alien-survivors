@@ -8,7 +8,8 @@ GameStatsScreen
 	align-items: center;
 	justify-content: center;
 	background-color: #000000b3;
-	font-family: Poppins;
+	font-family: Oxanium;
+	font-weight: 600;
 	color: #fff;
 
 	.stats-panel {
@@ -37,6 +38,7 @@ GameStatsScreen
 	.stats-section {
 		margin-top: 14px;
 		font-size: 14px;
+		letter-spacing: 0.5px;
 		color: #f5ce61;
 	}
 
@@ -76,6 +78,7 @@ GameStatsScreen
 
 	.stats-waiting {
 		font-size: 14px;
+		letter-spacing: 0.5px;
 		color: #ffffffb3;
 	}
 

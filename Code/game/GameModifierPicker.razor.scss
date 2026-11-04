@@ -7,28 +7,33 @@ GameModifierPicker
 	align-items: center;
 	flex-direction: column;
 	pointer-events: none;
-	font-family: Poppins;
-	font-weight: bold;
+	font-family: Oxanium;
+	font-weight: 600;
 	color: #fff;
 
-	.modifier-icon {
+	.modifier-icon
+	{
 		font-family: Material Icons;
 		font-size: 34px;
 		color: #4de38a;
 	}
 
-	.modifier-heading {
+	.modifier-heading
+	{
 		font-size: 24px;
 		text-shadow: 0 2px 3px #000;
 	}
 
-	.modifier-hint {
+	.modifier-hint
+	{
 		font-size: 13px;
+		letter-spacing: 0.5px;
 		margin: 8px 0;
 		text-shadow: 0 2px 3px #000;
 	}
 
-	.modifier-options {
+	.modifier-options
+	{
 		flex-direction: row;
 		flex-wrap: wrap;
 		justify-content: center;
@@ -37,7 +42,8 @@ GameModifierPicker
 		gap: 12px;
 	}
 
-	.modifier-card {
+	.modifier-card
+	{
 		position: relative;
 		width: 250px;
 		flex-shrink: 0;
@@ -50,19 +56,23 @@ GameModifierPicker
 		pointer-events: all;
 		cursor: pointer;
 
-		&:hover {
+		&:hover
+		{
 			background-color: #2a4938;
 			border-color: #fff;
 		}
 	}
 
-	.modifier-name {
+	.modifier-name
+	{
 		font-size: 18px;
+		letter-spacing: 1px;
 		color: #4de38a;
 		margin-bottom: 10px;
 	}
 
-	.reroll-button {
+	.reroll-button
+	{
 		margin-top: 12px;
 		padding: 10px 18px;
 		background-color: #302943;
@@ -73,11 +83,13 @@ GameModifierPicker
 		pointer-events: all;
 		cursor: pointer;
 
-		&:hover {
+		&:hover
+		{
 			background-color: #55416c;
 		}
 
-		&.unavailable {
+		&.unavailable
+		{
 			background-color: #28282d;
 			border-color: #686870;
 			color: #888890;
@@ -86,7 +98,8 @@ GameModifierPicker
 		}
 	}
 
-	.modifier-key {
+	.modifier-key
+	{
 		position: absolute;
 		top: 8px;
 		right: 8px;
@@ -101,8 +114,10 @@ GameModifierPicker
 		color: #fff;
 	}
 
-	.modifier-description {
+	.modifier-description
+	{
 		font-size: 13px;
+		letter-spacing: 0.5px;
 		color: #fff;
 	}
 }
