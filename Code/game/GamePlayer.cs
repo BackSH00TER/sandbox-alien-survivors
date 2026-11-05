@@ -1,6 +1,6 @@
 using Sandbox;
 
-public sealed class GamePlayer : GameEntity
+public sealed class GamePlayer : GameEntity, ILootCollector
 {
 	[Property, RequireComponent] public PlayerController Controller { get; set; }
 	[Property, RequireComponent] public GamePlayerStats Stats { get; set; }
@@ -89,6 +89,14 @@ public sealed class GamePlayer : GameEntity
 	public float ExperienceCollectionRangeMultiplier => ModifierCatalog.ExperienceCollectionRangeMultiplier(ModifierStacks);
 
 	public bool IsDead => Health <= 0f;
+
+	bool ILootCollector.HasDeadTeammate => Scene.GetAllComponents<GamePlayer>().Any(player => player.IsDead);
+
+	bool ILootCollector.FireReviveFlare()
+	{
+		var flare = GameReviveFlare.Spawn(WorldPosition);
+		return flare.IsValid();
+	}
 
 	public bool IsRoundOver
 	{
@@ -426,7 +434,9 @@ public sealed class GamePlayer : GameEntity
 	[Rpc.Host(NetFlags.OwnerOnly)]
 	public void DebugSpawnFlarePickup()
 	{
-		GameLootPickup.Spawn(WorldPosition + Controller.EyeAngles.ToRotation().Forward * 80f, LootKind.Flare);
+		var position = WorldPosition + Controller.EyeAngles.ToRotation().Forward * 80f;
+		var definition = GameLootCatalog.Get(LootKind.Flare);
+		GameLootPickup.Spawn(groundPosition: position, definition: definition);
 	}
 
 	[Rpc.Host(NetFlags.OwnerOnly)]
@@ -434,7 +444,8 @@ public sealed class GamePlayer : GameEntity
 	{
 		if (TryGetDebugSpawnPosition(out var position))
 		{
-			GameLootPickup.Spawn(position, LootKind.Armor);
+			var definition = GameLootCatalog.Get(LootKind.Armor);
+			GameLootPickup.Spawn(groundPosition: position, definition: definition);
 		}
 	}
 

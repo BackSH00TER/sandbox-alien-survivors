@@ -3,10 +3,6 @@ using Sandbox;
 public sealed class GameExperienceOrb : Component
 {
 	[Property, Range(1, 1000)] public int Amount { get; set; } = 1;
-	[Property, Range(0f, 1000f)] public float MagnetRange { get; set; } = GamePickupMagnet.DefaultRange;
-	[Property, Range(1f, 200f)] public float PickupRange { get; set; } = 24f;
-	/// <summary>Speed near pickup; distant orbs move at 5% of this speed and accelerate cubically with proximity.</summary>
-	[Property, Range(1f, 2000f)] public float MagnetSpeed { get; set; } = GamePickupMagnet.DefaultSpeed;
 
 	private static readonly Color OrbColor = new Color(0.3f, 1f, 0.55f);
 	private GameObject _visual;
@@ -77,12 +73,7 @@ public sealed class GameExperienceOrb : Component
 			return;
 		}
 
-		var target = GamePickupMagnet.Attract(
-			pickup: this,
-			pickupRange: PickupRange,
-			magnetRange: MagnetRange,
-			magnetSpeed: MagnetSpeed
-		);
+		var target = GamePickupMagnet.Attract(pickup: this);
 		if (target != null)
 		{
 			target.AddExperience(Amount);

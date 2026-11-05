@@ -57,13 +57,56 @@ rules still apply. Attraction and contact collection share eligibility checks:
 full-health players do not attract health, flares stay put while nobody is dead,
 and armor/dice are not attracted to players whose counters are full.
 Health drops can still move toward another nearby injured player.
-Weapon drops are never attracted or automatically
-collected and still require interaction. Each pickup's `CanBeMagnetAttracted`
-boolean controls attraction. Weapon drops inherit that setting from their
-`GameWeaponDefinition`, where it defaults to false. Non-weapon spawns default to
-true and can pass `canBeMagnetAttracted: false` to opt out independently of kind.
-Adding a loot kind does not require extending the magnet's item list.
+Weapon drops are never attracted or automatically collected and still require
+interaction. Magnet flags now live only in `GameLootCatalog`, rather than in
+weapon resources or optional spawn arguments.
+`GamePickupMagnet` owns the shared base attraction range, cubic speed curve and
+XP contact defaults; experience orbs no longer expose or pass per-orb magnet tuning.
+Loot retains its larger 32-unit contact radius and 16-unit target height.
 Loot expiration is unchanged.
+
+### Central loot catalog
+
+`GameLootCatalog.All` defines every loot item in one typed table: its stable
+`LootKind` ID, display name, effect and amount, explicit `CanBeMagnetAttracted`
+boolean, rarity bucket, collection callbacks, weapon resource binding, and visual model parts.
+The existing procedural prototype models are represented as named parts with
+model paths, positions, dimensions and tints; the die's pip layout is generated
+once by the catalog. All prototype geometry builders are grouped at the bottom of
+the catalog, keeping the item table short. Pickups render these same parts on each client.
+
+Crates use `GameLootCatalog.Roll`: the contextual revive-flare roll comes first,
+then a rarity bucket is drawn using `GameLootCatalog.Rarities`, then an item is
+drawn uniformly from that bucket. Common is 90% (health, rifle, shotgun and dice)
+and Rare is 10% (armor), preserving the existing balance. Uncommon, Epic and
+Legendary are defined at 0% for future balancing. Bucket chances must total 100%;
+zero-chance buckets are disabled, and every enabled bucket must contain an item.
+An empty enabled bucket is a configuration error, not a reroll or an implicit
+redistribution of its chance. Adding an item only changes the odds *within* its
+bucket; it does not dilute any other rarity. These percentages apply after a
+failed flare roll. Flare eligibility and its time-dependent chance remain in
+`GameCrateSpawner` so dead-player counts, flares already in play, and existing
+scene tuning keep working. The flare is the one-off pre-roll outside the rarity
+buckets (its `Rarity` is unset); normal items only specify their rarity and need
+no per-item drop-rule setting. Rifle/shotgun `WeaponSlot` bindings retain the
+spawner's custom weapon overrides; resource paths supply defaults.
+
+Both crates and debug commands explicitly resolve a catalog definition and pass
+it to `GameLootPickup.Spawn(groundPosition: ..., definition: ...)`. There is no
+per-call magnet default or inferred weapon policy. Collection and attraction use
+the entry's `CanCollect` callback; successful contact invokes its `Collect`
+callback with the configured amount. `ILootCollector` exposes the player
+capabilities those callbacks need, keeping catalog rules testable without the
+engine. `GamePlayer` implements the contract using its existing health, armor,
+dice and revive-flare operations. Pickups retain host, round-state, range and
+line-of-sight checks and only disappear after successful effect application.
+The display name for weapons still comes from
+their actual weapon resource. To add an item using an existing effect, append a
+stable ID to `LootKind` and add a catalog entry with its settings and visual parts.
+New behavior is registered through the entry's eligibility/application callbacks
+rather than a pickup-component effect switch.
+Modifier offers still use their existing per-modifier weights; they have not
+been migrated to rarity buckets.
 
 The HUD always shows the local player's remaining Reroll Dice. While choosing an
 upgrade, click the reroll button or press R (`RerollModifiers` input action) to spend

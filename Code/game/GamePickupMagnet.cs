@@ -8,9 +8,7 @@ internal static class GamePickupMagnet
 
 	internal static GamePlayer Attract(
 		Component pickup,
-		float pickupRange,
-		float magnetRange = DefaultRange,
-		float magnetSpeed = DefaultSpeed,
+		float pickupRange = 24f,
 		float targetHeight = 12f,
 		Func<GamePlayer, bool> canAttract = null
 	)
@@ -25,7 +23,7 @@ internal static class GamePickupMagnet
 			}
 
 			var distanceSquared = (player.WorldPosition + Vector3.Up * targetHeight - pickup.WorldPosition).LengthSquared;
-			var collectionRange = magnetRange * player.ExperienceCollectionRangeMultiplier;
+			var collectionRange = DefaultRange * player.ExperienceCollectionRangeMultiplier;
 			if (distanceSquared <= collectionRange * collectionRange && distanceSquared <= nearestDistanceSquared
 				&& (canAttract == null || canAttract(player)))
 			{
@@ -47,10 +45,10 @@ internal static class GamePickupMagnet
 		var targetPosition = target.WorldPosition + Vector3.Up * targetHeight;
 		var direction = (targetPosition - pickup.WorldPosition).Normal;
 		var distance = MathF.Sqrt(nearestDistanceSquared);
-		var targetCollectionRange = magnetRange * target.ExperienceCollectionRangeMultiplier;
+		var targetCollectionRange = DefaultRange * target.ExperienceCollectionRangeMultiplier;
 		var attractionDistance = targetCollectionRange - pickupRange;
 		var proximity = 1f - (distance - pickupRange) / attractionDistance;
-		var speed = magnetSpeed * (0.05f + 0.95f * proximity * proximity * proximity);
+		var speed = DefaultSpeed * (0.05f + 0.95f * proximity * proximity * proximity);
 		var step = MathF.Min(speed * Time.Delta, distance);
 		pickup.WorldPosition += direction * step;
 		return null;

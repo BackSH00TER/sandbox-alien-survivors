@@ -1,6 +1,6 @@
 using Sandbox;
 
-/// <summary>A 30-health shootable crate with an equally weighted, configurable drop count. For each item, after the revive-flare roll, armor has a 10% chance; otherwise health, rifle, shotgun and reroll dice are equally weighted.</summary>
+/// <summary>A 30-health shootable crate with an equally weighted, configurable drop count. Each item is rolled from <see cref="GameLootCatalog"/>.</summary>
 public sealed class GameSupplyCrate : GameEntity
 {
 	public const int DefaultMinDrops = 1;
@@ -72,28 +72,11 @@ public sealed class GameSupplyCrate : GameEntity
 		renderer.Tint = color;
 	}
 
-	// Armor and flare have their own chances; the remaining kinds share the ordinary drop pool.
-	private static readonly LootKind[] NormalDrops = System.Enum.GetValues<LootKind>()
-		.Where(x => x != LootKind.Flare && x != LootKind.Armor).ToArray();
-
-	/// <summary>
-	/// Picks one item the crate drops. A flare is rolled first, and only has a chance while someone is dead. Otherwise
-	/// armor has a 10% chance, then one of the normal drops is chosen with equal weight.
-	/// </summary>
-	private LootKind RollKind()
+	private LootDefinition RollLoot()
 	{
 		var spawner = Scene.GetAllComponents<GameCrateSpawner>().FirstOrDefault();
-		if (spawner != null && Game.Random.Float() < spawner.GetFlareDropChance())
-		{
-			return LootKind.Flare;
-		}
-
-		if (Game.Random.Float() < 0.1f)
-		{
-			return LootKind.Armor;
-		}
-
-		return NormalDrops[Game.Random.Int(0, NormalDrops.Length - 1)];
+		var flareChance = spawner?.GetFlareDropChance() ?? 0f;
+		return GameLootCatalog.Roll(flareChance: flareChance, random: () => Game.Random.Float());
 	}
 
 	protected override void OnHealthDepleted()
@@ -114,11 +97,11 @@ public sealed class GameSupplyCrate : GameEntity
 		var groundPosition = WorldPosition - Vector3.Up * 22f;
 		for (var i = 0; i < dropCount; i++)
 		{
-			var kind = RollKind();
-			GameWeaponDefinition weapon = kind switch
+			var definition = RollLoot();
+			var weapon = definition.WeaponSlot switch
 			{
-				LootKind.Rifle => Rifle,
-				LootKind.Shotgun => Shotgun,
+				LootWeaponSlot.Rifle => Rifle,
+				LootWeaponSlot.Shotgun => Shotgun,
 				_ => null
 			};
 			// Spread multiple pickups evenly around a 32-unit ring; keep a single pickup centered.
@@ -138,7 +121,7 @@ public sealed class GameSupplyCrate : GameEntity
 			var pickupPosition = groundPosition + offset;
 			GameLootPickup.Spawn(
 				groundPosition: pickupPosition,
-				kind: kind,
+				definition: definition,
 				weapon: weapon
 			);
 		}
