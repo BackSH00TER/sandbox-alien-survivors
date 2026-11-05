@@ -3,10 +3,6 @@ using Sandbox;
 public sealed class GameExperienceOrb : Component
 {
 	[Property, Range(1, 1000)] public int Amount { get; set; } = 1;
-	[Property, Range(0f, 1000f)] public float MagnetRange { get; set; } = 150f;
-	[Property, Range(1f, 200f)] public float PickupRange { get; set; } = 24f;
-	/// <summary>Speed near pickup; distant orbs move at 5% of this speed and accelerate cubically with proximity.</summary>
-	[Property, Range(1f, 2000f)] public float MagnetSpeed { get; set; } = 200f;
 
 	private static readonly Color OrbColor = new Color(0.3f, 1f, 0.55f);
 	private GameObject _visual;
@@ -77,45 +73,11 @@ public sealed class GameExperienceOrb : Component
 			return;
 		}
 
-		GamePlayer target = null;
-		var nearestDistanceSquared = float.PositiveInfinity;
-		foreach (var player in Scene.GetAllComponents<GamePlayer>())
-		{
-			if (!player.Active || player.Health <= 0f)
-			{
-				continue;
-			}
-
-			var distanceSquared = (player.WorldPosition + Vector3.Up * 12f - WorldPosition).LengthSquared;
-			var collectionRange = MagnetRange * player.ExperienceCollectionRangeMultiplier;
-			// Compare squared distances to find the nearest player within their upgraded collection radius.
-			if (distanceSquared <= collectionRange * collectionRange && distanceSquared <= nearestDistanceSquared)
-			{
-				target = player;
-				nearestDistanceSquared = distanceSquared;
-			}
-		}
-
-		if (target == null)
-		{
-			return;
-		}
-
-		if (nearestDistanceSquared <= PickupRange * PickupRange)
+		var target = GamePickupMagnet.Attract(pickup: this);
+		if (target != null)
 		{
 			target.AddExperience(Amount);
 			GameObject.Destroy();
-			return;
 		}
-
-		var targetPosition = target.WorldPosition + Vector3.Up * 12f;
-		var direction = (targetPosition - WorldPosition).Normal;
-		var distance = System.MathF.Sqrt(nearestDistanceSquared);
-		var targetCollectionRange = MagnetRange * target.ExperienceCollectionRangeMultiplier;
-		var attractionDistance = targetCollectionRange - PickupRange;
-		var proximity = 1f - (distance - PickupRange) / attractionDistance;
-		var speed = MagnetSpeed * (0.05f + 0.95f * proximity * proximity * proximity);
-		var step = System.MathF.Min(speed * Time.Delta, distance);
-		WorldPosition += direction * step;
 	}
 }

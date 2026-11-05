@@ -1,16 +1,6 @@
 using Sandbox;
 
-public enum LootKind
-{
-	Health,
-	Rifle,
-	Shotgun,
-	Flare,
-	Armor,
-	RerollDice
-}
-
-/// <summary>Health, armor, reroll dice and flares are collected on contact; weapons require an owner-only interaction. Unclaimed pickups disappear after <see cref="LifetimeSeconds"/>.</summary>
+/// <summary>A catalog-defined loot item. Eligible consumables use the XP magnet and contact collection; weapons require an owner-only interaction. Unclaimed pickups disappear after <see cref="LifetimeSeconds"/>.</summary>
 public sealed class GameLootPickup : Component
 {
 	public const float WeaponPickupRange = 72f;
@@ -18,40 +8,48 @@ public sealed class GameLootPickup : Component
 	/// <summary>How many of the final seconds of <see cref="LifetimeSeconds"/> the pickup blinks as a warning that it is about to disappear.</summary>
 	private const float BlinkSeconds = 8f;
 	[Property, Range(5f, 300f), Description("Total seconds an unclaimed pickup stays before it disappears.")] public float LifetimeSeconds { get; set; } = 45f;
-	[Sync(SyncFlags.FromHost)]
-	public LootKind Kind { get; private set; }
-	[Sync(SyncFlags.FromHost)]
-	public GameWeaponDefinition Weapon { get; private set; }
-	[Sync(SyncFlags.FromHost)]
-	public bool Claimed { get; private set; }
+	[Sync(SyncFlags.FromHost)] public LootKind Kind { get; private set; }
+	[Sync(SyncFlags.FromHost)] public GameWeaponDefinition Weapon { get; private set; }
+	[Sync(SyncFlags.FromHost)] public bool Claimed { get; private set; }
 	/// <summary>True during the last <see cref="BlinkSeconds"/> before the pickup disappears. Set by the host so every client blinks it.</summary>
-	[Sync(SyncFlags.FromHost)]
-	public bool IsBlinking { get; private set; }
-	public string DisplayName => Kind switch
-	{
-		LootKind.Health => "Health +50",
-		LootKind.Armor => "Armor +1",
-		LootKind.Flare => "Flare Gun",
-		LootKind.RerollDice => "Reroll Dice +1",
-		_ => Weapon?.DisplayName
-	};
+	[Sync(SyncFlags.FromHost)] public bool IsBlinking { get; private set; }
+	public LootDefinition Definition => GameLootCatalog.Get(Kind);
+	public bool CanBeMagnetAttracted => Definition.CanBeMagnetAttracted;
+	public string DisplayName => Definition.Effect == LootEffect.Weapon ? Weapon?.DisplayName : Definition.Name;
 	private GameObject _visual;
 	private float _spawnedAt;
 
-	public static GameLootPickup Spawn(Vector3 groundPosition, LootKind kind, GameWeaponDefinition weapon = null)
+	public static GameLootPickup Spawn(
+		Vector3 groundPosition,
+		LootDefinition definition,
+		GameWeaponDefinition weapon = null
+	)
 	{
-		var needsWeapon = kind == LootKind.Rifle || kind == LootKind.Shotgun;
-		if (!Networking.IsHost || !System.Enum.IsDefined(kind)
-			|| (needsWeapon && (weapon == null || !weapon.Validate())))
+		if (!Networking.IsHost || definition == null || !GameLootCatalog.All.Contains(definition))
 		{
-			Log.Error("Loot spawning requires the host, a valid loot kind, and a valid weapon for weapon drops.");
+			Log.Error("Loot spawning requires the host and a catalog definition.");
+			return null;
+		}
+
+		if (definition.Effect == LootEffect.Weapon)
+		{
+			weapon ??= ResourceLibrary.Get<GameWeaponDefinition>(definition.WeaponResourcePath);
+			if (weapon == null || !weapon.Validate())
+			{
+				Log.Error($"Loot '{definition.Name}' requires a valid weapon resource.");
+				return null;
+			}
+		}
+		else if (weapon != null)
+		{
+			Log.Error("Only weapon loot definitions can receive a weapon override.");
 			return null;
 		}
 
 		var obj = new GameObject(true, "Loot Pickup");
 		obj.WorldPosition = groundPosition + Vector3.Up * 16f;
 		var pickup = obj.AddComponent<GameLootPickup>();
-		pickup.Kind = kind;
+		pickup.Kind = definition.Id;
 		pickup.Weapon = weapon;
 		if (!obj.NetworkSpawn())
 		{
@@ -68,94 +66,25 @@ public sealed class GameLootPickup : Component
 		_spawnedAt = Time.Now;
 		_visual = new GameObject(GameObject, true, "Loot Visual");
 		_visual.Flags |= GameObjectFlags.NotNetworked | GameObjectFlags.NotSaved;
-		if (Kind == LootKind.Health)
+		foreach (var part in Definition.VisualParts)
 		{
-			AddPart("Medkit", Vector3.Zero, new Vector3(18f, 24f, 12f), new Color(0.9f, 0.15f, 0.2f));
-			AddPart("Cross Vertical", Vector3.Up * 7f, new Vector3(5f, 16f, 2f), Color.White);
-			AddPart("Cross Horizontal", Vector3.Up * 7f, new Vector3(13f, 5f, 2f), Color.White);
-		}
-		else if (Kind == LootKind.Armor)
-		{
-			var armorColor = new Color(0.2f, 0.75f, 1f);
-			AddPart("Armor Plate", Vector3.Zero, new Vector3(8f, 22f, 26f), armorColor);
-			AddPart("Armor Base", new Vector3(0f, 0f, -16f), new Vector3(8f, 14f, 8f), armorColor);
-			AddPart("Armor Stripe", new Vector3(5f, 0f, 0f), new Vector3(2f, 4f, 20f), Color.White);
-		}
-		else if (Kind == LootKind.RerollDice)
-		{
-			BuildRerollDie();
-		}
-		else if (Kind == LootKind.Flare)
-		{
-			var flareColor = new Color(1f, 0.25f, 0.15f);
-			AddPart("Flare Body", Vector3.Zero, new Vector3(20f, 7f, 8f), flareColor);
-			AddPart("Flare Barrel", Vector3.Forward * 14f, new Vector3(12f, 8f, 8f), new Color(0.2f, 0.23f, 0.26f));
-			AddPart("Flare Grip", new Vector3(-6f, 0f, -8f), new Vector3(5f, 5f, 10f), flareColor);
-		}
-		else
-		{
-			var color = Kind == LootKind.Rifle ? new Color(0.25f, 0.65f, 1f) : new Color(1f, 0.65f, 0.15f);
-			AddPart("Receiver", Vector3.Zero, new Vector3(26f, 5f, 6f), color);
-			AddPart("Barrel", Vector3.Forward * 20f, new Vector3(16f, 3f, 3f), new Color(0.2f, 0.23f, 0.26f));
-			AddPart("Stock", new Vector3(-18f, 0f, -2f), new Vector3(12f, 6f, 9f), color);
-			AddPart("Grip", new Vector3(-4f, 0f, -7f), new Vector3(5f, 4f, 10f), color);
+			AddPart(part);
 		}
 	}
 
-	private void AddPart(string name, Vector3 position, Vector3 size, Color color)
+	private void AddPart(LootVisualPart part)
 	{
-		var obj = new GameObject(_visual, true, name);
-		obj.LocalPosition = position;
-		obj.LocalScale = size / 50f;
+		var obj = new GameObject(
+			parent: _visual,
+			enabled: true,
+			name: part.Name
+		);
+		obj.LocalPosition = part.Position;
 		var renderer = obj.AddComponent<ModelRenderer>();
-		renderer.Model = Model.Load("models/dev/box.vmdl");
-		renderer.Tint = color;
-	}
-
-	private void BuildRerollDie()
-	{
-		AddPart("Die", Vector3.Zero, Vector3.One * 22f, new Color(0.95f, 0.9f, 0.75f));
-		// Opposite faces add to seven. Raised dark pips remain readable as the pickup rotates.
-		AddDiceFace(Vector3.Up, Vector3.Forward, Vector3.Left, 1);
-		AddDiceFace(Vector3.Down, Vector3.Forward, Vector3.Left, 6);
-		AddDiceFace(Vector3.Forward, Vector3.Left, Vector3.Up, 2);
-		AddDiceFace(Vector3.Backward, Vector3.Left, Vector3.Up, 5);
-		AddDiceFace(Vector3.Left, Vector3.Forward, Vector3.Up, 3);
-		AddDiceFace(Vector3.Right, Vector3.Forward, Vector3.Up, 4);
-	}
-
-	private void AddDiceFace(Vector3 normal, Vector3 horizontal, Vector3 vertical, int value)
-	{
-		var pipPositions = new List<Vector2>();
-		if (value % 2 == 1)
-		{
-			pipPositions.Add(Vector2.Zero);
-		}
-
-		if (value >= 2)
-		{
-			pipPositions.Add(new Vector2(-1f, -1f));
-			pipPositions.Add(new Vector2(1f, 1f));
-		}
-		if (value >= 4)
-		{
-			pipPositions.Add(new Vector2(-1f, 1f));
-			pipPositions.Add(new Vector2(1f, -1f));
-		}
-		if (value == 6)
-		{
-			pipPositions.Add(new Vector2(-1f, 0f));
-			pipPositions.Add(new Vector2(1f, 0f));
-		}
-		foreach (var position in pipPositions)
-		{
-			var pip = new GameObject(_visual, true, "Die Pip");
-			pip.LocalPosition = normal * 11f + horizontal * (position.x * 5.5f) + vertical * (position.y * 5.5f);
-			var renderer = pip.AddComponent<ModelRenderer>();
-			renderer.Model = Model.Load("models/dev/sphere.vmdl");
-			pip.LocalScale = Vector3.One * (3.5f / renderer.Model.Bounds.Size.x);
-			renderer.Tint = new Color(0.08f, 0.06f, 0.12f);
-		}
+		renderer.Model = Model.Load(part.ModelPath);
+		renderer.Tint = part.Tint;
+		var modelWidth = part.ScaleToModelWidth ? renderer.Model.Bounds.Size.x : 50f;
+		obj.LocalScale = part.Size / modelWidth;
 	}
 
 	protected override void OnUpdate()
@@ -180,22 +109,17 @@ public sealed class GameLootPickup : Component
 			return;
 		}
 
-		if (Kind == LootKind.Health)
+		if (CanBeMagnetAttracted)
 		{
-			TryHealNearby();
+			GamePickupMagnet.Attract(
+				pickup: this,
+				pickupRange: ContactRange,
+				targetHeight: 16f,
+				canAttract: CanAttract
+			);
 		}
-		else if (Kind == LootKind.Armor)
-		{
-			TryAddArmorNearby();
-		}
-		else if (Kind == LootKind.Flare)
-		{
-			TryFireFlareNearby();
-		}
-		else if (Kind == LootKind.RerollDice)
-		{
-			TryAddRerollDiceNearby();
-		}
+
+		TryCollectNearby();
 	}
 
 	// Returns true when the pickup ran out of time and was removed.
@@ -213,68 +137,48 @@ public sealed class GameLootPickup : Component
 		return true;
 	}
 
-	private void TryHealNearby()
+	private bool CanAttract(GamePlayer player)
+	{
+		if (!CanCollect(player))
+		{
+			return false;
+		}
+
+		var collectionRange = GamePickupMagnet.DefaultRange * player.ExperienceCollectionRangeMultiplier;
+		return CanReach(player, collectionRange);
+	}
+
+	private bool CanCollect(GamePlayer player)
+	{
+		if (!player.IsValid() || !player.Active || player.Health <= 0f)
+		{
+			return false;
+		}
+
+		var definition = Definition;
+		if (definition.Effect == LootEffect.Weapon)
+		{
+			return false;
+		}
+
+		return definition.CanCollect(player, definition.Amount);
+	}
+
+	private void TryCollectNearby()
 	{
 		foreach (var player in Scene.GetAllComponents<GamePlayer>())
 		{
-			if (!CanReach(player, ContactRange) || !player.RestoreHealth(50f))
+			if (!CanCollect(player) || !CanReach(player, ContactRange))
 			{
 				continue;
 			}
 
-			Claimed = true;
-			GameObject.Destroy();
-			return;
-		}
-	}
-
-	private void TryAddArmorNearby()
-	{
-		foreach (var player in Scene.GetAllComponents<GamePlayer>())
-		{
-			if (!CanReach(player, ContactRange) || !player.AddArmor(1))
+			var definition = Definition;
+			if (!definition.Collect(player, definition.Amount))
 			{
 				continue;
 			}
 
-			Claimed = true;
-			GameObject.Destroy();
-			return;
-		}
-	}
-
-	private void TryAddRerollDiceNearby()
-	{
-		foreach (var player in Scene.GetAllComponents<GamePlayer>())
-		{
-			if (!CanReach(player, ContactRange) || !player.AddRerollDice(1))
-			{
-				continue;
-			}
-
-			Claimed = true;
-			GameObject.Destroy();
-			return;
-		}
-	}
-
-	// Walking over a flare pickup fires the flare right away. Ignored while nobody is dead so it isn't wasted.
-	private void TryFireFlareNearby()
-	{
-		var players = Scene.GetAllComponents<GamePlayer>().ToList();
-		if (!players.Any(x => x.IsDead))
-		{
-			return;
-		}
-
-		foreach (var player in players)
-		{
-			if (!CanReach(player, ContactRange))
-			{
-				continue;
-			}
-
-			GameReviveFlare.Spawn(player.WorldPosition);
 			Claimed = true;
 			GameObject.Destroy();
 			return;
@@ -295,14 +199,14 @@ public sealed class GameLootPickup : Component
 		}
 
 		return player.Scene.GetAllComponents<GameLootPickup>()
-			.Where(x => x.Kind != LootKind.Health && x.Weapon != null && x.CanReach(player, WeaponPickupRange))
+			.Where(x => x.Definition.Effect == LootEffect.Weapon && x.Weapon != null && x.CanReach(player, WeaponPickupRange))
 			.OrderBy(x => (x.WorldPosition - player.WorldPosition).LengthSquared)
 			.FirstOrDefault();
 	}
 
 	internal bool TryEquip(GamePlayer player)
 	{
-		if (!Networking.IsHost || !GameInProgress() || Kind == LootKind.Health
+		if (!Networking.IsHost || !GameInProgress() || Definition.Effect != LootEffect.Weapon
 			|| !CanReach(player, WeaponPickupRange) || Weapon == null || !Weapon.Validate())
 		{
 			Log.Warning("Rejected an unavailable or out-of-range weapon pickup.");

@@ -120,7 +120,7 @@ public sealed class GameCrateSpawner : Component
 		}
 
 		var flaresInPlay = Scene.GetAllComponents<GameReviveFlare>().Count()
-			+ Scene.GetAllComponents<GameLootPickup>().Count(x => x.Kind == LootKind.Flare && !x.Claimed);
+			+ Scene.GetAllComponents<GameLootPickup>().Count(x => x.Definition.Effect == LootEffect.ReviveFlare && !x.Claimed);
 		if (flaresInPlay >= dead.Count)
 		{
 			return 0f;
