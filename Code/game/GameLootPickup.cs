@@ -10,7 +10,7 @@ public enum LootKind
 	RerollDice
 }
 
-/// <summary>Health, armor, reroll dice and flares are collected on contact; weapons require an owner-only interaction. Unclaimed pickups disappear after <see cref="LifetimeSeconds"/>.</summary>
+/// <summary>Health, armor, reroll dice and flares are attracted by the XP magnet and collected on contact; weapons require an owner-only interaction. Unclaimed pickups disappear after <see cref="LifetimeSeconds"/>.</summary>
 public sealed class GameLootPickup : Component
 {
 	public const float WeaponPickupRange = 72f;
@@ -18,6 +18,7 @@ public sealed class GameLootPickup : Component
 	/// <summary>How many of the final seconds of <see cref="LifetimeSeconds"/> the pickup blinks as a warning that it is about to disappear.</summary>
 	private const float BlinkSeconds = 8f;
 	[Property, Range(5f, 300f), Description("Total seconds an unclaimed pickup stays before it disappears.")] public float LifetimeSeconds { get; set; } = 45f;
+	[Property, Description("Whether the XP magnet can attract this pickup. Weapon drops inherit their weapon definition's setting.")] public bool CanBeMagnetAttracted { get; set; } = true;
 	[Sync(SyncFlags.FromHost)]
 	public LootKind Kind { get; private set; }
 	[Sync(SyncFlags.FromHost)]
@@ -38,7 +39,12 @@ public sealed class GameLootPickup : Component
 	private GameObject _visual;
 	private float _spawnedAt;
 
-	public static GameLootPickup Spawn(Vector3 groundPosition, LootKind kind, GameWeaponDefinition weapon = null)
+	public static GameLootPickup Spawn(
+		Vector3 groundPosition,
+		LootKind kind,
+		GameWeaponDefinition weapon = null,
+		bool canBeMagnetAttracted = true
+	)
 	{
 		var needsWeapon = kind == LootKind.Rifle || kind == LootKind.Shotgun;
 		if (!Networking.IsHost || !System.Enum.IsDefined(kind)
@@ -53,6 +59,7 @@ public sealed class GameLootPickup : Component
 		var pickup = obj.AddComponent<GameLootPickup>();
 		pickup.Kind = kind;
 		pickup.Weapon = weapon;
+		pickup.CanBeMagnetAttracted = weapon?.CanBeMagnetAttracted ?? canBeMagnetAttracted;
 		if (!obj.NetworkSpawn())
 		{
 			obj.Destroy();
@@ -180,6 +187,16 @@ public sealed class GameLootPickup : Component
 			return;
 		}
 
+		if (CanBeMagnetAttracted)
+		{
+			GamePickupMagnet.Attract(
+				pickup: this,
+				pickupRange: ContactRange,
+				targetHeight: 16f,
+				canAttract: CanAttract
+			);
+		}
+
 		if (Kind == LootKind.Health)
 		{
 			TryHealNearby();
@@ -213,11 +230,39 @@ public sealed class GameLootPickup : Component
 		return true;
 	}
 
+	private bool CanAttract(GamePlayer player)
+	{
+		if (!CanCollect(player))
+		{
+			return false;
+		}
+
+		var collectionRange = GamePickupMagnet.DefaultRange * player.ExperienceCollectionRangeMultiplier;
+		return CanReach(player, collectionRange);
+	}
+
+	private bool CanCollect(GamePlayer player)
+	{
+		if (!player.IsValid() || !player.Active || player.Health <= 0f)
+		{
+			return false;
+		}
+
+		return Kind switch
+		{
+			LootKind.Health => player.Health < player.MaxHealth,
+			LootKind.Armor => player.Armor < int.MaxValue,
+			LootKind.RerollDice => !player.IsRoundOver && player.RerollDice < int.MaxValue,
+			LootKind.Flare => Scene.GetAllComponents<GamePlayer>().Any(other => other.IsDead),
+			_ => false
+		};
+	}
+
 	private void TryHealNearby()
 	{
 		foreach (var player in Scene.GetAllComponents<GamePlayer>())
 		{
-			if (!CanReach(player, ContactRange) || !player.RestoreHealth(50f))
+			if (!CanCollect(player) || !CanReach(player, ContactRange) || !player.RestoreHealth(50f))
 			{
 				continue;
 			}
@@ -232,7 +277,7 @@ public sealed class GameLootPickup : Component
 	{
 		foreach (var player in Scene.GetAllComponents<GamePlayer>())
 		{
-			if (!CanReach(player, ContactRange) || !player.AddArmor(1))
+			if (!CanCollect(player) || !CanReach(player, ContactRange) || !player.AddArmor(1))
 			{
 				continue;
 			}
@@ -247,7 +292,7 @@ public sealed class GameLootPickup : Component
 	{
 		foreach (var player in Scene.GetAllComponents<GamePlayer>())
 		{
-			if (!CanReach(player, ContactRange) || !player.AddRerollDice(1))
+			if (!CanCollect(player) || !CanReach(player, ContactRange) || !player.AddRerollDice(1))
 			{
 				continue;
 			}
@@ -258,18 +303,12 @@ public sealed class GameLootPickup : Component
 		}
 	}
 
-	// Walking over a flare pickup fires the flare right away. Ignored while nobody is dead so it isn't wasted.
+	// Contact fires the flare right away. Ignored while nobody is dead so it isn't wasted.
 	private void TryFireFlareNearby()
 	{
-		var players = Scene.GetAllComponents<GamePlayer>().ToList();
-		if (!players.Any(x => x.IsDead))
+		foreach (var player in Scene.GetAllComponents<GamePlayer>())
 		{
-			return;
-		}
-
-		foreach (var player in players)
-		{
-			if (!CanReach(player, ContactRange))
+			if (!CanCollect(player) || !CanReach(player, ContactRange))
 			{
 				continue;
 			}

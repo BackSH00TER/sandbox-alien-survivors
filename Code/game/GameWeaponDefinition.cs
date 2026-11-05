@@ -5,6 +5,7 @@ using Sandbox;
 public sealed partial class GameWeaponDefinition : GameResource
 {
 	[Property] public string DisplayName { get; set; } = "Pistol";
+	[Property, Description("Whether the XP magnet can attract this weapon's loot drop.")] public bool CanBeMagnetAttracted { get; set; } = false;
 	[Property, Range(0.1f, 20f)] public float FireRate { get; set; } = 1f;
 	[Property, Range(1, 32)] public int BulletsPerShot { get; set; } = 1;
 	[Property, Range(0f, 180f), Description("Total angle of an evenly spaced multi-bullet fan. A single bullet fires straight.")] public float SpreadDegrees { get; set; } = 0f;

@@ -49,6 +49,22 @@ Walking over a die automatically grants one reroll to that living player. Dice
 accumulate for the round, persist through death/revive and weapon changes, and use
 the normal pickup range, line-of-sight and expiration rules.
 
+Health, armor, reroll dice and flare drops also use the XP magnet's 150-unit base
+attraction range and proximity-based movement speed. Vacuum upgrades increase this
+range by 20% per rank, up to 300 units at rank five, just like XP. Loot only moves
+toward active, living players with line of sight; its existing contact collection
+rules still apply. Attraction and contact collection share eligibility checks:
+full-health players do not attract health, flares stay put while nobody is dead,
+and armor/dice are not attracted to players whose counters are full.
+Health drops can still move toward another nearby injured player.
+Weapon drops are never attracted or automatically
+collected and still require interaction. Each pickup's `CanBeMagnetAttracted`
+boolean controls attraction. Weapon drops inherit that setting from their
+`GameWeaponDefinition`, where it defaults to false. Non-weapon spawns default to
+true and can pass `canBeMagnetAttracted: false` to opt out independently of kind.
+Adding a loot kind does not require extending the magnet's item list.
+Loot expiration is unchanged.
+
 The HUD always shows the local player's remaining Reroll Dice. While choosing an
 upgrade, click the reroll button or press R (`RerollModifiers` input action) to spend
 one die. Rerolling preserves the pending choice count, owned upgrades and More Choices
