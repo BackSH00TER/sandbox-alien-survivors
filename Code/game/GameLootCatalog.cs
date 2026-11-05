@@ -35,22 +35,6 @@ public interface ILootCollector
 	bool FireReviveFlare();
 }
 
-public enum LootRarity
-{
-	Common,
-	Uncommon,
-	Rare,
-	Epic,
-	Legendary
-}
-
-public sealed class LootRarityDefinition
-{
-	public LootRarity Id { get; init; }
-	public string Name { get; init; }
-	public float DropChance { get; init; }
-}
-
 public enum LootWeaponSlot
 {
 	None,
@@ -75,7 +59,7 @@ public sealed class LootDefinition
 	public LootEffect Effect { get; init; }
 	public int Amount { get; init; }
 	public bool CanBeMagnetAttracted { get; init; }
-	public LootRarity? Rarity { get; init; }
+	public GameRarity? Rarity { get; init; }
 	public Func<ILootCollector, int, bool> CanCollect { get; init; }
 	public Func<ILootCollector, int, bool> Collect { get; init; }
 	public string WeaponResourcePath { get; init; }
@@ -86,13 +70,13 @@ public sealed class LootDefinition
 /// <summary>Shared loot data. After the contextual flare roll, choose a rarity bucket and then an equally likely item within it.</summary>
 public static class GameLootCatalog
 {
-	public static IReadOnlyList<LootRarityDefinition> Rarities { get; } = Array.AsReadOnly(new[]
+	public static IReadOnlyList<RarityBucket> Rarities { get; } = Array.AsReadOnly(new[]
 	{
-		new LootRarityDefinition { Id = LootRarity.Common, Name = "Common", DropChance = 0.9f },
-		new LootRarityDefinition { Id = LootRarity.Uncommon, Name = "Uncommon", DropChance = 0f },
-		new LootRarityDefinition { Id = LootRarity.Rare, Name = "Rare", DropChance = 0.1f },
-		new LootRarityDefinition { Id = LootRarity.Epic, Name = "Epic", DropChance = 0f },
-		new LootRarityDefinition { Id = LootRarity.Legendary, Name = "Legendary", DropChance = 0f }
+		new RarityBucket(id: GameRarity.Common, chance: 0.9f),
+		new RarityBucket(id: GameRarity.Uncommon, chance: 0f),
+		new RarityBucket(id: GameRarity.Rare, chance: 0.1f),
+		new RarityBucket(id: GameRarity.Epic, chance: 0f),
+		new RarityBucket(id: GameRarity.Legendary, chance: 0f)
 	});
 
 	public static IReadOnlyList<LootDefinition> All { get; } = Array.AsReadOnly(new[]
@@ -104,7 +88,7 @@ public static class GameLootCatalog
 			Effect = LootEffect.Health,
 			Amount = 50,
 			CanBeMagnetAttracted = true,
-			Rarity = LootRarity.Common,
+			Rarity = GameRarity.Common,
 			CanCollect = (collector, amount) => collector.Health < collector.MaxHealth,
 			Collect = (collector, amount) => collector.RestoreHealth(amount),
 			VisualParts = HealthParts()
@@ -115,7 +99,7 @@ public static class GameLootCatalog
 			Name = "Rifle",
 			Effect = LootEffect.Weapon,
 			CanBeMagnetAttracted = false,
-			Rarity = LootRarity.Common,
+			Rarity = GameRarity.Common,
 			WeaponResourcePath = "weapons/rifle.weapon",
 			WeaponSlot = LootWeaponSlot.Rifle,
 			VisualParts = RifleParts()
@@ -126,7 +110,7 @@ public static class GameLootCatalog
 			Name = "Shotgun",
 			Effect = LootEffect.Weapon,
 			CanBeMagnetAttracted = false,
-			Rarity = LootRarity.Common,
+			Rarity = GameRarity.Common,
 			WeaponResourcePath = "weapons/shotgun.weapon",
 			WeaponSlot = LootWeaponSlot.Shotgun,
 			VisualParts = ShotgunParts()
@@ -148,7 +132,7 @@ public static class GameLootCatalog
 			Effect = LootEffect.Armor,
 			Amount = 1,
 			CanBeMagnetAttracted = true,
-			Rarity = LootRarity.Rare,
+			Rarity = GameRarity.Rare,
 			CanCollect = (collector, amount) => collector.Armor <= int.MaxValue - amount,
 			Collect = (collector, amount) => collector.AddArmor(amount),
 			VisualParts = ArmorParts()
@@ -160,7 +144,7 @@ public static class GameLootCatalog
 			Effect = LootEffect.RerollDice,
 			Amount = 1,
 			CanBeMagnetAttracted = true,
-			Rarity = LootRarity.Common,
+			Rarity = GameRarity.Common,
 			CanCollect = (collector, amount) => !collector.IsRoundOver && collector.RerollDice <= int.MaxValue - amount,
 			Collect = (collector, amount) => collector.AddRerollDice(amount),
 			VisualParts = DiceParts()
@@ -168,8 +152,7 @@ public static class GameLootCatalog
 	});
 
 	private static readonly IReadOnlyDictionary<LootKind, LootDefinition> ById = All.ToDictionary(item => item.Id);
-	private static readonly LootRarityDefinition[] ActiveRarities = Rarities.Where(rarity => rarity.DropChance > 0f).ToArray();
-	private static readonly IReadOnlyDictionary<LootRarity, LootDefinition[]> RarityDrops = Rarities.ToDictionary(
+	private static readonly IReadOnlyDictionary<GameRarity, LootDefinition[]> RarityDrops = Rarities.ToDictionary(
 		keySelector: rarity => rarity.Id,
 		elementSelector: rarity => All.Where(item => item.Rarity == rarity.Id).ToArray()
 	);
@@ -206,16 +189,12 @@ public static class GameLootCatalog
 		}
 		foreach (var rarity in Rarities)
 		{
-			if (string.IsNullOrWhiteSpace(rarity.Name) || !float.IsFinite(rarity.DropChance) || rarity.DropChance < 0f || rarity.DropChance > 1f)
-			{
-				throw new InvalidOperationException($"Rarity '{rarity.Id}' needs a name and a finite chance between zero and one.");
-			}
-			if (rarity.DropChance > 0f && RarityDrops[rarity.Id].Length == 0)
+			if (rarity.Chance > 0f && RarityDrops[rarity.Id].Length == 0)
 			{
 				throw new InvalidOperationException($"Enabled rarity '{rarity.Id}' needs at least one loot item.");
 			}
 		}
-		var totalChance = Rarities.Sum(rarity => rarity.DropChance);
+		var totalChance = Rarities.Sum(rarity => rarity.Chance);
 		if (MathF.Abs(totalChance - 1f) > 0.0001f)
 		{
 			throw new InvalidOperationException("Loot rarity chances must total 100%.");
@@ -244,17 +223,10 @@ public static class GameLootCatalog
 			return Get(LootKind.Flare);
 		}
 
-		var rarityRoll = NextRoll(random);
-		var rarity = WeightedDraw.Pick(
-			options: ActiveRarities,
-			weight: bucket => bucket.DropChance,
-			roll: rarityRoll
-		);
-		var itemRoll = NextRoll(random);
-		return WeightedDraw.Pick(
-			options: RarityDrops[rarity.Id],
-			weight: _ => 1f,
-			roll: itemRoll
+		return RarityDraw.Pick(
+			buckets: Rarities,
+			getCandidates: rarity => RarityDrops[rarity],
+			random: () => NextRoll(random)
 		);
 	}
 

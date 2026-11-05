@@ -1,6 +1,6 @@
 using Sandbox;
 
-public sealed class GamePlayer : GameEntity, ILootCollector
+public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 {
 	[Property, RequireComponent] public PlayerController Controller { get; set; }
 	[Property, RequireComponent] public GamePlayerStats Stats { get; set; }
@@ -83,9 +83,9 @@ public sealed class GamePlayer : GameEntity, ILootCollector
 	}
 
 	public float EffectiveAttackInterval => EquippedWeapon == null ? 0f
-		: System.MathF.Max(0.1f, 1f / (EquippedWeapon.FireRate * (1f + AttackSpeedStacks)));
+		: System.MathF.Max(0.1f, 1f / (EquippedWeapon.FireRate * ModifierCatalog.AttackRateMultiplier(ModifierStacks)));
 	public float EffectiveAttackRange => EquippedWeapon == null ? 0f
-		: EquippedWeapon.Range * (1f + AttackRangeStacks);
+		: EquippedWeapon.Range * ModifierCatalog.AttackRangeMultiplier(ModifierStacks);
 	public float ExperienceCollectionRangeMultiplier => ModifierCatalog.ExperienceCollectionRangeMultiplier(ModifierStacks);
 
 	public bool IsDead => Health <= 0f;
@@ -684,23 +684,8 @@ public sealed class GamePlayer : GameEntity, ILootCollector
 			return;
 		}
 
-		switch (modifier)
-		{
-			case GameModifier.AttackSpeed:
-				AttackSpeedStacks++;
-				NextAttackTime = System.MathF.Min(NextAttackTime, Time.Now + EffectiveAttackInterval);
-				break;
-			case GameModifier.AttackRange:
-				AttackRangeStacks++;
-				break;
-			case GameModifier.Vitality:
-				VitalityStacks++;
-				IncreaseMaxHealth(100f);
-				break;
-			default:
-				EffectModifierStacks[modifier] = ModifierStacks(modifier) + 1;
-				break;
-		}
+		var definition = ModifierCatalog.Get(modifier);
+		definition.ApplyTo(this);
 
 		GamePlayerStats.Record(this, GameStatKeys.ModifierPicked(modifier));
 		PendingModifierChoices--;
@@ -713,6 +698,36 @@ public sealed class GamePlayer : GameEntity, ILootCollector
 		{
 			ModifierOfferId++;
 		}
+	}
+
+	void IModifierRecipient.AddModifierStack(GameModifier modifier)
+	{
+		// Keep the existing replicated counters; behavior belongs to the catalog entry.
+		switch (modifier)
+		{
+			case GameModifier.AttackSpeed:
+				AttackSpeedStacks++;
+				break;
+			case GameModifier.AttackRange:
+				AttackRangeStacks++;
+				break;
+			case GameModifier.Vitality:
+				VitalityStacks++;
+				break;
+			default:
+				EffectModifierStacks[modifier] = ModifierStacks(modifier) + 1;
+				break;
+		}
+	}
+
+	void IModifierRecipient.RefreshAttackCooldown()
+	{
+		NextAttackTime = System.MathF.Min(NextAttackTime, Time.Now + EffectiveAttackInterval);
+	}
+
+	void IModifierRecipient.IncreaseMaxHealth(float amount)
+	{
+		IncreaseMaxHealth(amount);
 	}
 
 	[Rpc.Broadcast(NetFlags.HostOnly)]

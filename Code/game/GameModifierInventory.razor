@@ -10,8 +10,8 @@
 		int stacks = StacksOf(modifier);
 		if (stacks > 0)
 		{
-			<div class="modifier-item @(definition.EffectType.HasValue ? "damage-effect" : modifier.ToString().ToLowerInvariant())" tooltip="@($"{definition.Name}: {definition.Description}")">
-				<div class="modifier-icon">@ModifierCatalog.Icon(modifier)</div>
+			<div class="modifier-item @definition.InventoryClass" tooltip="@($"{definition.Name}: {definition.Description}")">
+				<div class="modifier-icon">@definition.Icon</div>
 				<div class="modifier-count">@stacks</div>
 			</div>
 		}

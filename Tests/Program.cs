@@ -7,12 +7,19 @@ var tests = new (string Name, Action Run)[]
 	("catalog coverage and prerequisites", Catalog),
 	("offers are eligible and distinct", Offers),
 	("extra options scale, cap and respect eligibility", ExtraOptions),
-	("extra option rarity uses reduced draw weight", ExtraOptionRarity),
-	("vacuum range scales, caps and uses common weight", Vacuum),
+	("modifier metadata and stable IDs are complete", ModifierCatalogTests.Coverage),
+	("modifier rarity-first draws preserve exact probabilities", ModifierCatalogTests.Rarities),
+	("empty modifier buckets renormalize, including rerolls", ModifierCatalogTests.EmptyBuckets),
+	("modifier effects apply through the catalog", ModifierCatalogTests.Effects),
+	("invalid modifier draws and IDs are rejected", ModifierCatalogTests.Invalid),
+	("vacuum range scales, caps and uses common rarity", Vacuum),
 	("rerolls change the set without unlocking unavailable modifiers", Rerolls),
 	("expanded rerolls preserve size and eligible alternatives", ExpandedRerolls),
 	("reroll stat appears once in the upgrades scorecard", RerollStat),
 	("weighted draw boundaries", Weights),
+	("shared rarity presentation and independent tuning", RarityDrawTests.Presentation),
+	("shared rarity draws preserve probabilities and random consumption", RarityDrawTests.Draws),
+	("shared rarity draws reject invalid inputs and empty selected buckets", RarityDrawTests.Invalid),
 	("loot catalog coverage, effects and magnet flags", LootCatalogTests.Coverage),
 	("loot callbacks apply effects and enforce eligibility", LootCatalogTests.Collection),
 	("loot rarity buckets preserve exact probabilities", LootCatalogTests.Drops),
@@ -157,32 +164,12 @@ static void ExtraOptions()
 	Check(ModifierCatalog.OfferSize(Stacks) == 3, "Offer size cannot fall below three.");
 }
 
-static void ExtraOptionRarity()
-{
-	Near(ModifierCatalog.Get(GameModifier.ExtraOption).DrawWeight, 0.2f);
-	Check(ModifierCatalog.All.Where(modifier => modifier.Id != GameModifier.ExtraOption)
-		.All(modifier => modifier.DrawWeight == 1f), "Existing modifier weights must not change.");
-	Check(ModifierCatalog.RollOffer(_ => 0, () => 0.7f)[0] == GameModifier.FireRounds, "Normal weighted bucket must precede rare modifier.");
-	Check(ModifierCatalog.RollOffer(_ => 0, () => 0.78f)[0] == GameModifier.ExtraOption, "Rare modifier must be drawable in its weighted bucket.");
-
-	var random = new Random(101);
-	int rareOffers = 0;
-	const int trials = 20000;
-	for (int i = 0; i < trials; i++)
-	{
-		if (ModifierCatalog.RollOffer(_ => 0, () => (float)random.NextDouble()).Contains(GameModifier.ExtraOption))
-			rareOffers++;
-	}
-	float frequency = (float)rareOffers / trials;
-	Check(frequency > 0.13f && frequency < 0.16f, $"Expected roughly 14% rare offers in the starting pool, got {frequency:P2}.");
-}
-
 static void Vacuum()
 {
 	var vacuum = ModifierCatalog.Get(GameModifier.Vacuum);
 	Check(vacuum.MaxPicks == 5 && vacuum.Prerequisites.Count == 0, "Vacuum must have five ranks and no prerequisite.");
 	Check(vacuum.Name == "Vacuum" && vacuum.Description == "Common: +20% base XP collection range per pick.", "Vacuum must describe its range increase.");
-	Near(vacuum.DrawWeight, 1f);
+	Check(vacuum.Rarity == GameRarity.Common, "Vacuum must use the common bucket.");
 	Near(vacuum.Amount, 0.2f);
 	for (int rank = 0; rank <= 5; rank++)
 	{
