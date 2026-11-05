@@ -19,17 +19,60 @@ participate in bullet rolls. Other types are not implemented or offered yet.
 Initial fire: 20% bullet chance, 5 seconds, 5 damage/second, one stack.
 Spread starts at 10% per second within 120 world units (s&box units are inches).
 Defaults and bullet color live in `DamageEffectCatalog`; upgrade increments,
-pick caps, prerequisites and offer weights live in `ModifierCatalog`.
+pick caps, prerequisites, effects, presentation and rarity buckets live in `ModifierCatalog`.
 Upgrade factory calls use C# named arguments (`stat:`, `amount:`, `prerequisite:`)
 to identify each value without introducing a separate options object.
+The fire-upgrade factory also accepts an optional `rarity:` override, defaulting
+to `GameRarity.Common`; existing fire upgrades retain their Common rarity.
 `DamageEffectDefinition.Resolve` adds each matching upgrade's increment multiplied
 by its pick count; these player picks are distinct from effect stacks on a target.
 
-Offers start with three distinct eligible modifiers, drawn by `DrawWeight` without
-replacement. **More Choices** is a rare, prerequisite-free modifier with five ranks:
+### Central modifier catalog
+
+Loot and modifiers share `GameRarity` IDs and display names through immutable
+`RarityBucket` entries. Each catalog owns its own probability table; identical
+90%/10% settings do not couple their future balancing. `RarityDraw.Pick` shares
+only the mechanics: skip zero-chance buckets, choose a weighted rarity and then a
+uniform item, consuming one random roll for each stage. Callers supply the buckets
+and candidates; an empty selected bucket fails explicitly rather than retrying.
+Loot keeps its static configuration validation and contextual flare pre-roll.
+Modifiers remove temporarily empty buckets before calling the helper, preserving
+their renormalization policy. Effects, eligibility, distinct offers and rerolls
+remain in their respective catalogs.
+
+`ModifierCatalog.All` is the typed source for stable modifier IDs, names, icons,
+descriptions, inventory classes, rarity, caps, prerequisites and effect increments.
+`ModifierDefinition.ApplyTo` records a stack through `IModifierRecipient`, then runs
+any immediate effect callback: Rapid Strikes refreshes the pending attack after
+the new stack is recorded, and Vitality grants 100 maximum health and healing.
+Passive effects resolve from owned picks using catalog amounts; fire settings
+remain in `DamageEffectCatalog`. The player retains its existing synchronized
+counters and host/offer validation. Both upgrade panels and the scorecard consume
+the same catalog metadata.
+
+Offers start with three distinct eligible modifiers. For each card, first draw a
+rarity from `ModifierCatalog.Rarities`, then draw uniformly from that bucket's
+remaining eligible modifiers, without replacement. Common is **90%** and Rare is
+**10%**; Uncommon, Epic and Legendary are defined at 0% and disabled. More Choices
+is the only Rare modifier; all other current modifiers, including Vacuum, are Common.
+These are per-card probabilities while both buckets have eligible cards, not
+per-offer probabilities. This intentionally changes the old balance: More Choices
+used to have weight 0.2 versus 1 per common card (3.85% on the initial first card);
+it now has a fixed 10% first-card chance, and a 27.1% chance to appear in an initial
+three-card offer. Adding or unlocking Common modifiers no longer dilutes Rare odds.
+
+Before each draw, omit disabled buckets and buckets without remaining eligible
+cards, then renormalize the remaining chances. This includes depletion within an
+offer, capped upgrades and forced reroll replacements. For example, after selecting
+More Choices once in an offer, all remaining cards come from Common. This runtime
+eligibility policy differs from loot's static configuration rule: an enabled
+modifier bucket still requires at least one configured entry, but all its entries
+may temporarily be capped, locked or already offered. Catalog chances must total
+100%; malformed catalog data and invalid rolls fail explicitly.
+
+**More Choices** is a rare, prerequisite-free modifier with five ranks:
 each pick adds one option to future offers (including queued level-ups), up to eight.
-Its draw weight is `0.2`, versus `1` for normal modifiers; this is a relative weight,
-not a fixed appearance percentage. At rank five it stops appearing. If fewer eligible
+At rank five it stops appearing. If fewer eligible
 modifiers exist than the slot count, offers show all eligible modifiers without duplicates.
 The host synchronizes the full offer and validates membership before accepting a pick.
 Cards wrap into rows, and number keys 1 through the current offer size select a card.
@@ -105,16 +148,16 @@ their actual weapon resource. To add an item using an existing effect, append a
 stable ID to `LootKind` and add a catalog entry with its settings and visual parts.
 New behavior is registered through the entry's eligibility/application callbacks
 rather than a pickup-component effect switch.
-Modifier offers still use their existing per-modifier weights; they have not
-been migrated to rarity buckets.
+Modifier offers use their own rarity catalog and the runtime empty-bucket
+handling described above; loot probabilities and flare handling are unchanged.
 
 The HUD always shows the local player's remaining Reroll Dice. While choosing an
 upgrade, click the reroll button or press R (`RerollModifiers` input action) to spend
 one die. Rerolling preserves the pending choice count, owned upgrades and More Choices
 slot count (up to eight, limited by the eligible pool), draws
 distinct eligible modifiers and changes at least one card, rather than only changing
-their order. If a draw repeats the old set, one card is replaced by a weighted
-eligible alternative. The button is disabled with no dice, while dead/round-over,
+their order. If a draw repeats the old set, one card is replaced by a rarity-first
+eligible alternative outside the old offer. The button is disabled with no dice, while dead/round-over,
 or if the current offer already contains every eligible modifier; no die is spent in those cases.
 The host validates the offer ID, ownership, round state and balance; a successful
 reroll invalidates the previous offer so duplicate requests cannot spend another die
@@ -197,8 +240,11 @@ dotnet run --project .\Tests\DamageFramework.Tests.csproj -p:EngineDirectory="$e
 
 If the shell does not have the engine variable, use
 `[Environment]::GetEnvironmentVariable('FACEPUNCH_ENGINE', 'User')` or pass your install
-directory explicitly. Tests cover prerequisite gating, weighted draws, offer uniqueness,
-More Choices ranks and caps, small eligible pools, rare-modifier draw frequency,
+directory explicitly. Tests cover prerequisite gating, exact rarity boundaries and
+uniform within-bucket draws, shared rarity names and independent probability tables,
+random-call counts, empty-bucket renormalization (including reroll replacements),
+catalog effect callbacks, invalid IDs/rolls, offer uniqueness, More Choices ranks
+and caps, small eligible pools, rare-modifier offer frequency,
 proc thresholds, independent expiries, exact damage, stack replacement, spread capacity,
 source attribution and cleanup.
 

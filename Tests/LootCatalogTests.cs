@@ -38,15 +38,17 @@ internal static class LootCatalogTests
 		Check(GameLootCatalog.Get(LootKind.Rifle).WeaponSlot == LootWeaponSlot.Rifle, "Rifle must retain its crate override.");
 		Check(GameLootCatalog.Get(LootKind.Shotgun).WeaponSlot == LootWeaponSlot.Shotgun, "Shotgun must retain its crate override.");
 		Check(!GameLootCatalog.Get(LootKind.Flare).Rarity.HasValue, "The contextual flare must stay outside the normal rarity buckets.");
-		Check(GameLootCatalog.Rarities.Select(rarity => rarity.Id).SequenceEqual(Enum.GetValues<LootRarity>()),
-			"Every rarity needs exactly one bucket definition.");
-		Check(MathF.Abs(GameLootCatalog.Rarities.Sum(rarity => rarity.DropChance) - 1f) < 0.0001f,
-			"Rarity percentages must total 100%.");
+		var rarityIds = GameLootCatalog.Rarities.Select(rarity => rarity.Id);
+		var expectedRarityIds = Enum.GetValues<GameRarity>();
+		Check(rarityIds.SequenceEqual(expectedRarityIds), "Every rarity needs exactly one bucket definition.");
+		float totalChance = GameLootCatalog.Rarities.Sum(rarity => rarity.Chance);
+		float chanceDeviation = MathF.Abs(totalChance - 1f);
+		Check(chanceDeviation < 0.0001f, "Rarity percentages must total 100%.");
 		foreach (var rarity in GameLootCatalog.Rarities)
 		{
-			Check(float.IsFinite(rarity.DropChance) && rarity.DropChance >= 0f && rarity.DropChance <= 1f,
+			Check(float.IsFinite(rarity.Chance) && rarity.Chance >= 0f && rarity.Chance <= 1f,
 				"Rarity probabilities must be finite and between zero and one.");
-			if (rarity.DropChance > 0f)
+			if (rarity.Chance > 0f)
 			{
 				Check(GameLootCatalog.All.Any(item => item.Rarity == rarity.Id), "Every enabled bucket needs loot.");
 			}
@@ -167,7 +169,7 @@ internal static class LootCatalogTests
 				rarityRoll: 0.95f,
 				itemRoll: item / 100f
 			);
-			Check(rare.Rarity == LootRarity.Rare, "Item selection must never change the chosen rarity.");
+			Check(rare.Rarity == GameRarity.Rare, "Item selection must never change the chosen rarity.");
 		}
 	}
 

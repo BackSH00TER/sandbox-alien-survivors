@@ -13,6 +13,7 @@
     <Compile Include="..\Code\game\DamageEffect.cs" Link="DamageEffect.cs" />
     <Compile Include="..\Code\game\TimedDamageEffects.cs" Link="TimedDamageEffects.cs" />
     <Compile Include="..\Code\game\WeightedDraw.cs" Link="WeightedDraw.cs" />
+    <Compile Include="..\Code\game\GameRarity.cs" Link="GameRarity.cs" />
     <Compile Include="..\Code\game\GameModifier.cs" Link="GameModifier.cs" />
     <Compile Include="..\Code\game\GameTimelineEvent.cs" Link="GameTimelineEvent.cs" />
     <Compile Include="..\Code\game\GameLootCatalog.cs" Link="GameLootCatalog.cs" />
