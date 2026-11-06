@@ -89,6 +89,7 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 	public float ExperienceCollectionRangeMultiplier => ModifierCatalog.ExperienceCollectionRangeMultiplier(ModifierStacks);
 
 	public bool IsDead => Health <= 0f;
+	public bool UsesCustomCursor => !IsRoundOver && PendingModifierChoices <= 0;
 
 	bool ILootCollector.HasDeadTeammate => Scene.GetAllComponents<GamePlayer>().Any(player => player.IsDead);
 
@@ -167,6 +168,7 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 		}
 
 		Mouse.Visibility = MouseVisibility.Visible;
+		Mouse.CursorType = UsesCustomCursor ? "none" : "default";
 		if (IsRoundOver)
 		{
 			return;

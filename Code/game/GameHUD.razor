@@ -4,6 +4,17 @@
 @namespace Sandbox
 
 <root>
+	@if (ShowAimReticle)
+	{
+		<div class="aim-reticle" style="left: @AimReticleLeft; top: @AimReticleTop;">
+			<div class="reticle-arm top"></div>
+			<div class="reticle-arm right"></div>
+			<div class="reticle-arm bottom"></div>
+			<div class="reticle-arm left"></div>
+			<div class="reticle-center"></div>
+		</div>
+	}
+
 	<GameTimeline />
 	<div class="title">@MatchStatus@(LocalPlayer?.IsStunned == true ? " STUNNED" : "")</div>
 
@@ -64,6 +75,12 @@
 
 	public static bool IsDebugEnabled(Scene scene) => scene.GetAllComponents<GameHUD>().Any(x => x.DebugEnabled);
 
+	private Vector2 _aimReticlePosition;
+
+	private bool ShowAimReticle => LocalPlayer.IsValid() && LocalPlayer.UsesCustomCursor;
+	private string AimReticleLeft => _aimReticlePosition.x.ToString(System.Globalization.CultureInfo.InvariantCulture) + "px";
+	private string AimReticleTop => _aimReticlePosition.y.ToString(System.Globalization.CultureInfo.InvariantCulture) + "px";
+
 	private string MatchStatus
 	{
 		get
@@ -86,7 +103,12 @@
 	protected override void OnUpdate()
 	{
 		if (Input.Pressed("ToggleDebug"))
+		{
 			DebugEnabled = !DebugEnabled;
+		}
+
+		var screenToPanelScale = Panel.ScaleFromScreen;
+		_aimReticlePosition = Panel.MousePosition * screenToPanelScale;
 	}
 
 	private float ExperiencePercent
@@ -106,6 +128,8 @@
 	protected override int BuildHash()
 	{
 		var player = LocalPlayer;
+		var showAimReticle = player.IsValid() && player.UsesCustomCursor;
+		var aimReticlePosition = showAimReticle ? _aimReticlePosition : Vector2.Zero;
 		return System.HashCode.Combine(
 			value1: MatchStatus,
 			value2: player,
@@ -118,7 +142,9 @@
 				value3: player?.EquippedWeapon,
 				value4: player?.EquippedWeapon?.BulletsPerShot,
 				value5: player?.RerollDice
-			)
+			),
+			value7: showAimReticle,
+			value8: aimReticlePosition
 		);
 	}
 }

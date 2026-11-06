@@ -9,6 +9,67 @@ GameHUD
 	font-weight: 600;
 	pointer-events: none;
 
+	.aim-reticle
+	{
+		position: absolute;
+		z-index: 100;
+		width: 28px;
+		height: 28px;
+		transform: translate(-50%, -50%);
+
+		.reticle-arm
+		{
+			position: absolute;
+			background-color: #8bf4ff;
+			border-radius: 1px;
+			box-shadow: 0 0 5px #69c9ff, 0 1px 2px #000;
+		}
+
+		.top
+		{
+			top: 0;
+			left: 13px;
+			width: 2px;
+			height: 7px;
+		}
+
+		.right
+		{
+			top: 13px;
+			right: 0;
+			width: 7px;
+			height: 2px;
+		}
+
+		.bottom
+		{
+			bottom: 0;
+			left: 13px;
+			width: 2px;
+			height: 7px;
+		}
+
+		.left
+		{
+			top: 13px;
+			left: 0;
+			width: 7px;
+			height: 2px;
+		}
+
+		.reticle-center
+		{
+			position: absolute;
+			top: 12px;
+			left: 12px;
+			width: 4px;
+			height: 4px;
+			background-color: #ffe091;
+			border-radius: 50%;
+			box-shadow: 0 0 5px #ffcf69, 0 1px 2px #000;
+		}
+	}
+
 	.attack-debug
 	{
 		position: absolute;
