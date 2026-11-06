@@ -11,6 +11,7 @@
   </Target>
   <ItemGroup>
     <Compile Include="..\Code\game\DamageEffect.cs" Link="DamageEffect.cs" />
+    <Compile Include="..\Code\game\DamageEffectChain.cs" Link="DamageEffectChain.cs" />
     <Compile Include="..\Code\game\TimedDamageEffects.cs" Link="TimedDamageEffects.cs" />
     <Compile Include="..\Code\game\WeightedDraw.cs" Link="WeightedDraw.cs" />
     <Compile Include="..\Code\game\GameRarity.cs" Link="GameRarity.cs" />

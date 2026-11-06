@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-/// <summary>Validated, immutable effect values captured when a projectile fires and reused when its effect spreads.</summary>
+/// <summary>Validated, immutable effect values captured when a projectile fires.</summary>
 public sealed class DamageEffectSettings
 {
 	public GameDamageType Type { get; }
@@ -12,18 +12,43 @@ public sealed class DamageEffectSettings
 	public int MaxStacks { get; }
 	public float SpreadChance { get; }
 	public float SpreadRadius { get; }
+	public float InstantDamage { get; }
+	public float ChainChance { get; }
+	public int MaxChains { get; }
+	public float ChainRadius { get; }
+	public bool IsInstant => InstantDamage > 0f;
 
-	public DamageEffectSettings(GameDamageType type, float applicationChance, float duration,
-		float damagePerSecond, int maxStacks, float spreadChance, float spreadRadius)
+	public DamageEffectSettings(
+		GameDamageType type,
+		float applicationChance,
+		float duration,
+		float damagePerSecond,
+		int maxStacks,
+		float spreadChance,
+		float spreadRadius,
+		float instantDamage = 0f,
+		float chainChance = 0f,
+		int maxChains = 0,
+		float chainRadius = 0f
+	)
 	{
+		var validTimed = instantDamage == 0f
+			&& float.IsFinite(duration) && duration > 0f
+			&& float.IsFinite(damagePerSecond) && damagePerSecond > 0f
+			&& float.IsFinite(spreadRadius) && spreadRadius > 0f
+			&& chainChance == 0f && maxChains == 0 && chainRadius == 0f;
+		var validInstant = float.IsFinite(instantDamage) && instantDamage > 0f
+			&& duration == 0f && damagePerSecond == 0f && maxStacks == 1
+			&& spreadChance == 0f && spreadRadius == 0f
+			&& float.IsFinite(chainChance) && chainChance >= 0f && chainChance <= 1f
+			&& maxChains >= 0 && float.IsFinite(chainRadius) && chainRadius > 0f;
 		if (!Enum.IsDefined(type) || type == GameDamageType.Physical
 			|| !float.IsFinite(applicationChance) || applicationChance < 0f || applicationChance > 1f
-			|| !float.IsFinite(duration) || duration <= 0f
-			|| !float.IsFinite(damagePerSecond) || damagePerSecond <= 0f || maxStacks < 1
+			|| maxStacks < 1
 			|| !float.IsFinite(spreadChance) || spreadChance < 0f || spreadChance > 1f
-			|| !float.IsFinite(spreadRadius) || spreadRadius <= 0f)
+			|| (!validTimed && !validInstant))
 		{
-			throw new ArgumentOutOfRangeException(nameof(type), "Invalid timed damage effect settings.");
+			throw new ArgumentOutOfRangeException(nameof(type), "Invalid damage effect settings.");
 		}
 
 		Type = type;
@@ -33,6 +58,10 @@ public sealed class DamageEffectSettings
 		MaxStacks = maxStacks;
 		SpreadChance = spreadChance;
 		SpreadRadius = spreadRadius;
+		InstantDamage = instantDamage;
+		ChainChance = chainChance;
+		MaxChains = maxChains;
+		ChainRadius = chainRadius;
 	}
 }
 
@@ -74,9 +103,9 @@ public sealed class TimedDamageEffects<TSource>
 	/// <remarks>Advance with flush enabled first so retiring applications do not lose their pending partial damage.</remarks>
 	public void Apply(DamageEffectSettings settings, TSource source, float now)
 	{
-		if (settings == null || !float.IsFinite(now))
+		if (settings == null || settings.IsInstant || !float.IsFinite(now))
 		{
-			throw new ArgumentException("Applying an effect requires settings and a finite time.");
+			throw new ArgumentException("Applying a timed effect requires timed settings and a finite time.");
 		}
 
 		_stacks.RemoveAll(effectStack => effectStack.ExpiresAt <= now);

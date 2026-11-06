@@ -9,14 +9,17 @@ public enum DamageEffectStat
 	Duration,
 	DamagePerSecond,
 	MaxStacks,
-	SpreadChance
+	SpreadChance,
+	InstantDamage,
+	ChainChance,
+	MaxChains
 }
 
 public sealed class DamageEffectDefinition
 {
 	public GameDamageType Type { get; init; }
 	public GameModifier Unlock { get; init; }
-	public GameModifier SpreadUnlock { get; init; }
+	public GameModifier? SpreadUnlock { get; init; }
 	public Color BulletColor { get; init; }
 	public float DrawWeight { get; init; } = 1f;
 	public float ApplicationChance { get; init; }
@@ -25,29 +28,68 @@ public sealed class DamageEffectDefinition
 	public int MaxStacks { get; init; } = 1;
 	public float SpreadChance { get; init; }
 	public float SpreadRadius { get; init; }
+	public float InstantDamage { get; init; }
+	public float ChainChance { get; init; }
+	public int MaxChains { get; init; }
+	public float ChainRadius { get; init; }
+	public float ChainRadiusPerAdditionalChain { get; init; }
 
 	/// <summary>Builds a shot's immutable effect settings from the base values and the player's upgrade picks.</summary>
 	public DamageEffectSettings Resolve(Func<GameModifier, int> getModifierPickCount)
 	{
 		// Sum each matching upgrade's increment multiplied by its pick count.
 		// These are player upgrade picks, not the timed effect stacks currently on an enemy.
-		float UpgradeBonus(DamageEffectStat stat) => ModifierCatalog.All
-			.Where(modifier => modifier.EffectType == Type && modifier.EffectStat == stat)
-			.Sum(modifier => modifier.Amount * getModifierPickCount(modifier.Id));
+		float UpgradeBonus(DamageEffectStat stat)
+		{
+			return ModifierCatalog.All
+				.Where(modifier => modifier.EffectType == Type && modifier.EffectStat == stat)
+				.Sum(modifier => modifier.Amount * getModifierPickCount(modifier.Id));
+		}
 
-		var spreadUnlocked = getModifierPickCount(SpreadUnlock) > 0;
-		var effectiveSpreadChance = spreadUnlocked
-			? Math.Clamp(SpreadChance + UpgradeBonus(DamageEffectStat.SpreadChance), 0f, 1f)
-			: 0f;
+		var spreadUnlocked = SpreadUnlock.HasValue && getModifierPickCount(SpreadUnlock.Value) > 0;
+		var applicationChance = ApplicationChance + UpgradeBonus(DamageEffectStat.ApplicationChance);
+		var spreadChance = SpreadChance + UpgradeBonus(DamageEffectStat.SpreadChance);
+		var chainChance = ChainChance + UpgradeBonus(DamageEffectStat.ChainChance);
+		var effectiveSpreadChance = 0f;
+		if (spreadUnlocked)
+		{
+			effectiveSpreadChance = Math.Clamp(
+				value: spreadChance,
+				min: 0f,
+				max: 1f
+			);
+		}
+		var duration = Duration + UpgradeBonus(DamageEffectStat.Duration);
+		var damagePerSecond = DamagePerSecond + UpgradeBonus(DamageEffectStat.DamagePerSecond);
+		var maxStacks = MaxStacks + (int)UpgradeBonus(DamageEffectStat.MaxStacks);
+		var instantDamage = InstantDamage + UpgradeBonus(DamageEffectStat.InstantDamage);
+		var additionalChains = (int)UpgradeBonus(DamageEffectStat.MaxChains);
+		var maxChains = MaxChains + additionalChains;
+		var chainRadius = ChainRadius + additionalChains * ChainRadiusPerAdditionalChain;
+		var effectiveApplicationChance = Math.Clamp(
+			value: applicationChance,
+			min: 0f,
+			max: 1f
+		);
+		var effectiveChainChance = Math.Clamp(
+			value: chainChance,
+			min: 0f,
+			max: 1f
+		);
 
 		return new DamageEffectSettings(
 			type: Type,
-			applicationChance: Math.Clamp(ApplicationChance + UpgradeBonus(DamageEffectStat.ApplicationChance), 0f, 1f),
-			duration: Duration + UpgradeBonus(DamageEffectStat.Duration),
-			damagePerSecond: DamagePerSecond + UpgradeBonus(DamageEffectStat.DamagePerSecond),
-			maxStacks: MaxStacks + (int)UpgradeBonus(DamageEffectStat.MaxStacks),
+			applicationChance: effectiveApplicationChance,
+			duration: duration,
+			damagePerSecond: damagePerSecond,
+			maxStacks: maxStacks,
 			spreadChance: effectiveSpreadChance,
-			spreadRadius: SpreadRadius);
+			spreadRadius: SpreadRadius,
+			instantDamage: instantDamage,
+			chainChance: effectiveChainChance,
+			maxChains: maxChains,
+			chainRadius: chainRadius
+		);
 	}
 }
 
@@ -67,6 +109,22 @@ public static class DamageEffectCatalog
 			DamagePerSecond = 5f,
 			SpreadChance = 0.1f,
 			SpreadRadius = 120f
+		},
+		new DamageEffectDefinition
+		{
+			Type = GameDamageType.Electricity,
+			Unlock = GameModifier.ShockRounds,
+			BulletColor = new Color(
+				r: 0.15f,
+				g: 0.7f,
+				b: 1f
+			),
+			ApplicationChance = 0.2f,
+			InstantDamage = 10f,
+			ChainChance = 0.2f,
+			MaxChains = 1,
+			ChainRadius = 180f,
+			ChainRadiusPerAdditionalChain = 60f
 		}
 	};
 

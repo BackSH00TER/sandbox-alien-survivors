@@ -49,14 +49,16 @@ internal static class ModifierCatalogTests
 	{
 		var ids = Enum.GetValues<GameModifier>();
 		var counts = ids.ToDictionary(id => id, _ => 0);
+		var commonCount = ModifierCatalog.All.Count(definition => definition.Rarity == GameRarity.Common && definition.IsAvailable(_ => 0));
+		var itemResolution = commonCount * 100;
 		for (int rarity = 0; rarity < 100; rarity++)
 		{
-			for (int item = 0; item < 100; item++)
+			for (int item = 0; item < itemResolution; item++)
 			{
 				var first = FirstDraw(
 					stacks: _ => 0,
 					rarityRoll: rarity / 100f,
-					itemRoll: item / 100f
+					itemRoll: item / (float)itemResolution
 				);
 				counts[first]++;
 			}
@@ -67,7 +69,7 @@ internal static class ModifierCatalogTests
 			int expected = 0;
 			if (definition.IsAvailable(_ => 0))
 			{
-				expected = definition.Rarity == GameRarity.Rare ? 1000 : 1800;
+				expected = definition.Rarity == GameRarity.Rare ? itemResolution * 10 : 9000;
 			}
 			Check(counts[definition.Id] == expected, $"Unexpected exact first-card probability for {definition.Id}.");
 		}
@@ -77,7 +79,7 @@ internal static class ModifierCatalogTests
 			rarityRoll: 0.89999f,
 			itemRoll: 1f
 		);
-		Check(lastCommon == GameModifier.Vacuum, "The common upper boundary must select its last item.");
+		Check(lastCommon == GameModifier.ShockRounds, "The common upper boundary must select its last item.");
 		var firstRare = FirstDraw(
 			stacks: _ => 0,
 			rarityRoll: 0.9f,
@@ -123,7 +125,7 @@ internal static class ModifierCatalogTests
 			return id == GameModifier.ExtraOption ? 5 : 0;
 		}
 		var onlyCommon = ModifierCatalog.RollOffer(CappedRare, () => 1f);
-		Check(onlyCommon.Count == 5 && onlyCommon.All(id => ModifierCatalog.Get(id).Rarity == GameRarity.Common),
+		Check(onlyCommon.Count == 6 && onlyCommon.All(id => ModifierCatalog.Get(id).Rarity == GameRarity.Common),
 			"A capped rare bucket must not stall or shorten a full-pool offer.");
 		Check(!ModifierCatalog.HasAlternativeOffer(CappedRare, onlyCommon), "A full eligible pool has no reroll alternative.");
 
@@ -132,22 +134,22 @@ internal static class ModifierCatalogTests
 			return id == GameModifier.ExtraOption ? 4 : 0;
 		}
 		var commonFirst = ModifierCatalog.RollOffer(Expanded, () => 0f);
-		Check(commonFirst.Count == 6 && commonFirst[^1] == GameModifier.ExtraOption,
+		Check(commonFirst.Count == 7 && commonFirst[^1] == GameModifier.ExtraOption,
 			"Exhausting all common cards must leave the rare bucket drawable.");
 
-		int FiveSlots(GameModifier id)
+		int SixSlots(GameModifier id)
 		{
-			return id == GameModifier.ExtraOption ? 2 : 0;
+			return id == GameModifier.ExtraOption ? 3 : 0;
 		}
-		var previous = ModifierCatalog.RollOffer(FiveSlots, () => 0f);
+		var previous = ModifierCatalog.RollOffer(SixSlots, () => 0f);
 		var rerolled = ModifierCatalog.RollOffer(
-			getModifierPickCount: FiveSlots,
+			getModifierPickCount: SixSlots,
 			random: () => 0f,
 			previousOffer: previous
 		);
 		Check(!previous.Contains(GameModifier.ExtraOption) && rerolled.Contains(GameModifier.ExtraOption),
 			"A forced reroll replacement with only a rare alternative must renormalize to rare.");
-		Check(rerolled.Count == 5 && rerolled.Distinct().Count() == 5, "Replacement must preserve size and distinctness.");
+		Check(rerolled.Count == 6 && rerolled.Distinct().Count() == 6, "Replacement must preserve size and distinctness.");
 	}
 
 	internal static void Effects()

@@ -24,6 +24,7 @@ public abstract class GameEntity : Component
 	[Property, Group("Armor"), Range(1, int.MaxValue), Description("Armor needed to fully block an explosive hit.")] public int ExplosiveArmorCost { get; set; } = 5;
 	[Property, Group("Armor"), Range(1, int.MaxValue), Description("Armor needed to fully block a fire hit.")] public int FireArmorCost { get; set; } = 1;
 	[Property, Group("Armor"), Range(1, int.MaxValue), Description("Armor needed to fully block an ice hit.")] public int IceArmorCost { get; set; } = 1;
+	[Property, Group("Armor"), Range(1, int.MaxValue), Description("Armor needed to fully block an electric hit.")] public int ElectricArmorCost { get; set; } = 1;
 	[Property, Group("Armor"), Description("When armor cannot cover the full hit cost, the unprotected fraction damages health. If disabled, any remaining armor blocks the full hit.")] public bool ArmorDamageOverflow { get; set; } = true;
 	[Property, Group("Debug")] public bool ShowAttackHitboxes { get; set; } = true;
 	public virtual bool CanTakeDamage => true;
@@ -115,6 +116,7 @@ public abstract class GameEntity : Component
 				GameDamageType.Explosive => ExplosiveArmorCost,
 				GameDamageType.Fire => FireArmorCost,
 				GameDamageType.Ice => IceArmorCost,
+				GameDamageType.Electricity => ElectricArmorCost,
 				_ => 1
 			};
 			if (armorCost <= 0)
@@ -178,6 +180,22 @@ public abstract class GameEntity : Component
 			return;
 		}
 
+		if (settings.IsInstant)
+		{
+			if (this is not GameEnemy enemy)
+			{
+				Log.Error("Instant damage effects require an enemy target.");
+				return;
+			}
+
+			ApplyInstantDamageEffect(
+				initialTarget: enemy,
+				settings: settings,
+				attacker: attacker
+			);
+			return;
+		}
+
 		if (_damageEffects.Count(settings.Type, Time.Now) == 0)
 		{
 			_nextSpreadTimes[settings.Type] = Time.Now + 1f;
@@ -185,6 +203,78 @@ public abstract class GameEntity : Component
 
 		_damageEffects.Apply(settings, attacker, Time.Now);
 		SyncEffectStacks();
+	}
+
+	private void ApplyInstantDamageEffect(
+		GameEnemy initialTarget,
+		DamageEffectSettings settings,
+		GameEntity attacker
+	)
+	{
+		var scene = Scene;
+		var arcStart = WorldPosition + Vector3.Up * 64f;
+
+		bool CanHit(GameEnemy enemy)
+		{
+			return attacker.IsValid() && enemy.IsValid() && enemy.CanReceiveEffectDamage;
+		}
+
+		GameEnemy FindNext(GameEnemy previous, IReadOnlySet<GameEnemy> visited)
+		{
+			var originPosition = previous.WorldPosition;
+			var originObject = previous.GameObject;
+			var radiusSquared = settings.ChainRadius * settings.ChainRadius;
+			var candidates = scene.GetAllComponents<GameEnemy>()
+				.Where(enemy => !visited.Contains(enemy) && CanHit(enemy))
+				.Where(enemy => (enemy.WorldPosition - originPosition).LengthSquared <= radiusSquared)
+				.OrderBy(enemy => (enemy.WorldPosition - originPosition).LengthSquared);
+			foreach (var enemy in candidates)
+			{
+				var visible = HasEffectLineOfSight(
+					scene: scene,
+					originPosition: originPosition,
+					originObject: originObject,
+					enemy: enemy
+				);
+				if (visible)
+				{
+					return enemy;
+				}
+			}
+
+			return null;
+		}
+
+		void Hit(GameEnemy enemy)
+		{
+			var arcEnd = enemy.WorldPosition + Vector3.Up * GameWeaponProjectile.CollisionHeight;
+			attacker.ShowShockArc(arcStart, arcEnd);
+			arcStart = arcEnd;
+			enemy.TakeDamage(
+				amount: settings.InstantDamage,
+				type: settings.Type,
+				attacker: attacker
+			);
+		}
+
+		DamageEffectChain.Apply(
+			initialTarget: initialTarget,
+			settings: settings,
+			canHit: CanHit,
+			findNext: FindNext,
+			hit: Hit,
+			random: () => Game.Random.Float()
+		);
+	}
+
+	[Rpc.Broadcast(NetFlags.HostOnly)]
+	private void ShowShockArc(Vector3 start, Vector3 end)
+	{
+		ShockVisual.Spawn(
+			scene: Scene,
+			start: start,
+			end: end
+		);
 	}
 
 	private void UpdateDamageEffects(bool allowSpread)
@@ -298,13 +388,31 @@ public abstract class GameEntity : Component
 
 	private bool HasSpreadLineOfSight(GameEnemy enemy)
 	{
+		return HasEffectLineOfSight(
+			scene: Scene,
+			originPosition: WorldPosition,
+			originObject: GameObject,
+			enemy: enemy
+		);
+	}
+
+	private static bool HasEffectLineOfSight(
+		Scene scene,
+		Vector3 originPosition,
+		GameObject originObject,
+		GameEnemy enemy
+	)
+	{
 		// Use bullet collision height so walls block spreading even when an enemy's feet are visible.
 		var collisionHeight = Vector3.Up * GameWeaponProjectile.CollisionHeight;
-		var trace = Scene.Trace
-			.FromTo(WorldPosition + collisionHeight, enemy.WorldPosition + collisionHeight)
-			.IgnoreGameObjectHierarchy(GameObject)
-			.Run();
-		return !trace.Hit || trace.GameObject.GetComponentInParent<GameEntity>() == enemy;
+		var traceBuilder = scene.Trace.FromTo(originPosition + collisionHeight, enemy.WorldPosition + collisionHeight);
+		if (originObject.IsValid())
+		{
+			traceBuilder = traceBuilder.IgnoreGameObjectHierarchy(originObject);
+		}
+
+		var trace = traceBuilder.Run();
+		return !trace.Hit || (trace.GameObject.IsValid() && trace.GameObject.GetComponentInParent<GameEntity>() == enemy);
 	}
 
 	private void SyncEffectStacks()

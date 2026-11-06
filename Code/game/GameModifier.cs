@@ -15,7 +15,12 @@ public enum GameModifier
 	FireSpread = 8,
 	FireSpreadChance = 9,
 	ExtraOption = 10,
-	Vacuum = 11
+	Vacuum = 11,
+	ShockRounds = 12,
+	ShockApplicationChance = 13,
+	ShockDamage = 14,
+	ShockChainChance = 15,
+	ShockChains = 16
 }
 
 public interface IModifierRecipient
@@ -184,7 +189,48 @@ public static class ModifierCatalog
 			Rarity = GameRarity.Common,
 			Amount = 0.2f,
 			MaxPicks = 5
-		}
+		},
+		new ModifierDefinition
+		{
+			Id = GameModifier.ShockRounds,
+			Icon = "electric_bolt",
+			Name = "Shock Rounds",
+			Description = "20% shock bullet chance: 10 instant electric damage, with a 20% chance to chain once within 180 units.",
+			InventoryClass = "damage-effect",
+			Rarity = GameRarity.Common,
+			EffectType = GameDamageType.Electricity,
+			MaxPicks = 1
+		},
+		ShockUpgrade(
+			id: GameModifier.ShockApplicationChance,
+			name: "Static Charge",
+			description: "+10 percentage points shock bullet chance per pick (up to 100%).",
+			stat: DamageEffectStat.ApplicationChance,
+			amount: 0.1f,
+			maxPicks: 8
+		),
+		ShockUpgrade(
+			id: GameModifier.ShockDamage,
+			name: "High Voltage",
+			description: "+5 instant electric damage per target per pick.",
+			stat: DamageEffectStat.InstantDamage,
+			amount: 5f
+		),
+		ShockUpgrade(
+			id: GameModifier.ShockChainChance,
+			name: "Conductivity",
+			description: "+10 percentage points chain chance per hop per pick (up to 100%).",
+			stat: DamageEffectStat.ChainChance,
+			amount: 0.1f,
+			maxPicks: 8
+		),
+		ShockUpgrade(
+			id: GameModifier.ShockChains,
+			name: "Chain Reaction",
+			description: "+1 additional enemy and +60 units range per shock chain hop per pick. Each hop rolls its own chance; walls block chains.",
+			stat: DamageEffectStat.MaxChains,
+			amount: 1f
+		)
 	});
 
 	private static readonly IReadOnlyDictionary<GameModifier, ModifierDefinition> ById = All.ToDictionary(definition => definition.Id);
@@ -262,6 +308,31 @@ public static class ModifierCatalog
 			Amount = amount,
 			MaxPicks = maxPicks,
 			Prerequisites = Array.AsReadOnly(new[] { prerequisite })
+		};
+	}
+
+	private static ModifierDefinition ShockUpgrade(
+		GameModifier id,
+		string name,
+		string description,
+		DamageEffectStat stat,
+		float amount,
+		int maxPicks = int.MaxValue
+	)
+	{
+		return new ModifierDefinition
+		{
+			Id = id,
+			Icon = "electric_bolt",
+			Name = name,
+			Description = description,
+			InventoryClass = "damage-effect",
+			Rarity = GameRarity.Common,
+			EffectType = GameDamageType.Electricity,
+			EffectStat = stat,
+			Amount = amount,
+			MaxPicks = maxPicks,
+			Prerequisites = Array.AsReadOnly(new[] { GameModifier.ShockRounds })
 		};
 	}
 
