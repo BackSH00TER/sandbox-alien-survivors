@@ -56,6 +56,7 @@ public sealed class LobbyPlayerMouseLook : Component
 		if (!IsProxy)
 		{
 			Mouse.Visibility = MouseVisibility.Visible;
+			Mouse.CursorType = "default";
 		}
 	}
 
@@ -96,6 +97,7 @@ public sealed class LobbyPlayerMouseLook : Component
 		if (!IsProxy)
 		{
 			Mouse.Visibility = MouseVisibility.Auto;
+			Mouse.CursorType = "default";
 		}
 
 		if (Controller?.Renderer == null)

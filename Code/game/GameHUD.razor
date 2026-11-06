@@ -4,6 +4,16 @@
 @namespace Sandbox
 
 <root>
+	@if (ShowCustomCursor)
+	{
+		<div class="game-cursor @(_isHoveringModifier ? "hand" : "")" style="left: @CursorLeft; top: @CursorTop;">
+			@if (_isHoveringModifier)
+			{
+				<span>touch_app</span>
+			}
+		</div>
+	}
+
 	<GameTimeline />
 	<div class="title">@MatchStatus@(LocalPlayer?.IsStunned == true ? " STUNNED" : "")</div>
 
@@ -64,6 +74,12 @@
 
 	public static bool IsDebugEnabled(Scene scene) => scene.GetAllComponents<GameHUD>().Any(x => x.DebugEnabled);
 
+	private Vector2 _cursorPosition;
+	private bool _isHoveringModifier;
+	private bool ShowCustomCursor => LocalPlayer.IsValid() && !LocalPlayer.IsRoundOver;
+	private string CursorLeft => _cursorPosition.x.ToString(System.Globalization.CultureInfo.InvariantCulture) + "px";
+	private string CursorTop => _cursorPosition.y.ToString(System.Globalization.CultureInfo.InvariantCulture) + "px";
+
 	private string MatchStatus
 	{
 		get
@@ -86,7 +102,14 @@
 	protected override void OnUpdate()
 	{
 		if (Input.Pressed("ToggleDebug"))
+		{
 			DebugEnabled = !DebugEnabled;
+		}
+
+		_cursorPosition = Panel.MousePosition * Panel.ScaleFromScreen;
+		_isHoveringModifier = Panel.Descendants.Any(panel => panel.HasHovered
+			&& (panel.HasClass("modifier-card")
+				|| (panel.HasClass("reroll-button") && !panel.HasClass("unavailable"))));
 	}
 
 	private float ExperiencePercent
@@ -118,7 +141,9 @@
 				value3: player?.EquippedWeapon,
 				value4: player?.EquippedWeapon?.BulletsPerShot,
 				value5: player?.RerollDice
-			)
+			),
+			value7: (ShowCustomCursor, _isHoveringModifier),
+			value8: ShowCustomCursor ? _cursorPosition : Vector2.Zero
 		);
 	}
 }
