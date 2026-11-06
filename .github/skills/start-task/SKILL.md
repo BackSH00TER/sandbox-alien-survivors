@@ -1,8 +1,6 @@
 ---
 name: start-task
-description: "Start an implementation task in an isolated worktree, then implement and validate it in this same chat."
-argument-hint: "Describe the task to implement"
-agent: agent
+description: "Use when the user invokes /start-task or requests starting an implementation task in an isolated worktree. Set up isolation, then implement and validate the task in this same chat."
 ---
 
 # Start task
