@@ -139,6 +139,12 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 	protected override void OnStart()
 	{
 		base.OnStart();
+		var playerRigidbody = Controller.Body;
+		if (!AddCollisionTag(playerRigidbody, PlayerCollisionTag))
+		{
+			Log.Error("Game player requires physics shapes to assign its collision tag.");
+		}
+
 		var heldWeapon = GameObject.GetOrAddComponent<GamePlayerHeldWeaponModel>();
 		heldWeapon.Flags |= ComponentFlags.NotNetworked | ComponentFlags.NotSaved;
 		var uavVisual = GameObject.GetOrAddComponent<GameUavVisual>();
