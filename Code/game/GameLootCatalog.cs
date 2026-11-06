@@ -128,9 +128,9 @@ public static class GameLootCatalog
 		new LootDefinition
 		{
 			Id = LootKind.Armor,
-			Name = "Armor +1",
+			Name = "Armor +5",
 			Effect = LootEffect.Armor,
-			Amount = 1,
+			Amount = 5,
 			CanBeMagnetAttracted = true,
 			Rarity = GameRarity.Rare,
 			CanCollect = (collector, amount) => collector.Armor <= int.MaxValue - amount,

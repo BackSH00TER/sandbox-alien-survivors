@@ -143,6 +143,7 @@ capabilities those callbacks need, keeping catalog rules testable without the
 engine. `GamePlayer` implements the contract using its existing health, armor,
 dice and revive-flare operations. Pickups retain host, round-state, range and
 line-of-sight checks and only disappear after successful effect application.
+Each armor pickup grants 5 armor points and is displayed as `Armor +5`.
 The display name for weapons still comes from
 their actual weapon resource. To add an item using an existing effect, append a
 stable ID to `LootKind` and add a catalog entry with its settings and visual parts.
