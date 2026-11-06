@@ -35,6 +35,7 @@ public sealed class GameEnemy : GameEntity
 	[Sync(SyncFlags.FromHost)] private float MovementUnlockTime { get; set; }
 	[Sync(SyncFlags.FromHost)] private bool IsTargetInPunchRange { get; set; }
 	[Sync(SyncFlags.FromHost)] private float StaggerEndTime { get; set; }
+	private GamePlayer _aggroTarget;
 
 	protected override void OnStart()
 	{
@@ -184,6 +185,12 @@ public sealed class GameEnemy : GameEntity
 			return;
 		}
 
+		if (!_aggroTarget.IsValid() || !_aggroTarget.Active || _aggroTarget.IsDead
+			|| !_aggroTarget.Controller.IsValid() || !_aggroTarget.Controller.Active)
+		{
+			_aggroTarget = null;
+		}
+
 		PlayerController target = null;
 		var nearestDistanceSquared = float.PositiveInfinity;
 
@@ -201,6 +208,13 @@ public sealed class GameEnemy : GameEntity
 			}
 
 			var distanceSquared = (controller.WorldPosition - WorldPosition).LengthSquared;
+			if (_aggroTarget.IsValid() && player == _aggroTarget)
+			{
+				target = controller;
+				nearestDistanceSquared = distanceSquared;
+				break;
+			}
+
 			if (distanceSquared < nearestDistanceSquared)
 			{
 				target = controller;
@@ -309,6 +323,23 @@ public sealed class GameEnemy : GameEntity
 		}
 
 		Controller.WishVelocity = direction.Normal * MoveSpeed;
+	}
+
+	internal void SetAggroTarget(GamePlayer player)
+	{
+		if (!Networking.IsHost || IsProxy)
+		{
+			Log.Error("Enemy aggro targets must be set on the host.");
+			return;
+		}
+
+		if (!player.IsValid() || !player.Active || player.IsDead
+			|| !player.Controller.IsValid() || !player.Controller.Active)
+		{
+			return;
+		}
+
+		_aggroTarget = player;
 	}
 
 	private void StopAttackMovement()
