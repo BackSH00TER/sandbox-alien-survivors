@@ -35,7 +35,8 @@ public sealed class GameEnemy : GameEntity
 	[Sync(SyncFlags.FromHost)] private float MovementUnlockTime { get; set; }
 	[Sync(SyncFlags.FromHost)] private bool IsTargetInPunchRange { get; set; }
 	[Sync(SyncFlags.FromHost)] private float StaggerEndTime { get; set; }
-	private GamePlayer _aggroTarget;
+	private const float AggroSwitchCooldown = 5f;
+	private readonly EnemyAggro<GamePlayer> _aggro = new(AggroSwitchCooldown, IsEligibleAggroTarget);
 
 	protected override void OnStart()
 	{
@@ -178,17 +179,13 @@ public sealed class GameEnemy : GameEntity
 			return;
 		}
 
+		_aggro.Advance(Time.Now);
+
 		if (Time.Now < StaggerEndTime)
 		{
 			GetComponent<GameEnemyRanged>()?.CancelAttack();
 			StopAttackMovement();
 			return;
-		}
-
-		if (!_aggroTarget.IsValid() || !_aggroTarget.Active || _aggroTarget.IsDead
-			|| !_aggroTarget.Controller.IsValid() || !_aggroTarget.Controller.Active)
-		{
-			_aggroTarget = null;
 		}
 
 		PlayerController target = null;
@@ -208,7 +205,7 @@ public sealed class GameEnemy : GameEntity
 			}
 
 			var distanceSquared = (controller.WorldPosition - WorldPosition).LengthSquared;
-			if (_aggroTarget.IsValid() && player == _aggroTarget)
+			if (_aggro.Target.IsValid() && player == _aggro.Target)
 			{
 				target = controller;
 				nearestDistanceSquared = distanceSquared;
@@ -333,13 +330,18 @@ public sealed class GameEnemy : GameEntity
 			return;
 		}
 
-		if (!player.IsValid() || !player.Active || player.IsDead
-			|| !player.Controller.IsValid() || !player.Controller.Active)
+		if (!IsEligibleAggroTarget(player))
 		{
 			return;
 		}
 
-		_aggroTarget = player;
+		_aggro.RecordHit(player, Time.Now);
+	}
+
+	private static bool IsEligibleAggroTarget(GamePlayer player)
+	{
+		return player.IsValid() && player.Active && !player.IsDead
+			&& player.Controller.IsValid() && player.Controller.Active;
 	}
 
 	private void StopAttackMovement()
