@@ -4,14 +4,13 @@
 @namespace Sandbox
 
 <root>
-	@if (ShowAimReticle)
+	@if (ShowCustomCursor)
 	{
-		<div class="aim-reticle" style="left: @AimReticleLeft; top: @AimReticleTop;">
-			<div class="reticle-arm top"></div>
-			<div class="reticle-arm right"></div>
-			<div class="reticle-arm bottom"></div>
-			<div class="reticle-arm left"></div>
-			<div class="reticle-center"></div>
+		<div class="game-cursor @(_isHoveringModifier ? "hand" : "")" style="left: @CursorLeft; top: @CursorTop;">
+			@if (_isHoveringModifier)
+			{
+				<span>touch_app</span>
+			}
 		</div>
 	}
 
@@ -75,11 +74,11 @@
 
 	public static bool IsDebugEnabled(Scene scene) => scene.GetAllComponents<GameHUD>().Any(x => x.DebugEnabled);
 
-	private Vector2 _aimReticlePosition;
-
-	private bool ShowAimReticle => LocalPlayer.IsValid() && LocalPlayer.UsesCustomCursor;
-	private string AimReticleLeft => _aimReticlePosition.x.ToString(System.Globalization.CultureInfo.InvariantCulture) + "px";
-	private string AimReticleTop => _aimReticlePosition.y.ToString(System.Globalization.CultureInfo.InvariantCulture) + "px";
+	private Vector2 _cursorPosition;
+	private bool _isHoveringModifier;
+	private bool ShowCustomCursor => LocalPlayer.IsValid() && !LocalPlayer.IsRoundOver;
+	private string CursorLeft => _cursorPosition.x.ToString(System.Globalization.CultureInfo.InvariantCulture) + "px";
+	private string CursorTop => _cursorPosition.y.ToString(System.Globalization.CultureInfo.InvariantCulture) + "px";
 
 	private string MatchStatus
 	{
@@ -107,8 +106,10 @@
 			DebugEnabled = !DebugEnabled;
 		}
 
-		var screenToPanelScale = Panel.ScaleFromScreen;
-		_aimReticlePosition = Panel.MousePosition * screenToPanelScale;
+		_cursorPosition = Panel.MousePosition * Panel.ScaleFromScreen;
+		_isHoveringModifier = Panel.Descendants.Any(panel => panel.HasHovered
+			&& (panel.HasClass("modifier-card")
+				|| (panel.HasClass("reroll-button") && !panel.HasClass("unavailable"))));
 	}
 
 	private float ExperiencePercent
@@ -128,8 +129,6 @@
 	protected override int BuildHash()
 	{
 		var player = LocalPlayer;
-		var showAimReticle = player.IsValid() && player.UsesCustomCursor;
-		var aimReticlePosition = showAimReticle ? _aimReticlePosition : Vector2.Zero;
 		return System.HashCode.Combine(
 			value1: MatchStatus,
 			value2: player,
@@ -143,8 +142,8 @@
 				value4: player?.EquippedWeapon?.BulletsPerShot,
 				value5: player?.RerollDice
 			),
-			value7: showAimReticle,
-			value8: aimReticlePosition
+			value7: (ShowCustomCursor, _isHoveringModifier),
+			value8: ShowCustomCursor ? _cursorPosition : Vector2.Zero
 		);
 	}
 }
