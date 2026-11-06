@@ -1,6 +1,6 @@
 using Sandbox;
 
-/// <summary>A 30-health shootable crate with an equally weighted, configurable drop count. Each item is rolled from <see cref="GameLootCatalog"/>.</summary>
+/// <summary>A 30-health shootable crate with configurable loot from <see cref="GameLootCatalog"/> and 0-3 nearby XP orbs.</summary>
 public sealed class GameSupplyCrate : GameEntity
 {
 	public const int DefaultMinDrops = 1;
@@ -125,6 +125,27 @@ public sealed class GameSupplyCrate : GameEntity
 				weapon: weapon
 			);
 		}
+
+		var orbCount = Game.Random.Int(0, 3);
+		for (var i = 0; i < orbCount; i++)
+		{
+			var angle = Game.Random.Float(0f, System.MathF.PI * 2f);
+			var distance = Game.Random.Float(24f, 48f);
+			var directionX = System.MathF.Cos(angle);
+			var directionY = System.MathF.Sin(angle);
+			var direction = new Vector3(
+				directionX,
+				directionY,
+				0f
+			);
+			var orbPosition = groundPosition + direction * distance;
+			GameExperienceOrb.Spawn(
+				scene: Scene,
+				position: orbPosition,
+				amount: 1
+			);
+		}
+
 		GameObject.Destroy();
 	}
 }
