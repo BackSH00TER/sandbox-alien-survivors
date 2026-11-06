@@ -39,6 +39,12 @@ public sealed class GameEnemy : GameEntity
 	protected override void OnStart()
 	{
 		base.OnStart();
+		var enemyRigidbody = Controller.Body;
+		if (!AddCollisionTag(enemyRigidbody, EnemyCollisionTag))
+		{
+			Log.Error("Game enemy requires physics shapes to assign its collision tag.");
+		}
+
 		var burningVisual = GameObject.GetOrAddComponent<BurningVisual>();
 		burningVisual.Flags |= ComponentFlags.NotNetworked | ComponentFlags.NotSaved;
 		Controller.UseInputControls = false;
@@ -384,6 +390,14 @@ public sealed class GameEnemy : GameEntity
 		RestoreMaterials();
 		var ragdoll = Controller.CreateRagdoll("Enemy Ragdoll");
 		ragdoll.AddComponent<GameBloodiedModel>().Amount = 1f;
+		var ragdollCollision = ragdoll.AddComponent<GameEnemyRagdollCollision>();
+		if (!ragdollCollision.ApplyCollisionTags())
+		{
+			ragdoll.Destroy();
+			Log.Error("Failed to assign collision tags to the enemy ragdoll.");
+			return;
+		}
+
 		var exploder = GetComponent<GameEnemyExploding>();
 		if (exploder.IsValid())
 		{
