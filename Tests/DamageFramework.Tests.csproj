@@ -22,6 +22,7 @@
     <Compile Include="..\Code\game\stats\GameEnemyKind.cs" Link="GameEnemyKind.cs" />
     <Compile Include="..\Code\game\stats\GameStatKeys.cs" Link="GameStatKeys.cs" />
     <Compile Include="..\Code\game\stats\GameStatCatalog.cs" Link="GameStatCatalog.cs" />
+    <Compile Include="..\Code\game\stats\GameStatHistory.cs" Link="GameStatHistory.cs" />
     <Reference Include="$(EngineDirectory)\bin\managed\Sandbox.System.dll" />
   </ItemGroup>
 </Project>
