@@ -4,8 +4,15 @@ using Sandbox;
 public sealed class GamePlayerStats : Component
 {
 	[Sync(SyncFlags.FromHost)] private NetDictionary<string, float> Values { get; set; } = new();
-	[Sync(SyncFlags.FromHost)]
-	public bool IsRoundOver { get; private set; }
+	[Sync(SyncFlags.FromHost)] public bool IsRoundOver { get; private set; }
+
+	[Sync(SyncFlags.FromHost)] public NetList<GameStatBucket> HistoryBuckets { get; private set; } = new();
+	[Sync(SyncFlags.FromHost)] public NetList<GameStatMoment> HistoryMoments { get; private set; } = new();
+	[Sync(SyncFlags.FromHost)] public float HistoryDuration { get; private set; }
+
+	private readonly GameStatHistory _history = new();
+	private readonly List<GameStatMoment> _moments = new();
+	private GameManager _manager;
 
 	public string PlayerName => GameObject.Network.Owner?.DisplayName ?? GameObject.Name;
 
@@ -35,6 +42,47 @@ public sealed class GamePlayerStats : Component
 		{
 			Log.Error("Stat amounts must be finite and positive.");
 			return;
+		}
+
+		if (IsRoundOver)
+		{
+			return;
+		}
+
+		if (!_manager.IsValid())
+		{
+			_manager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
+		}
+
+		if (!_manager.IsValid() || !_manager.TimelineReady)
+		{
+			Log.Error("Round stats require an initialized GameManager clock.");
+			return;
+		}
+
+		var seconds = _manager.ElapsedSeconds;
+		_history.Add(
+			key: key,
+			amount: amount,
+			seconds: seconds
+		);
+		if (key == GameStatKeys.Deaths || key == GameStatKeys.TimesRevived || key.StartsWith("modifier."))
+		{
+			var row = GameStatCatalog.Sections.SelectMany(section => section.Rows).First(stat => stat.Key == key);
+			var kind = key.StartsWith("modifier.") ? "modifier" : "survival";
+			var icon = "";
+			if (kind == "modifier")
+			{
+				var definition = ModifierCatalog.All.First(modifier => GameStatKeys.ModifierPicked(modifier.Id) == key);
+				icon = definition.Icon;
+			}
+
+			_moments.Add(new GameStatMoment(
+				Seconds: seconds,
+				Kind: kind,
+				Label: row.Label,
+				Icon: icon
+			));
 		}
 
 		Values[key] = Get(key) + amount;
@@ -87,8 +135,30 @@ public sealed class GamePlayerStats : Component
 	/// <summary>Host only. Tells every client the round is over so the results screen can open.</summary>
 	public static void EndRound(Scene scene)
 	{
+		if (!Networking.IsHost)
+		{
+			Log.Error("Only the host can finalize round stats.");
+			return;
+		}
+
+		var manager = scene.GetAllComponents<GameManager>().FirstOrDefault();
+		if (!manager.IsValid())
+		{
+			Log.Error("Round stats require a GameManager to finalize history.");
+			return;
+		}
+
 		foreach (GamePlayerStats stats in scene.GetAllComponents<GamePlayerStats>())
 		{
+			if (stats.IsRoundOver)
+			{
+				continue;
+			}
+
+			var buckets = stats._history.Snapshot();
+			stats.HistoryBuckets.AddRange(buckets);
+			stats.HistoryMoments.AddRange(stats._moments);
+			stats.HistoryDuration = manager.ElapsedSeconds;
 			stats.IsRoundOver = true;
 		}
 	}

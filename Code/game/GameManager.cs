@@ -9,7 +9,7 @@ public enum GameState
 public sealed class GameManager : Component
 {
 	[Group("Game Settings")] [Property, Description("Seconds until the boss spawns. Defeating the boss ends the match.")] public int CountdownTime { get; set; } = 60;
-	[Group("Game Settings"), Description("Ends the game as soon as every player is dead, since nobody is left to fire a revive flare. Turn off while debugging revives.")] [Property] public bool ShouldEndWhenAllDead { get; set; } = false;
+	[Group("Game Settings"), Description("Ends the game as soon as every player is dead, since nobody is left to fire a revive flare. Turn off while debugging revives.")] [Property] public bool ShouldEndWhenAllDead { get; set; } = true;
 	[Sync(SyncFlags.FromHost)] public GameState State { get; set; } = GameState.InProgress;
 	[Sync(SyncFlags.FromHost)] public GameEnemy Boss { get; private set; }
 	[Sync(SyncFlags.FromHost)] public bool BossSpawned { get; private set; }
@@ -20,6 +20,7 @@ public sealed class GameManager : Component
 	[Sync(SyncFlags.FromHost)] public TimeSince RoundClock { get; private set; }
 	[Sync(SyncFlags.FromHost)] public bool TimelineReady { get; private set; }
 	[Sync(SyncFlags.FromHost)] public float BossEventSeconds { get; private set; }
+	[Sync(SyncFlags.FromHost)] public NetList<GameStatMoment> RoundMoments { get; private set; } = new();
 	[Sync(SyncFlags.FromHost)] private float RoundEndedAt { get; set; }
 	private bool _isChangingScene;
 
@@ -50,6 +51,7 @@ public sealed class GameManager : Component
 			RoundClock = 0f;
 			BossEventSeconds = System.Math.Max(0, CountdownTime);
 			TimelineReady = true;
+			RecordRoundMoment("Round started");
 		}
 	}
 
@@ -95,6 +97,7 @@ public sealed class GameManager : Component
 		Boss = boss;
 		BossSpawned = true;
 		BossEventSeconds = ElapsedSeconds;
+		RecordRoundMoment("Boss spawned");
 	}
 
 	public void BossDefeated(GameEnemy enemy)
@@ -116,6 +119,7 @@ public sealed class GameManager : Component
 			return;
 		}
 
+		RecordRoundMoment("Boss defeated");
 		EndGame();
 	}
 
@@ -129,7 +133,24 @@ public sealed class GameManager : Component
 	{
 		RoundEndedAt = ElapsedSeconds;
 		State = GameState.Ended;
+		RecordRoundMoment("Round ended");
 		GamePlayerStats.EndRound(Scene);
+	}
+
+	/// <summary>Record actual event occurrences, not scheduled future events.</summary>
+	public void RecordRoundMoment(string label)
+	{
+		if (!Networking.IsHost || !TimelineReady || string.IsNullOrWhiteSpace(label))
+		{
+			Log.Error("Round moments require the host, an initialized clock, and a label.");
+			return;
+		}
+
+		RoundMoments.Add(new GameStatMoment(
+			Seconds: ElapsedSeconds,
+			Kind: "world",
+			Label: label
+		));
 	}
 
 	public void ReturnToLobby()
