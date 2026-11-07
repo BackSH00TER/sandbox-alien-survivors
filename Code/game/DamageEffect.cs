@@ -33,6 +33,8 @@ public sealed class DamageEffectDefinition
 	public int MaxChains { get; init; }
 	public float ChainRadius { get; init; }
 	public float ChainRadiusPerAdditionalChain { get; init; }
+	public float ChainDamageFalloff { get; init; }
+	public float MinimumChainDamageMultiplier { get; init; } = 0.1f;
 
 	/// <summary>Builds a shot's immutable effect settings from the base values and the player's upgrade picks.</summary>
 	public DamageEffectSettings Resolve(Func<GameModifier, int> getModifierPickCount)
@@ -88,7 +90,9 @@ public sealed class DamageEffectDefinition
 			instantDamage: instantDamage,
 			chainChance: effectiveChainChance,
 			maxChains: maxChains,
-			chainRadius: chainRadius
+			chainRadius: chainRadius,
+			chainDamageFalloff: ChainDamageFalloff,
+			minimumChainDamageMultiplier: MinimumChainDamageMultiplier
 		);
 	}
 }
@@ -124,7 +128,9 @@ public static class DamageEffectCatalog
 			ChainChance = 0.2f,
 			MaxChains = 1,
 			ChainRadius = 180f,
-			ChainRadiusPerAdditionalChain = 60f
+			ChainRadiusPerAdditionalChain = 60f,
+			ChainDamageFalloff = 0.1f,
+			MinimumChainDamageMultiplier = 0.1f
 		}
 	};
 

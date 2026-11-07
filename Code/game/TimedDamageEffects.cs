@@ -16,6 +16,8 @@ public sealed class DamageEffectSettings
 	public float ChainChance { get; }
 	public int MaxChains { get; }
 	public float ChainRadius { get; }
+	public float ChainDamageFalloff { get; }
+	public float MinimumChainDamageMultiplier { get; }
 	public bool IsInstant => InstantDamage > 0f;
 
 	public DamageEffectSettings(
@@ -29,7 +31,9 @@ public sealed class DamageEffectSettings
 		float instantDamage = 0f,
 		float chainChance = 0f,
 		int maxChains = 0,
-		float chainRadius = 0f
+		float chainRadius = 0f,
+		float chainDamageFalloff = 0f,
+		float minimumChainDamageMultiplier = 0.1f
 	)
 	{
 		var validTimed = instantDamage == 0f
@@ -45,6 +49,8 @@ public sealed class DamageEffectSettings
 		if (!Enum.IsDefined(type) || type == GameDamageType.Physical
 			|| !float.IsFinite(applicationChance) || applicationChance < 0f || applicationChance > 1f
 			|| maxStacks < 1
+			|| !float.IsFinite(chainDamageFalloff) || chainDamageFalloff < 0f || chainDamageFalloff > 1f
+			|| !float.IsFinite(minimumChainDamageMultiplier) || minimumChainDamageMultiplier <= 0f || minimumChainDamageMultiplier > 1f
 			|| !float.IsFinite(spreadChance) || spreadChance < 0f || spreadChance > 1f
 			|| (!validTimed && !validInstant))
 		{
@@ -62,6 +68,8 @@ public sealed class DamageEffectSettings
 		ChainChance = chainChance;
 		MaxChains = maxChains;
 		ChainRadius = chainRadius;
+		ChainDamageFalloff = chainDamageFalloff;
+		MinimumChainDamageMultiplier = minimumChainDamageMultiplier;
 	}
 }
 

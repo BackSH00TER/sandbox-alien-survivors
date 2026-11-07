@@ -3,7 +3,7 @@ using Sandbox;
 /// <summary>Short-lived local arc, broadcast by the host for both impacts and chain hops.</summary>
 public sealed class ShockVisual : Component
 {
-	private const float Lifetime = 0.18f;
+	private const float Lifetime = 0.4f;
 	private const int SegmentCount = 8;
 	private Vector3 _start;
 	private Vector3 _end;

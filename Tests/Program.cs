@@ -29,6 +29,7 @@ var tests = new (string Name, Action Run)[]
 	("shock progression and immutable settings", ShockTests.Progression),
 	("mixed damage effect rolls never retry", ShockTests.Rolls),
 	("shock chains respect limits, rolls and unique targets", ShockTests.Chains),
+	("shock damage falls linearly to a ten percent floor", ShockTests.Falloff),
 	("shock chain validation and timed isolation", ShockTests.Invalid),
 	("independent expiries and exact stacked damage", Expiries),
 	("whole-second ticks and partial renewal damage", TickCadence),

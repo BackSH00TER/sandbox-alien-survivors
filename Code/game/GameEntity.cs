@@ -245,13 +245,13 @@ public abstract class GameEntity : Component
 			return null;
 		}
 
-		void Hit(GameEnemy enemy)
+		void Hit(GameEnemy enemy, float damage)
 		{
 			var arcEnd = enemy.WorldPosition + Vector3.Up * GameWeaponProjectile.CollisionHeight;
 			attacker.ShowShockArc(arcStart, arcEnd);
 			arcStart = arcEnd;
 			enemy.TakeDamage(
-				amount: settings.InstantDamage,
+				amount: damage,
 				type: settings.Type,
 				attacker: attacker
 			);

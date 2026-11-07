@@ -33,7 +33,7 @@ by its pick count; these player picks are distinct from effect stacks on a targe
 | --- | --- | --- |
 | Shock Rounds | None | Unlock shock bullets and one possible chain; one-time pick |
 | Static Charge | Shock Rounds | +10 percentage points shock bullet chance, up to 100% |
-| High Voltage | Shock Rounds | +5 instant electric damage per target |
+| High Voltage | Shock Rounds | +5 base electric damage before chain falloff |
 | Conductivity | Shock Rounds | +10 percentage points chain chance per hop, up to 100% |
 | Chain Reaction | Shock Rounds | +1 additional enemy and +60 units chain range per hop |
 
@@ -51,6 +51,14 @@ the enemy survives that hit and remains damageable. Crates do not receive effect
 
 Shock deals its damage immediately, never creates timed stacks, and uses the
 `Electricity` damage type for armor, damage credit and scorecard statistics.
+The first target receives full shock damage. Each hop loses 10% of the original
+shock damage, not 10% of the previous hit: 100%, 90%, 80%, 70%, and so on.
+Damage bottoms out at 10% and stays there for further hops; reaching the floor
+does not end the chain. For a base 10-damage shock, hits deal 10, 9, 8, ... 1, 1.
+High Voltage increases the original damage before these percentages apply.
+Falloff is applied before each target's armor, so armor does not reduce the
+starting damage used for later hops. These values are captured with the shot
+through `ChainDamageFalloff` and `MinimumChainDamageMultiplier`.
 `ElectricArmorCost` defaults to one. Each hop independently rolls its chain chance;
 failure ends the chain. Successful hops select the nearest active, living,
 damageable, visible enemy in range of the previous target. Walls block chains,
@@ -63,7 +71,8 @@ still chain: the next target is selected before damage creates a ragdoll or dest
 the current enemy. Eligibility is checked again before each hit, so round end stops damage.
 
 Shock bullets are blue. A host-broadcast, local-only jagged cyan arc flashes at
-the initial impact and between chained targets, then removes itself after 0.18 seconds.
+the initial impact and between chained targets, then removes itself after 0.4 seconds.
+This visual lifetime does not delay damage or subsequent chain hops.
 No scene or prefab changes are required.
 
 ### Central modifier catalog

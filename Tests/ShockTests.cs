@@ -26,6 +26,8 @@ internal static class ShockTests
 		Near(settings.ApplicationChance, 0.2f);
 		Near(settings.ChainChance, 0.2f);
 		Near(settings.ChainRadius, 180f);
+		Near(settings.ChainDamageFalloff, 0.1f);
+		Near(settings.MinimumChainDamageMultiplier, 0.1f);
 		Near(settings.Duration, 0f);
 		Near(settings.DamagePerSecond, 0f);
 		Near(settings.SpreadChance, 0f);
@@ -55,6 +57,7 @@ internal static class ShockTests
 		var fire = DamageEffectCatalog.Get(GameDamageType.Fire).Resolve(Stacks);
 		Check(!fire.IsInstant && fire.MaxStacks == 1, "Shock picks cannot change fire.");
 		Near(fire.DamagePerSecond, 5f);
+		Near(fire.ChainDamageFalloff, 0f);
 		var scorecard = GameStatCatalog.Sections.Single(section => section.Title == "Upgrades");
 		foreach (var modifier in upgrades.Append(unlock))
 		{
@@ -116,6 +119,12 @@ internal static class ShockTests
 		hits = Run(
 			settings: Settings(chance: 1f, chains: 10),
 			rolls: Array.Empty<float>(),
+			findNext: (current, _) => current == "A" ? "B" : "A"
+		);
+		Check(hits.SequenceEqual(new[] { "A", "B" }), "A chain must not bounce back to its first target after hitting another enemy.");
+		hits = Run(
+			settings: Settings(chance: 1f, chains: 10),
+			rolls: Array.Empty<float>(),
 			findNext: (_, _) => null
 		);
 		Check(hits.Count == 1, "No nearby visible enemy must end a chain.");
@@ -140,7 +149,7 @@ internal static class ShockTests
 			settings: settings,
 			canHit: target => target == "A" || nextAlive,
 			findNext: (_, _) => originAlive ? "B" : throw new InvalidOperationException("Origin must be inspected before lethal damage."),
-			hit: target =>
+			hit: (target, _) =>
 			{
 				hits.Add(target);
 				originAlive = false;
@@ -151,6 +160,42 @@ internal static class ShockTests
 		Check(hits.SequenceEqual(new[] { "A" }), "A selected target must be rechecked after the previous hit ends the round or removes it.");
 	}
 
+	internal static void Falloff()
+	{
+		var definition = DamageEffectCatalog.Get(GameDamageType.Electricity);
+		var targets = Enumerable.Range(0, 13).Select(index => $"Enemy {index}").ToArray();
+		var expectedDamage = new[] { 10f, 9f, 8f, 7f, 6f, 5f, 4f, 3f, 2f, 1f, 1f, 1f, 1f };
+		foreach (int damagePicks in new[] { 0, 2 })
+		{
+			var picks = new Dictionary<GameModifier, int>
+			{
+				[GameModifier.ShockRounds] = 1,
+				[GameModifier.ShockChainChance] = 8,
+				[GameModifier.ShockChains] = 11,
+				[GameModifier.ShockDamage] = damagePicks
+			};
+			var settings = definition.Resolve(modifier => picks.GetValueOrDefault(modifier));
+			var hits = new List<float>();
+			DamageEffectChain.Apply(
+				initialTarget: targets[0],
+				settings: settings,
+				canHit: _ => true,
+				findNext: (_, visited) => targets.FirstOrDefault(target => !visited.Contains(target)),
+				hit: (_, damage) => hits.Add(damage),
+				random: () => throw new InvalidOperationException("Guaranteed chains must not roll.")
+			);
+			Check(hits.Count == expectedDamage.Length, "The damage floor must not stop a chain with targets and hops remaining.");
+			var upgradeMultiplier = damagePicks == 0 ? 1f : 2f;
+			for (int index = 0; index < expectedDamage.Length; index++)
+			{
+				Near(hits[index], expectedDamage[index] * upgradeMultiplier);
+			}
+
+			var totalDamage = hits.Sum();
+			Near(totalDamage, 58f * upgradeMultiplier);
+		}
+	}
+
 	internal static void Invalid()
 	{
 		foreach (var chance in new[] { -0.1f, 1.1f, float.NaN, float.PositiveInfinity })
@@ -159,6 +204,25 @@ internal static class ShockTests
 		}
 
 		Reject<ArgumentOutOfRangeException>(() => Settings(chance: 1f, chains: -1));
+		foreach (var invalid in new[] { -0.1f, 1.1f, float.NaN, float.PositiveInfinity })
+		{
+			Reject<ArgumentOutOfRangeException>(() => Settings(
+				chance: 1f,
+				chains: 1,
+				falloff: invalid
+			));
+			Reject<ArgumentOutOfRangeException>(() => Settings(
+				chance: 1f,
+				chains: 1,
+				minimumMultiplier: invalid
+			));
+		}
+
+		Reject<ArgumentOutOfRangeException>(() => Settings(
+			chance: 1f,
+			chains: 1,
+			minimumMultiplier: 0f
+		));
 		Reject<ArgumentOutOfRangeException>(() => Run(
 			settings: Settings(chance: 0.2f, chains: 1),
 			rolls: new[] { float.NaN }
@@ -188,14 +252,19 @@ internal static class ShockTests
 			settings: settings,
 			canHit: canHit ?? (_ => true),
 			findNext: findNext ?? ((_, visited) => targets.FirstOrDefault(target => !visited.Contains(target))),
-			hit: hits.Add,
+			hit: (target, _) => hits.Add(target),
 			random: () => random.Dequeue()
 		);
 		Check(random.Count == 0, "Chains must consume exactly one random roll per attempted non-guaranteed hop.");
 		return hits;
 	}
 
-	private static DamageEffectSettings Settings(float chance, int chains)
+	private static DamageEffectSettings Settings(
+		float chance,
+		int chains,
+		float falloff = 0.1f,
+		float minimumMultiplier = 0.1f
+	)
 	{
 		return new DamageEffectSettings(
 			type: GameDamageType.Electricity,
@@ -208,7 +277,9 @@ internal static class ShockTests
 			instantDamage: 10f,
 			chainChance: chance,
 			maxChains: chains,
-			chainRadius: 180f
+			chainRadius: 180f,
+			chainDamageFalloff: falloff,
+			minimumChainDamageMultiplier: minimumMultiplier
 		);
 	}
 

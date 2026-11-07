@@ -212,7 +212,7 @@ public static class ModifierCatalog
 		ShockUpgrade(
 			id: GameModifier.ShockDamage,
 			name: "High Voltage",
-			description: "+5 instant electric damage per target per pick.",
+			description: "+5 base electric damage per pick. Each hop loses 10% of the base damage, down to a 10% minimum.",
 			stat: DamageEffectStat.InstantDamage,
 			amount: 5f
 		),

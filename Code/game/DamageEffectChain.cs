@@ -9,7 +9,7 @@ public static class DamageEffectChain
 		DamageEffectSettings settings,
 		Func<TTarget, bool> canHit,
 		Func<TTarget, IReadOnlySet<TTarget>, TTarget> findNext,
-		Action<TTarget> hit,
+		Action<TTarget, float> hit,
 		Func<float> random
 	) where TTarget : class
 	{
@@ -54,7 +54,10 @@ public static class DamageEffectChain
 				remainingChains--;
 			}
 
-			hit(current);
+			var hop = visited.Count - 1;
+			var damageMultiplier = MathF.Max(settings.MinimumChainDamageMultiplier, 1f - hop * settings.ChainDamageFalloff);
+			var damage = settings.InstantDamage * damageMultiplier;
+			hit(current, damage);
 			current = next;
 		}
 	}
