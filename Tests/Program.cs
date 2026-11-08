@@ -11,6 +11,12 @@ var tests = new (string Name, Action Run)[]
 	("modifier rarity-first draws preserve exact probabilities", ModifierCatalogTests.Rarities),
 	("empty modifier buckets renormalize, including rerolls", ModifierCatalogTests.EmptyBuckets),
 	("modifier effects apply through the catalog", ModifierCatalogTests.Effects),
+	("new modifier progression, caps and prerequisites", ShotModifierTests.Progression),
+	("bullet procs capture independent immutable settings", ShotModifierTests.Bullets),
+	("bonus volleys roll once per trigger and cap their chance", ShotModifierTests.Volleys),
+	("power shots guarantee double damage and shorten their interval", ShotModifierTests.PowerShots),
+	("invalid shot rolls are rejected", ShotModifierTests.Invalid),
+	("pickup bonuses use scaled amounts and armor capacity", LootCatalogTests.Bonuses),
 	("invalid modifier draws and IDs are rejected", ModifierCatalogTests.Invalid),
 	("vacuum range scales, caps and uses common rarity", Vacuum),
 	("rerolls change the set without unlocking unavailable modifiers", Rerolls),
@@ -184,6 +190,10 @@ static void Vacuum()
 	{
 		int Stacks(GameModifier modifier)
 		{
+			if (modifier >= GameModifier.AttackDamage)
+			{
+				return ModifierCatalog.Get(modifier).MaxPicks;
+			}
 			return modifier == GameModifier.Vacuum ? rank : 0;
 		}
 
@@ -206,7 +216,7 @@ static void Vacuum()
 
 	Near(ModifierCatalog.ExperienceCollectionRangeMultiplier(_ => 100), 2f);
 	Near(ModifierCatalog.ExperienceCollectionRangeMultiplier(_ => -1), 1f);
-	Near(ModifierCatalog.ExperienceCollectionRangeMultiplier(modifier => modifier == GameModifier.AttackRange ? 5 : 0), 1f);
+	Near(ModifierCatalog.ExperienceCollectionRangeMultiplier(modifier => modifier == GameModifier.AttackDamage ? 5 : 0), 1f);
 	var upgrades = GameStatCatalog.Sections.Single(section => section.Title == "Upgrades");
 	var vacuumKey = GameStatKeys.ModifierPicked(GameModifier.Vacuum);
 	Check(upgrades.Rows.Single(row => row.Key == vacuumKey).Label == "Vacuum", "The scorecard must include Vacuum.");
@@ -247,7 +257,7 @@ static void Rerolls()
 	}
 	var maxed = ModifierCatalog.All.ToDictionary(modifier => modifier.Id, modifier => modifier.MaxPicks);
 	maxed[GameModifier.AttackSpeed] = 0;
-	maxed[GameModifier.AttackRange] = 0;
+	maxed[GameModifier.AttackDamage] = 0;
 	maxed[GameModifier.Vitality] = 0;
 	int MaxedPicks(GameModifier modifier) => maxed[modifier];
 	var onlyOffer = ModifierCatalog.RollOffer(MaxedPicks, () => 0f);
@@ -305,21 +315,29 @@ static void ExpandedRerolls()
 	{
 		picks[modifier.Id] = modifier.MaxPicks;
 	}
+	foreach (var modifier in ModifierCatalog.All.Where(modifier => modifier.Id >= GameModifier.AttackDamage))
+	{
+		picks[modifier.Id] = modifier.MaxPicks;
+	}
 
 	fullyUnlocked = ModifierCatalog.RollOffer(Stacks, () => 0f);
-	Check(!ModifierCatalog.HasAlternativeOffer(Stacks, fullyUnlocked), "All eight eligible cards leave no reroll alternative.");
+	Check(!ModifierCatalog.HasAlternativeOffer(Stacks, fullyUnlocked), "All seven eligible cards leave no reroll alternative.");
 
 	picks.Clear();
+	foreach (var modifier in ModifierCatalog.All.Where(modifier => modifier.Id >= GameModifier.AttackDamage))
+	{
+		picks[modifier.Id] = modifier.MaxPicks;
+	}
 	picks[GameModifier.ExtraOption] = 5;
 	var allEligible = ModifierCatalog.RollOffer(Stacks, () => 0f);
-	Check(allEligible.Count == 6, "Locked effects must leave six eligible choices at rank five.");
+	Check(allEligible.Count == 5, "Locked effects must leave five eligible choices at rank five.");
 	Check(!ModifierCatalog.HasAlternativeOffer(Stacks, allEligible), "Reroll must be disabled when every eligible choice is shown.");
 	var noAlternative = ModifierCatalog.RollOffer(
 		getModifierPickCount: Stacks,
 		random: () => 1f,
 		previousOffer: allEligible
 	);
-	Check(noAlternative.Count == 6 && noAlternative.All(allEligible.Contains), "A full-pool offer cannot invent an alternative.");
+	Check(noAlternative.Count == 5 && noAlternative.All(allEligible.Contains), "A full-pool offer cannot invent an alternative.");
 }
 
 static void FireRolls()

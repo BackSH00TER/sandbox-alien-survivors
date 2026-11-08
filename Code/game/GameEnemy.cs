@@ -3,6 +3,23 @@ using Sandbox;
 public sealed class GameEnemy : GameEntity
 {
 	public override bool CanTakeDamage => Health > 0f && !IsDescending;
+	[Sync(SyncFlags.FromHost)] private float SlowEndTime { get; set; }
+	public float MovementMultiplier => Time.Now < SlowEndTime ? GameShotModifiers.SlowMultiplier : 1f;
+
+	public void ApplySlow(float duration)
+	{
+		if (!Networking.IsHost || !float.IsFinite(duration) || duration <= 0f)
+		{
+			Log.Error("Applying a slow requires the host and a finite positive duration.");
+			return;
+		}
+		if (!Active || !CanTakeDamage)
+		{
+			return;
+		}
+
+		SlowEndTime = System.MathF.Max(SlowEndTime, Time.Now + duration);
+	}
 
 	public void ApplyDamageEffect(DamageEffectSettings settings, GameEntity attacker)
 	{
@@ -274,7 +291,7 @@ public sealed class GameEnemy : GameEntity
 			}
 			else if (horizontal.LengthSquared > rangedStoppingDistance * rangedStoppingDistance)
 			{
-				Controller.WishVelocity = horizontal.Normal * RangedMoveSpeed;
+				Controller.WishVelocity = horizontal.Normal * RangedMoveSpeed * MovementMultiplier;
 			}
 
 			return;
@@ -334,7 +351,7 @@ public sealed class GameEnemy : GameEntity
 			return;
 		}
 
-		Controller.WishVelocity = direction.Normal * MoveSpeed;
+		Controller.WishVelocity = direction.Normal * MoveSpeed * MovementMultiplier;
 	}
 
 	internal void SetAggroTarget(GamePlayer player)

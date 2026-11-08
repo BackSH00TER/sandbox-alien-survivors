@@ -101,6 +101,33 @@ internal static class LootCatalogTests
 		}
 	}
 
+	internal static void Bonuses()
+	{
+		var collector = new TestCollector
+		{
+			Health = 1f,
+			MaxHealth = 200f,
+			HealthPickupMultiplier = 1.25f,
+			ArmorPickupMultiplier = 1.25f
+		};
+		var health = GameLootCatalog.Get(LootKind.Health);
+		Check(health.Collect(collector, health.Amount), "Boosted healing must collect.");
+		Check(collector.Health == 63.5f, "One medicine pick must grant 62.5 health from a 50-health pickup.");
+		collector.Health = 190f;
+		Check(health.Collect(collector, health.Amount) && collector.Health == 200f, "Healing must still clamp to max health.");
+
+		var armor = GameLootCatalog.Get(LootKind.Armor);
+		Check(armor.Collect(collector, armor.Amount) && collector.Armor == 7, "One armor pick must round 6.25 up to seven.");
+		collector.Armor = int.MaxValue - 6;
+		Check(!armor.CanCollect(collector, armor.Amount), "Eligibility must use boosted armor, not the base five.");
+		Check(!armor.Collect(collector, armor.Amount), "Direct collection must also reject boosted overflow.");
+		collector.Armor = int.MaxValue - 7;
+		Check(armor.CanCollect(collector, armor.Amount), "Exact boosted capacity must be eligible.");
+		Check(armor.Collect(collector, armor.Amount) && collector.Armor == int.MaxValue, "Exact boosted capacity must collect.");
+		collector.ArmorPickupMultiplier = float.MaxValue;
+		Check(!armor.CanCollect(collector, armor.Amount), "Amounts beyond integer capacity must be rejected before casting.");
+	}
+
 	internal static void Drops()
 	{
 		var counts = Enum.GetValues<LootKind>().ToDictionary(kind => kind, _ => 0);
@@ -271,6 +298,8 @@ internal static class LootCatalogTests
 		public float MaxHealth { get; set; } = 100f;
 		public int Armor { get; set; }
 		public int RerollDice { get; set; }
+		public float HealthPickupMultiplier { get; set; } = 1f;
+		public float ArmorPickupMultiplier { get; set; } = 1f;
 		public bool IsRoundOver { get; set; }
 		public bool HasDeadTeammate { get; set; }
 		public bool AcceptActions { get; set; } = true;

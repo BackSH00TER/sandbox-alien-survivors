@@ -59,15 +59,12 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 	[Sync(SyncFlags.FromHost)]
 	public int AttackSpeedStacks { get; private set; }
 	[Sync(SyncFlags.FromHost)]
-	public int AttackRangeStacks { get; private set; }
-	[Sync(SyncFlags.FromHost)]
 	public int VitalityStacks { get; private set; }
 	[Sync(SyncFlags.FromHost)] private NetDictionary<GameModifier, int> EffectModifierStacks { get; set; } = new();
 
 	public int ModifierStacks(GameModifier modifier) => modifier switch
 	{
 		GameModifier.AttackSpeed => AttackSpeedStacks,
-		GameModifier.AttackRange => AttackRangeStacks,
 		GameModifier.Vitality => VitalityStacks,
 		_ => EffectModifierStacks.TryGetValue(modifier, out var count) ? count : 0
 	};
@@ -75,7 +72,7 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 	/// <summary>Lets the inventory UI detect changed upgrade counts without depending on dictionary iteration order.</summary>
 	public int ModifierContentHash()
 	{
-		int hash = System.HashCode.Combine(AttackSpeedStacks, AttackRangeStacks, VitalityStacks);
+		int hash = System.HashCode.Combine(AttackSpeedStacks, VitalityStacks);
 		foreach (var pair in EffectModifierStacks)
 		{
 			hash ^= System.HashCode.Combine(pair.Key, pair.Value);
@@ -86,9 +83,11 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 
 	public float EffectiveAttackInterval => EquippedWeapon == null ? 0f
 		: System.MathF.Max(0.1f, 1f / (EquippedWeapon.FireRate * ModifierCatalog.AttackRateMultiplier(ModifierStacks)));
-	public float EffectiveAttackRange => EquippedWeapon == null ? 0f
-		: EquippedWeapon.Range * ModifierCatalog.AttackRangeMultiplier(ModifierStacks);
+	public float EffectiveAttackRange => EquippedWeapon?.Range ?? 0f;
 	public float ExperienceCollectionRangeMultiplier => ModifierCatalog.ExperienceCollectionRangeMultiplier(ModifierStacks);
+
+	float ILootCollector.HealthPickupMultiplier => 1f + ModifierCatalog.Bonus(GameModifier.HealthPickupBonus, ModifierStacks);
+	float ILootCollector.ArmorPickupMultiplier => 1f + ModifierCatalog.Bonus(GameModifier.ArmorPickupBonus, ModifierStacks);
 
 	public bool IsDead => Health <= 0f;
 
@@ -137,6 +136,8 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 	private bool _missingCameraLogged;
 	private bool _wasDead;
 	private float _invulnerableUntil; // host clock, only the host checks it
+	private float _baseWalkSpeed;
+	private int _shotsSincePowerShot;
 
 	protected override void OnStart()
 	{
@@ -157,6 +158,7 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 		Controller.RunByDefault = false;
 		Controller.AltMoveButton = "";
 		Controller.RunSpeed = Controller.WalkSpeed;
+		_baseWalkSpeed = Controller.WalkSpeed;
 
 		if (Networking.IsHost)
 		{
@@ -284,6 +286,9 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 
 	protected override void OnFixedUpdate()
 	{
+		var moveSpeedBonus = ModifierCatalog.Bonus(GameModifier.MoveSpeed, ModifierStacks);
+		Controller.WalkSpeed = _baseWalkSpeed * (1f + moveSpeedBonus);
+		Controller.RunSpeed = Controller.WalkSpeed;
 		if (IsStunned || IsRoundOver)
 		{
 			StopMovement();
@@ -309,6 +314,12 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 		if (gameManager != null && gameManager.State != GameState.InProgress)
 		{
 			return;
+		}
+
+		var regeneration = ModifierCatalog.Bonus(GameModifier.HealthRegeneration, ModifierStacks);
+		if (!IsDead && Health < MaxHealth && regeneration > 0f && Time.Delta > 0f)
+		{
+			RestoreHealth(regeneration * Time.Delta);
 		}
 
 		if (!IsDead && EquippedWeapon != null && Time.Now >= NextAttackTime)
@@ -631,15 +642,38 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 			return;
 		}
 
-		for (var i = 0; i < EquippedWeapon.BulletsPerShot; i++)
+		var extraBullets = GameShotModifiers.ExtraBulletCount(ModifierStacks, () => Game.Random.Float());
+		var bulletCount = EquippedWeapon.BulletsPerShot + extraBullets;
+		var damageMultiplier = GameShotModifiers.DamageMultiplier(
+			stacks: ModifierStacks,
+			shotsSincePowerShot: ref _shotsSincePowerShot
+		);
+		for (var i = 0; i < bulletCount; i++)
 		{
-			var angle = EquippedWeapon.BulletsPerShot == 1 ? 0f
-				: -EquippedWeapon.SpreadDegrees * 0.5f + EquippedWeapon.SpreadDegrees * i / (EquippedWeapon.BulletsPerShot - 1);
+			var angle = bulletCount == 1 ? 0f
+				: -EquippedWeapon.SpreadDegrees * 0.5f + EquippedWeapon.SpreadDegrees * i / (bulletCount - 1);
 			var direction = Rotation.FromYaw(angle) * forward;
-			GameWeaponProjectile.Spawn(this, EquippedWeapon, origin, direction, EffectiveAttackRange);
+			GameWeaponProjectile.Spawn(
+				shooter: this,
+				weapon: EquippedWeapon,
+				position: origin,
+				direction: direction,
+				range: EffectiveAttackRange,
+				damageMultiplier: damageMultiplier
+			);
 		}
 
 		PlayFire((int)EquippedWeapon.HoldType);
+	}
+
+	[Rpc.Broadcast(NetFlags.HostOnly)]
+	internal void ShowSplashImpact(Vector3 position)
+	{
+		SplashVisual.Spawn(
+			scene: Scene,
+			center: position,
+			radius: GameShotModifiers.SplashRadius
+		);
 	}
 
 	private void DrawAttackRange()
@@ -759,9 +793,6 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 		{
 			case GameModifier.AttackSpeed:
 				AttackSpeedStacks++;
-				break;
-			case GameModifier.AttackRange:
-				AttackRangeStacks++;
 				break;
 			case GameModifier.Vitality:
 				VitalityStacks++;
