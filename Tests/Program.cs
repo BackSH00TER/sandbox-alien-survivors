@@ -28,6 +28,12 @@ var tests = new (string Name, Action Run)[]
 	("enemy aggro switches only after the cooldown", EnemyAggroTests.Cooldown),
 	("enemy aggro handles unavailable targets", EnemyAggroTests.Unavailable),
 	("fire chance, defaults and upgrade caps", FireRolls),
+	("shock progression and immutable settings", ShockTests.Progression),
+	("mixed damage effect rolls never retry", ShockTests.Rolls),
+	("shock chains respect limits, rolls and unique targets", ShockTests.Chains),
+	("shock damage falls linearly to a ten percent floor", ShockTests.Falloff),
+	("shock chain validation and timed isolation", ShockTests.Invalid),
+	("instant effects may omit chain settings", ShockTests.OptionalChains),
 	("independent expiries and exact stacked damage", Expiries),
 	("whole-second ticks and partial renewal damage", TickCadence),
 	("oldest replacement and attacker credit", Replacement),
@@ -90,7 +96,8 @@ static DamageEffectSettings Settings(int cap = 1, float duration = 10f, float dp
 static void Catalog()
 {
 	Check(ModifierCatalog.All.Select(modifier => modifier.Id).SequenceEqual(Enum.GetValues<GameModifier>()), "Missing or duplicate modifier.");
-	Check(DamageEffectCatalog.All.Count == 1 && DamageEffectCatalog.All[0].Type == GameDamageType.Fire, "Only fire is implemented.");
+	Check(DamageEffectCatalog.All.Select(effect => effect.Type).SequenceEqual(new[] { GameDamageType.Fire, GameDamageType.Electricity }),
+		"Only fire and electricity are implemented.");
 	var picks = new Dictionary<GameModifier, int>();
 	int Stacks(GameModifier modifier) => picks.GetValueOrDefault(modifier);
 	Check(ModifierCatalog.Get(GameModifier.FireRounds).IsAvailable(Stacks), "Fire unlock must be available.");
@@ -294,20 +301,25 @@ static void ExpandedRerolls()
 	Check(fullyUnlocked.Count == 8, "Fully unlocked rank five must show eight choices.");
 	Check(ModifierCatalog.HasAlternativeOffer(Stacks, fullyUnlocked), "Vacuum must add an eligible reroll alternative.");
 	picks[GameModifier.Vacuum] = 5;
+	foreach (var modifier in ModifierCatalog.All.Where(modifier => modifier.EffectType == GameDamageType.Electricity))
+	{
+		picks[modifier.Id] = modifier.MaxPicks;
+	}
+
 	fullyUnlocked = ModifierCatalog.RollOffer(Stacks, () => 0f);
 	Check(!ModifierCatalog.HasAlternativeOffer(Stacks, fullyUnlocked), "All eight eligible cards leave no reroll alternative.");
 
 	picks.Clear();
 	picks[GameModifier.ExtraOption] = 5;
 	var allEligible = ModifierCatalog.RollOffer(Stacks, () => 0f);
-	Check(allEligible.Count == 5, "Locked fire must leave five eligible choices at rank five.");
+	Check(allEligible.Count == 6, "Locked effects must leave six eligible choices at rank five.");
 	Check(!ModifierCatalog.HasAlternativeOffer(Stacks, allEligible), "Reroll must be disabled when every eligible choice is shown.");
 	var noAlternative = ModifierCatalog.RollOffer(
 		getModifierPickCount: Stacks,
 		random: () => 1f,
 		previousOffer: allEligible
 	);
-	Check(noAlternative.Count == 5 && noAlternative.All(allEligible.Contains), "A full-pool offer cannot invent an alternative.");
+	Check(noAlternative.Count == 6 && noAlternative.All(allEligible.Contains), "A full-pool offer cannot invent an alternative.");
 }
 
 static void FireRolls()

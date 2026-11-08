@@ -1,7 +1,7 @@
 # Damage effects
 
-Fire is the first playable effect. Poison and electricity have reserved damage-type
-entries; explosive and ice entries are preserved. Only entries in `DamageEffectCatalog`
+Fire and electric shock are playable effects. Poison has a reserved damage-type
+entry; explosive and ice entries are preserved. Only entries in `DamageEffectCatalog`
 participate in bullet rolls. Other types are not implemented or offered yet.
 
 ## Fire progression and tuning
@@ -26,6 +26,54 @@ The fire-upgrade factory also accepts an optional `rarity:` override, defaulting
 to `GameRarity.Common`; existing fire upgrades retain their Common rarity.
 `DamageEffectDefinition.Resolve` adds each matching upgrade's increment multiplied
 by its pick count; these player picks are distinct from effect stacks on a target.
+
+## Electric shock progression and tuning
+
+| Upgrade | Prerequisite | Benefit |
+| --- | --- | --- |
+| Shock Rounds | None | Unlock shock bullets and one possible chain; one-time pick |
+| Static Charge | Shock Rounds | +10 percentage points shock bullet chance, up to 100% |
+| High Voltage | Shock Rounds | +5 base electric damage before chain falloff |
+| Conductivity | Shock Rounds | +10 percentage points chain chance per hop, up to 100% |
+| Chain Reaction | Shock Rounds | +1 additional enemy and +60 units chain range per hop |
+
+Initial shock: 20% bullet chance, 10 instant electric damage, and a 20% chance
+to chain to one additional enemy within 180 units. Chaining is included in the
+initial unlock, not gated behind a separate modifier. All shock modifiers are Common.
+Chance upgrades each stop appearing after eight picks; the other upgrades repeat.
+
+The shared bullet draw chooses one unlocked effect with equal default weight, then
+rolls only that effect's application chance. Owning both fire and shock therefore
+splits effect selection 50/50; a failed proc stays physical and never retries.
+Projectiles capture immutable settings when fired, including shock upgrades.
+As with fire, the physical bullet hit is resolved first; effects apply only if
+the enemy survives that hit and remains damageable. Crates do not receive effects.
+
+Shock deals its damage immediately, never creates timed stacks, and uses the
+`Electricity` damage type for armor, damage credit and scorecard statistics.
+The first target receives full shock damage. Each hop loses 10% of the original
+shock damage, not 10% of the previous hit: 100%, 90%, 80%, 70%, and so on.
+Damage bottoms out at 10% and stays there for further hops; reaching the floor
+does not end the chain. For a base 10-damage shock, hits deal 10, 9, 8, ... 1, 1.
+High Voltage increases the original damage before these percentages apply.
+Falloff is applied before each target's armor, so armor does not reduce the
+starting damage used for later hops. These values are captured with the shot
+through `ChainDamageFalloff` and `MinimumChainDamageMultiplier`.
+`ElectricArmorCost` defaults to one. Each hop independently rolls its chain chance;
+failure ends the chain. Successful hops select the nearest active, living,
+damageable, visible enemy in range of the previous target. Walls block chains,
+and no target is hit twice by the same shock. One chain means two total targets;
+each Chain Reaction pick adds one more possible target and 60 units of hop range
+(180 units initially, then 240, 300, and so on). The range bonus is bundled with
+the chain-count upgrade, not offered as a separate modifier. Its increment lives
+in `DamageEffectDefinition.ChainRadiusPerAdditionalChain`. Lethal shock damage can
+still chain: the next target is selected before damage creates a ragdoll or destroys
+the current enemy. Eligibility is checked again before each hit, so round end stops damage.
+
+Shock bullets are blue. A host-broadcast, local-only jagged cyan arc flashes at
+the initial impact and between chained targets, then removes itself after 0.4 seconds.
+This visual lifetime does not delay damage or subsequent chain hops.
+No scene or prefab changes are required.
 
 ### Central modifier catalog
 
@@ -228,13 +276,20 @@ New effect upgrades use the generic synchronized modifier dictionary.
 into helpers. Its round-manager property caches the scene lookup while the manager
 is valid and reacquires it after removal or a scene change.
 
-Instant explosion damage needs a separate impact behavior (area damage, not a timed
-stack); do not model it as a fake duration. Electricity-specific stuns or other special
-behaviors likewise need an explicit implementation before enabling their catalog entries.
+Instant effects use `InstantDamage`, with zero duration/DPS and no timed spread.
+Chain settings are optional: omitted numeric properties default to zero and disable
+chaining. A non-chaining instant effect may omit its chain radius; enabled chaining
+requires a positive radius. Nullable chain fields are not needed.
+`GameEnemy.ApplyDamageEffect` is the public entry point, so projectile impacts select
+an enemy before applying an effect; players and crates do not expose that method.
+`DamageEffectChain` selects each next target before dealing damage, then rechecks
+eligibility before hitting it. This supports lethal hits without chaining through a
+new ragdoll. Instant explosion damage still needs separate area-targeting behavior;
+do not model it as a fake duration. Stuns likewise need an explicit implementation.
 
 ## Validation
 
-The deterministic test executable links the production catalog and stack logic and
+The deterministic test executable links the production catalog, chain and stack logic and
 uses the installed engine's real `Color` type, without starting an editor or adding
 NuGet packages:
 
@@ -249,12 +304,18 @@ uniform within-bucket draws, shared rarity names and independent probability tab
 random-call counts, empty-bucket renormalization (including reroll replacements),
 catalog effect callbacks, invalid IDs/rolls, offer uniqueness, More Choices ranks
 and caps, small eligible pools, rare-modifier offer frequency,
-proc thresholds, independent expiries, exact damage, stack replacement, spread capacity,
-source attribution and cleanup.
+proc thresholds, mixed fire/shock draws without retries, shock progression, per-hop
+chance thresholds, unique targets, exact chain limits, post-hit eligibility,
+independent expiries, exact damage, stack replacement, spread capacity, source
+attribution and cleanup.
 
 For gameplay verification, open this worktree's `.sbproj` in s&box, pick Fire Rounds,
 then test fire bullets against enemies and crates. Burning enemies should display
 the moving orange/yellow wisps, which disappear after the last fire stack expires.
+Pick Shock Rounds to check blue bullets and brief cyan arcs. With Conductivity
+maxed, the base shock must hit at most two enemies; each Chain Reaction pick adds
+one target and 60 units of range per hop. Check walls, range, armor, lethal hops, round end, original-player electric
+damage credit, and that shocks never leave timed stacks or lingering arc objects.
 Pick Layered Flames and Spreading
 Flames to verify stacking and spread; Wildfire must not appear before spread is owned.
 The editor validates networking and rendering as well as the C# compile.
