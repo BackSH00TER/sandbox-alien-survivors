@@ -1,5 +1,73 @@
 # Damage effects
 
+## Common combat and survival modifiers
+
+Existing Rapid Strikes (+100% attack rate) and
+Vitality (+100 maximum health and healing) retain their behavior. New modifiers
+are all Common; no damage-type conversion modifiers were added.
+These combat and survival upgrades use explicit `ModifierDefinition` initializers
+with individually editable `Rarity` values, currently set to `GameRarity.Common`.
+Long Reach has been removed; weapon range stays at the weapon's configured base.
+Its synchronized modifier ID (1) is retired without renumbering other modifiers.
+
+| Upgrade | Benefit per pick |
+| --- | --- |
+| Heavy Rounds | +20% base weapon damage |
+| Fleet Footed | +10% base player movement speed |
+| Better Medicine | +25% base health pickup healing |
+| Regeneration | +1 health/second while alive and the round is in progress |
+| Armor Salvager | +25% base armor pickup amount, rounded up |
+| Splash Rounds | +10 percentage points splash chance per bullet; capped at 10 picks |
+| Bigger Splash | Requires Splash Rounds; +25 percentage points splash damage |
+| Piercing Rounds | +10 percentage points piercing chance per bullet; capped at 10 picks |
+| Deep Penetration | Requires Piercing Rounds; +1 additional pierced enemy |
+| Slowing Rounds | One-time unlock; direct hits slow movement by 50% for 2 seconds |
+| Bonus Volley | +10 percentage points chance per trigger pull and +1 bonus bullet |
+| Power Shot | First pick guarantees double damage every 10th trigger pull; each further pick shortens the interval by 1, capped at 10 picks |
+
+Stat percentages add against their base, not the previously upgraded value.
+Healing stays capped at maximum health and does not revive dead players.
+Player health text displays whole numbers, rounded down; fractional health and
+regeneration remain unchanged internally, and the health bar still fills smoothly.
+Better Medicine affects pickups only, not regeneration, Vitality, or revives.
+Armor eligibility and collection both use the boosted, rounded amount and reject
+integer overflow. The first Armor Salvager pick turns a 5-armor pickup into 7.
+
+Splash and piercing each roll once independently when a bullet spawns and capture
+their settings for its lifetime. Splash deals 50% of that bullet's damage by
+default to **other enemies** within 60 units of each direct enemy hit, using
+Explosive damage and respecting walls. It does not trigger effects, slowing,
+additional splash, or additional bullets. Heavy Rounds and Power Shots
+increase bullet damage and therefore splash damage, not fire/shock effect damage.
+
+Every successful splash impact flashes a thick white ring at the full 60-unit
+radius for 0.6 seconds. It appears even when there are no nearby secondary
+targets and survives lethal hits. The host broadcasts the impact through the
+shooter; each client creates its own temporary, non-networked visual, independent
+of debug hitboxes. The ring marks the radius, not guaranteed damage through walls.
+
+A successful piercing bullet can initially hit two enemies (one additional
+target); each Deep Penetration pick adds another. It retains full bullet damage
+and direct-hit effects on each target, never directly hits the same enemy twice,
+ignores corpses, and still stops at walls or crates. Remaining movement in the
+physics tick is traced immediately after piercing. Slowing Rounds refreshes its
+duration on surviving direct-hit enemies, affects pursuit and ranged wandering,
+and does not stop attacks or stack movement reductions.
+
+Bonus Volley rolls once per successful trigger pull, adding its current rank in
+bullets to the weapon's normal pellet count on success, using the weapon's spread.
+Its chance caps at 100%, but bullet count continues growing.
+Power Shot always doubles all bullet damage in an eligible trigger pull,
+then resets the interval. It does not roll a random chance. Only actual trigger
+pulls count, not pellets or bonus bullets; progress starts after acquiring the
+modifier and survives weapon swaps. Reducing the interval honors existing progress
+on the next shot. Shots, regeneration, damage credit, and pickups remain host-authoritative.
+
+The game scene enables `ShouldEndWhenAllDead`, which also defaults to true on new
+managers. Solo death opens the summary scoreboard; in multiplayer the round ends
+only after every player dies, preserving revives while a teammate remains alive.
+Disable the flag only when debugging revives after the entire team is dead.
+
 Fire and electric shock are playable effects. Poison has a reserved damage-type
 entry; explosive and ice entries are preserved. Only entries in `DamageEffectCatalog`
 participate in bullet rolls. Other types are not implemented or offered yet.

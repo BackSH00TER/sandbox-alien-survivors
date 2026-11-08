@@ -5,7 +5,6 @@ using System.Linq;
 public enum GameModifier
 {
 	AttackSpeed = 0,
-	AttackRange = 1,
 	Vitality = 2,
 	FireRounds = 3,
 	FireApplicationChance = 4,
@@ -20,7 +19,19 @@ public enum GameModifier
 	ShockApplicationChance = 13,
 	ShockDamage = 14,
 	ShockChainChance = 15,
-	ShockChains = 16
+	ShockChains = 16,
+	AttackDamage = 17,
+	MoveSpeed = 18,
+	HealthPickupBonus = 19,
+	HealthRegeneration = 20,
+	ArmorPickupBonus = 21,
+	SplashChance = 22,
+	SplashDamage = 23,
+	PierceChance = 24,
+	PierceTargets = 25,
+	SlowingRounds = 26,
+	ExtraBullets = 27,
+	EmpoweredShots = 28
 }
 
 public interface IModifierRecipient
@@ -87,16 +98,6 @@ public static class ModifierCatalog
 			Rarity = GameRarity.Common,
 			Amount = 1f,
 			OnPicked = (recipient, amount) => recipient.RefreshAttackCooldown()
-		},
-		new ModifierDefinition
-		{
-			Id = GameModifier.AttackRange,
-			Icon = "open_with",
-			Name = "Long Reach",
-			Description = "+100% attack range per stack.",
-			InventoryClass = "attackrange",
-			Rarity = GameRarity.Common,
-			Amount = 1f
 		},
 		new ModifierDefinition
 		{
@@ -230,7 +231,121 @@ public static class ModifierCatalog
 			description: "+1 additional enemy and +60 units range per shock chain hop per pick. Each hop rolls its own chance; walls block chains.",
 			stat: DamageEffectStat.MaxChains,
 			amount: 1f
-		)
+		),
+		new ModifierDefinition
+		{
+			Id = GameModifier.AttackDamage,
+			Icon = "swords",
+			Name = "Heavy Rounds",
+			Description = "+20% base weapon damage per pick.",
+			Rarity = GameRarity.Common,
+			Amount = 0.2f
+		},
+		new ModifierDefinition
+		{
+			Id = GameModifier.MoveSpeed,
+			Icon = "directions_run",
+			Name = "Fleet Footed",
+			Description = "+10% base movement speed per pick.",
+			Rarity = GameRarity.Common,
+			Amount = 0.1f
+		},
+		new ModifierDefinition
+		{
+			Id = GameModifier.HealthPickupBonus,
+			Icon = "healing",
+			Name = "Better Medicine",
+			Description = "+25% base health pickup healing per pick. Does not affect regeneration or revives.",
+			Rarity = GameRarity.Common,
+			Amount = 0.25f
+		},
+		new ModifierDefinition
+		{
+			Id = GameModifier.HealthRegeneration,
+			Icon = "health_and_safety",
+			Name = "Regeneration",
+			Description = "Restore 1 health per second per pick while alive.",
+			Rarity = GameRarity.Common,
+			Amount = 1f
+		},
+		new ModifierDefinition
+		{
+			Id = GameModifier.ArmorPickupBonus,
+			Icon = "shield",
+			Name = "Armor Salvager",
+			Description = "+25% base armor pickup amount per pick, rounded up.",
+			Rarity = GameRarity.Common,
+			Amount = 0.25f
+		},
+		new ModifierDefinition
+		{
+			Id = GameModifier.SplashChance,
+			Icon = "blur_on",
+			Name = "Splash Rounds",
+			Description = "+10 percentage points splash chance per bullet per pick (up to 100%). Deals 50% bullet damage to other enemies within 60 units; walls block splash.",
+			Rarity = GameRarity.Common,
+			Amount = 0.1f,
+			MaxPicks = 10
+		},
+		new ModifierDefinition
+		{
+			Id = GameModifier.SplashDamage,
+			Icon = "flare",
+			Name = "Bigger Splash",
+			Description = "+25 percentage points splash damage per pick, based on bullet damage. Does not increase radius.",
+			Rarity = GameRarity.Common,
+			Amount = 0.25f,
+			Prerequisites = Array.AsReadOnly(new[] { GameModifier.SplashChance })
+		},
+		new ModifierDefinition
+		{
+			Id = GameModifier.PierceChance,
+			Icon = "double_arrow",
+			Name = "Piercing Rounds",
+			Description = "+10 percentage points piercing chance per bullet per pick (up to 100%). A successful bullet pierces one additional enemy; walls and crates stop it.",
+			Rarity = GameRarity.Common,
+			Amount = 0.1f,
+			MaxPicks = 10
+		},
+		new ModifierDefinition
+		{
+			Id = GameModifier.PierceTargets,
+			Icon = "keyboard_double_arrow_right",
+			Name = "Deep Penetration",
+			Description = "+1 additional enemy per successful piercing bullet per pick.",
+			Rarity = GameRarity.Common,
+			Amount = 1f,
+			Prerequisites = Array.AsReadOnly(new[] { GameModifier.PierceChance })
+		},
+		new ModifierDefinition
+		{
+			Id = GameModifier.SlowingRounds,
+			Icon = "hourglass_bottom",
+			Name = "Slowing Rounds",
+			Description = "Direct bullet hits slow enemy movement by 50% for 2 seconds. Further hits refresh the duration; attacks are not stunned.",
+			Rarity = GameRarity.Common,
+			Amount = 2f,
+			MaxPicks = 1
+		},
+		new ModifierDefinition
+		{
+			Id = GameModifier.ExtraBullets,
+			Icon = "filter_none",
+			Name = "Bonus Volley",
+			Description = "Per trigger pull: +10 percentage points chance (up to 100%) and +1 bonus bullet per pick. Bonus bullets use weapon spread.",
+			Rarity = GameRarity.Common,
+			Amount = 0.1f
+		},
+		new ModifierDefinition
+		{
+			Id = GameModifier.EmpoweredShots,
+			Icon = "crisis_alert",
+			Name = "Power Shot",
+			Description = "Every 10th trigger pull deals double bullet damage, guaranteed. Each further pick reduces the interval by 1, down to every shot.",
+			Rarity = GameRarity.Common,
+			Amount = 1f,
+			MaxPicks = 10
+		}
 	});
 
 	private static readonly IReadOnlyDictionary<GameModifier, ModifierDefinition> ById = All.ToDictionary(definition => definition.Id);
@@ -311,6 +426,17 @@ public static class ModifierCatalog
 		};
 	}
 
+	public static float Bonus(GameModifier modifier, Func<GameModifier, int> getModifierPickCount)
+	{
+		var definition = Get(modifier);
+		var ranks = Math.Clamp(
+			value: getModifierPickCount(modifier),
+			min: 0,
+			max: definition.MaxPicks
+		);
+		return definition.Amount * ranks;
+	}
+
 	private static ModifierDefinition ShockUpgrade(
 		GameModifier id,
 		string name,
@@ -361,12 +487,6 @@ public static class ModifierCatalog
 	public static float AttackRateMultiplier(Func<GameModifier, int> getModifierPickCount)
 	{
 		var definition = Get(GameModifier.AttackSpeed);
-		return 1f + definition.Amount * getModifierPickCount(definition.Id);
-	}
-
-	public static float AttackRangeMultiplier(Func<GameModifier, int> getModifierPickCount)
-	{
-		var definition = Get(GameModifier.AttackRange);
 		return 1f + definition.Amount * getModifierPickCount(definition.Id);
 	}
 
