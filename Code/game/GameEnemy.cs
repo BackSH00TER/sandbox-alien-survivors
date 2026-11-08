@@ -38,16 +38,23 @@ public sealed class GameEnemy : GameEntity
 	[Property, RequireComponent] public PlayerController Controller { get; set; }
 	[Property, Group("Movement"), Range(0f, 1000f), Description("Pursuit speed for melee and exploding enemies, in world units per second.")] public float MoveSpeed { get; set; } = 100f;
 	[Property, Group("Movement"), Range(0f, 1000f), Description("Pursuit and wandering speed for ranged enemies, in world units per second.")] public float RangedMoveSpeed { get; set; } = 77f;
-	[Property, Range(1f, 200f)] public float PunchRange { get; set; } = 64f;
+	[Property, Group("Movement"), Range(1f, 2000f), Description("Maximum pursuit velocity change per second. Attack lunges use their own speed.")] public float PursuitAcceleration { get; set; } = 400f;
+	[Property, Group("Movement"), Range(0.1f, 20f), Description("How quickly enemies turn toward their target. Higher values turn faster.")] public float PursuitTurnSpeed { get; set; } = 4f;
+	[Property, Group("Movement"), Range(1f, 200f), Description("Minimum crowd-spacing radius, in world units. Expands to fit larger enemy bodies.")] public float SeparationRadius { get; set; } = 48f;
+	[Property, Group("Movement"), Range(0f, 500f), Description("Maximum combined spacing velocity. Crowd size cannot increase it beyond this limit or raise pursuit above its normal speed.")] public float SeparationSpeed { get; set; } = 100f;
+	[Property, Range(1f, 200f), Description("Distance at which the enemy starts winding up a punch.")] public float PunchRange { get; set; } = 64f;
+	[Property, Range(1f, 200f), Description("Reach of the punch when the lunge ends.")] public float PunchHitRange { get; set; } = 54f;
 	[Property, Range(0.1f, 10f)] public float PunchInterval { get; set; } = 1f;
-	[Property, Range(0f, 2f)] public float PunchWindup { get; set; } = 0.35f;
+	[Property, Range(0f, 2f)] public float PunchWindup { get; set; } = 0.15f;
+	[Property, Group("Melee Attack"), Range(0f, 200f), Description("Distance the enemy lunges in its locked attack direction after the windup.")] public float PunchLungeDistance { get; set; } = 36f;
+	[Property, Group("Melee Attack"), Range(0.05f, 1f), Description("Duration of the committed punch lunge.")] public float PunchLungeDuration { get; set; } = 0.24f;
 	[Property, Range(0f, 2f)] public float PunchRecovery { get; set; } = 0.4f;
 	[Property, Range(1f, 100f)] public float PunchDamage { get; set; } = 10f;
 	[Property, Range(50f, 1000f)] public float SpawnHeight { get; set; } = 300f;
 	[Property, Range(0.1f, 10f)] public float SpawnDuration { get; set; } = 2f;
 	[Property, Range(0, 100)] public int ExperienceDrop { get; set; } = 1;
 	[Property, Group("Hit Reaction"), Range(0f, 1f)] public float HitReactionStrength { get; set; } = 0.6f;
-	[Property, Group("Hit Reaction"), Range(0f, 2f)] public float HitStaggerDuration { get; set; } = 0.2f;
+	[Property, Group("Hit Reaction"), Range(0f, 2f), Description("Movement and attack interruption after damage, in seconds. Zero disables hitstun.")] public float HitStaggerDuration { get; set; } = 0f;
 
 	[Sync(SyncFlags.FromHost)] private bool IsDescending { get; set; } = true;
 	[Sync(SyncFlags.FromHost)] private Vector3 LandingPosition { get; set; }
@@ -58,11 +65,15 @@ public sealed class GameEnemy : GameEntity
 	[Sync(SyncFlags.FromHost)] private float NextPunchTime { get; set; }
 	[Sync(SyncFlags.FromHost)] private bool IsWindingUp { get; set; }
 	[Sync(SyncFlags.FromHost)] private float WindupEndTime { get; set; }
+	[Sync(SyncFlags.FromHost)] private bool IsLunging { get; set; }
+	[Sync(SyncFlags.FromHost)] private float LungeEndTime { get; set; }
+	[Sync(SyncFlags.FromHost)] private Vector3 LungeDirection { get; set; }
 	[Sync(SyncFlags.FromHost)] private float MovementUnlockTime { get; set; }
 	[Sync(SyncFlags.FromHost)] private bool IsTargetInPunchRange { get; set; }
 	[Sync(SyncFlags.FromHost)] private float StaggerEndTime { get; set; }
 	private const float AggroSwitchCooldown = 5f;
 	private readonly EnemyAggro<GamePlayer> _aggro = new(AggroSwitchCooldown, IsEligibleAggroTarget);
+	private Vector3 _pursuitVelocity;
 
 	protected override void OnStart()
 	{
@@ -121,7 +132,7 @@ public sealed class GameEnemy : GameEntity
 		if (Controller.Renderer.IsValid())
 		{
 			var punching = !IsDescending && Health > 0f && Time.Now >= StaggerEndTime
-				&& (IsTargetInPunchRange || IsWindingUp || Time.Now < MovementUnlockTime);
+				&& (IsWindingUp || IsLunging || Time.Now < MovementUnlockTime);
 			Controller.Renderer.Set("holdtype", (int)(punching
 				? Sandbox.Citizen.CitizenAnimationHelper.HoldTypes.Punch
 				: Sandbox.Citizen.CitizenAnimationHelper.HoldTypes.None));
@@ -206,8 +217,10 @@ public sealed class GameEnemy : GameEntity
 			GetComponent<GameEnemyBoss>()?.CancelStunAttack();
 			GetComponent<GameEnemyRanged>()?.CancelAttack();
 			IsWindingUp = false;
+			IsLunging = false;
 			IsTargetInPunchRange = false;
 			MovementUnlockTime = 0f;
+			StopAttackMovement();
 			return;
 		}
 
@@ -255,6 +268,7 @@ public sealed class GameEnemy : GameEntity
 		if (boss.IsValid() && boss.TryStunAttack(target))
 		{
 			IsWindingUp = false;
+			IsLunging = false;
 			IsTargetInPunchRange = false;
 			StopAttackMovement();
 			return;
@@ -274,7 +288,7 @@ public sealed class GameEnemy : GameEntity
 			var horizontal = new Vector3(aim.x, aim.y, 0f);
 			if (horizontal.LengthSquared > 0.001f)
 			{
-				Controller.EyeAngles = Rotation.LookAt(horizontal).Angles();
+				UpdatePursuitFacing(direction: horizontal);
 			}
 
 			var rangedStoppingDistance = Controller.BodyRadius + target.BodyRadius;
@@ -286,12 +300,17 @@ public sealed class GameEnemy : GameEntity
 				}
 				else
 				{
-					Controller.WishVelocity = combatVelocity;
+					SetPursuitMovement(velocity: combatVelocity, maximumSpeed: RangedMoveSpeed);
 				}
 			}
 			else if (horizontal.LengthSquared > rangedStoppingDistance * rangedStoppingDistance)
 			{
-				Controller.WishVelocity = horizontal.Normal * RangedMoveSpeed * MovementMultiplier;
+				var pursuitVelocity = horizontal.Normal * RangedMoveSpeed;
+				SetPursuitMovement(velocity: pursuitVelocity, maximumSpeed: RangedMoveSpeed);
+			}
+			else
+			{
+				StopAttackMovement();
 			}
 
 			return;
@@ -303,15 +322,35 @@ public sealed class GameEnemy : GameEntity
 		if (IsWindingUp)
 		{
 			StopAttackMovement();
-			if (Time.Now >= WindupEndTime)
+			if (Time.Now < WindupEndTime)
 			{
-				IsWindingUp = false;
-				NextPunchTime = Time.Now + System.MathF.Max(0.1f, PunchInterval);
-				MovementUnlockTime = Time.Now + System.MathF.Max(0f, PunchRecovery);
-				PlayPunch();
-				Punch<GamePlayer>(Controller, PunchRange, PunchDamage);
+				return;
 			}
 
+			IsWindingUp = false;
+			IsLunging = true;
+			var lungeDuration = System.MathF.Max(0.05f, PunchLungeDuration);
+			LungeEndTime = Time.Now + lungeDuration;
+			NextPunchTime = Time.Now + System.MathF.Max(0.1f, PunchInterval);
+			PlayPunch();
+		}
+
+		if (IsLunging)
+		{
+			if (Time.Now >= LungeEndTime)
+			{
+				IsLunging = false;
+				MovementUnlockTime = Time.Now + System.MathF.Max(0f, PunchRecovery);
+				StopAttackMovement();
+				Punch<GamePlayer>(
+					controller: Controller,
+					range: PunchHitRange,
+					damage: PunchDamage
+				);
+				return;
+			}
+
+			ApplyLungeMovement();
 			return;
 		}
 
@@ -323,6 +362,7 @@ public sealed class GameEnemy : GameEntity
 
 		if (target == null)
 		{
+			StopAttackMovement();
 			return;
 		}
 
@@ -330,16 +370,17 @@ public sealed class GameEnemy : GameEntity
 		var direction = new Vector3(offset.x, offset.y, 0f);
 		if (direction.LengthSquared > 0.001f)
 		{
-			Controller.EyeAngles = Rotation.LookAt(direction).Angles();
+			UpdatePursuitFacing(direction: direction);
 		}
 
 		if (IsTargetInPunchRange)
 		{
+			StopAttackMovement();
 			if (Time.Now >= NextPunchTime)
 			{
+				LungeDirection = Controller.EyeAngles.ToRotation().Forward.WithZ(0f).Normal;
 				IsWindingUp = true;
 				WindupEndTime = Time.Now + System.MathF.Max(0f, PunchWindup);
-				StopAttackMovement();
 			}
 
 			return;
@@ -348,10 +389,12 @@ public sealed class GameEnemy : GameEntity
 		var stoppingDistance = Controller.BodyRadius + target.BodyRadius;
 		if (direction.LengthSquared <= stoppingDistance * stoppingDistance)
 		{
+			StopAttackMovement();
 			return;
 		}
 
-		Controller.WishVelocity = direction.Normal * MoveSpeed * MovementMultiplier;
+		var forward = Controller.EyeAngles.ToRotation().Forward.WithZ(0f).Normal;
+		SetPursuitMovement(velocity: forward * MoveSpeed, maximumSpeed: MoveSpeed);
 	}
 
 	internal void SetAggroTarget(GamePlayer player)
@@ -376,8 +419,92 @@ public sealed class GameEnemy : GameEntity
 			&& player.Controller.IsValid() && player.Controller.Active;
 	}
 
+	private void UpdatePursuitFacing(Vector3 direction)
+	{
+		var currentRotation = Controller.EyeAngles.ToRotation();
+		var targetRotation = Rotation.LookAt(direction);
+		var turnSpeed = System.MathF.Max(0.1f, PursuitTurnSpeed);
+		var blend = 1f - System.MathF.Exp(-turnSpeed * Time.Delta);
+		var rotation = Rotation.Lerp(
+			a: currentRotation,
+			b: targetRotation,
+			frac: blend
+		);
+		Controller.EyeAngles = rotation.Angles();
+	}
+
+	private void SetPursuitMovement(Vector3 velocity, float maximumSpeed)
+	{
+		var separation = GetSeparationVelocity();
+		var desiredVelocity = velocity + separation;
+		var speedLimit = System.MathF.Max(0f, maximumSpeed);
+		if (desiredVelocity.LengthSquared > speedLimit * speedLimit)
+		{
+			desiredVelocity = desiredVelocity.Normal * speedLimit;
+		}
+
+		var velocityChange = desiredVelocity - _pursuitVelocity;
+		var maximumChange = System.MathF.Max(1f, PursuitAcceleration) * Time.Delta;
+		if (velocityChange.LengthSquared > maximumChange * maximumChange)
+		{
+			velocityChange = velocityChange.Normal * maximumChange;
+		}
+
+		_pursuitVelocity += velocityChange;
+		Controller.WishVelocity = _pursuitVelocity * MovementMultiplier;
+	}
+
+	private Vector3 GetSeparationVelocity()
+	{
+		var separation = Vector3.Zero;
+		var speedLimit = System.MathF.Max(0f, SeparationSpeed);
+		foreach (var other in Scene.GetAllComponents<GameEnemy>())
+		{
+			if (other == this || other.Health <= 0f || other.IsDescending || !other.Controller.IsValid())
+			{
+				continue;
+			}
+
+			var offset = (WorldPosition - other.WorldPosition).WithZ(0f);
+			var distanceSquared = offset.LengthSquared;
+			var bodySpacing = Controller.BodyRadius + other.Controller.BodyRadius;
+			var radius = System.MathF.Max(SeparationRadius, bodySpacing);
+			if (distanceSquared >= radius * radius)
+			{
+				continue;
+			}
+
+			if (distanceSquared <= 0.001f)
+			{
+				// Choose opposite directions for coincident pairs instead of normalizing zero.
+				var side = GameObject.Id.CompareTo(other.GameObject.Id) < 0 ? -1f : 1f;
+				separation += Vector3.Left * side * speedLimit;
+				continue;
+			}
+
+			var proximity = 1f - distanceSquared / (radius * radius);
+			separation += offset.Normal * (proximity * speedLimit);
+		}
+
+		if (separation.LengthSquared > speedLimit * speedLimit)
+		{
+			separation = separation.Normal * speedLimit;
+		}
+
+		return separation;
+	}
+
+	private void ApplyLungeMovement()
+	{
+		Controller.EyeAngles = Rotation.LookAt(LungeDirection).Angles();
+		var lungeDistance = System.MathF.Max(0f, PunchLungeDistance);
+		var lungeDuration = System.MathF.Max(0.05f, PunchLungeDuration);
+		Controller.WishVelocity = LungeDirection * (lungeDistance / lungeDuration);
+	}
+
 	private void StopAttackMovement()
 	{
+		_pursuitVelocity = Vector3.Zero;
 		Controller.WishVelocity = Vector3.Zero;
 		if (Controller.Body.IsValid())
 		{
@@ -396,6 +523,7 @@ public sealed class GameEnemy : GameEntity
 		if (HitStaggerDuration > 0f)
 		{
 			IsWindingUp = false;
+			IsLunging = false;
 			IsTargetInPunchRange = false;
 			GetComponent<GameEnemyRanged>()?.CancelAttack();
 			StaggerEndTime = Time.Now + HitStaggerDuration;
@@ -430,6 +558,7 @@ public sealed class GameEnemy : GameEntity
 	{
 		GetComponent<GameEnemyRanged>()?.CancelAttack();
 		IsWindingUp = false;
+		IsLunging = false;
 		IsTargetInPunchRange = false;
 		StopAttackMovement();
 		var boss = GetComponent<GameEnemyBoss>();
@@ -497,8 +626,9 @@ public sealed class GameEnemy : GameEntity
 		if (Networking.IsHost && !IsProxy && Controller.IsValid())
 		{
 			IsWindingUp = false;
+			IsLunging = false;
 			MovementUnlockTime = 0f;
-			Controller.WishVelocity = Vector3.Zero;
+			StopAttackMovement();
 		}
 	}
 }

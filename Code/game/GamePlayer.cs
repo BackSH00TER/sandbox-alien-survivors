@@ -715,6 +715,15 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 
 	private void OnLevelUp()
 	{
+		if (Stats.IsValid())
+		{
+			Stats.RecordLevel(Level);
+		}
+		else
+		{
+			Log.Error("GamePlayer requires a GamePlayerStats component to record level history.");
+		}
+
 		QueueModifierChoice();
 	}
 

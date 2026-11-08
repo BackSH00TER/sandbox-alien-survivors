@@ -68,7 +68,7 @@ public abstract class GameEntity : Component
 	/// <summary>0 to 1 amount of blood splatter drawn on the model. By default it follows how much health is missing.</summary>
 	public virtual float BloodAmount => 1f - Health / System.MathF.Max(1f, MaxHealth);
 
-	private const float PunchFacingThreshold = 0.5f;
+	internal const float PunchFacingThreshold = 0.7f;
 	private const float PunchTraceHeight = 36f;
 	private int _armor = 0;
 	private readonly Dictionary<ModelRenderer, Material> _originalMaterials = new();

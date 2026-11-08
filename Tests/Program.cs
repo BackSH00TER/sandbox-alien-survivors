@@ -46,7 +46,14 @@ var tests = new (string Name, Action Run)[]
 	("spread accepts burning targets only below cap", Spread),
 	("clearing and advancing cannot repeat damage", Clear),
 	("invalid settings are rejected", Invalid),
-	("timeline positions, dimming and pipeline boundaries", Timeline)
+	("timeline positions, dimming and pipeline boundaries", Timeline),
+	("stat history uses half-open 15-second buckets and independent keys", StatHistoryTests.Buckets),
+	("stat history carries quiet buckets and final partial totals", StatHistoryTests.Series),
+	("stat history handles zero duration, exact boundaries and snapshots", StatHistoryTests.Boundaries),
+	("a million stat events retain only bucket aggregates", StatHistoryTests.Volume),
+	("level history uses exact-time steps and starting level", StatHistoryTests.Levels),
+	("cumulative enemy breakdowns align and sum to the total", StatHistoryTests.Breakdowns),
+	("stat history rejects invalid input", StatHistoryTests.Invalid)
 };
 foreach (var test in tests)
 {

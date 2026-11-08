@@ -122,7 +122,7 @@ public sealed class GameEnemyRanged : Component
 			direction = new Vector3(direction.x, direction.y, 0f);
 		}
 
-		return direction * enemy.RangedMoveSpeed * enemy.MovementMultiplier;
+		return direction * enemy.RangedMoveSpeed;
 	}
 
 	public void CancelAttack()
