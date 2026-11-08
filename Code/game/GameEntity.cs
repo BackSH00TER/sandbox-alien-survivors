@@ -30,7 +30,7 @@ public abstract class GameEntity : Component
 	[Property, Group("Armor"), Range(1, int.MaxValue), Description("Armor needed to fully block an ice hit.")] public int IceArmorCost { get; set; } = 1;
 	[Property, Group("Armor"), Range(1, int.MaxValue), Description("Armor needed to fully block an electric hit.")] public int ElectricArmorCost { get; set; } = 1;
 	[Property, Group("Armor"), Description("When armor cannot cover the full hit cost, the unprotected fraction damages health. If disabled, any remaining armor blocks the full hit.")] public bool ArmorDamageOverflow { get; set; } = true;
-	[Property, Group("Debug")] public bool ShowAttackHitboxes { get; set; } = true;
+	[Property, Group("Debug"), Sync(SyncFlags.FromHost)] public bool ShowAttackHitboxes { get; set; } = true;
 	public virtual bool CanTakeDamage => true;
 	[Sync(SyncFlags.FromHost)] public NetDictionary<GameDamageType, int> EffectStacks { get; private set; } = new();
 	private readonly TimedDamageEffects<GameEntity> _damageEffects = new();
@@ -69,7 +69,7 @@ public abstract class GameEntity : Component
 	public virtual float BloodAmount => 1f - Health / System.MathF.Max(1f, MaxHealth);
 
 	internal const float PunchFacingThreshold = 0.7f;
-	private const float PunchTraceHeight = 36f;
+	internal const float PunchTraceHeight = 36f;
 	private int _armor = 0;
 	private readonly Dictionary<ModelRenderer, Material> _originalMaterials = new();
 	private Material _flashMaterial;
@@ -594,65 +594,19 @@ public abstract class GameEntity : Component
 	[Rpc.Broadcast(NetFlags.HostOnly)]
 	private void DrawPunchHitbox(Vector3 origin, Vector3 forward, float range, bool hit, Vector3 targetPosition)
 	{
-		if (!ShowAttackHitboxes || !GameHUD.IsDebugEnabled(Scene))
+		if (!ShowAttackHitboxes)
 		{
 			return;
 		}
 
-		const float duration = 0.25f;
-		const int segments = 24;
-		var color = hit ? Color.Green : Color.Red;
-		var planarForward = new Vector3(forward.x, forward.y, 0f);
-		var planarLength = planarForward.Length;
-		if (planarLength >= PunchFacingThreshold)
-		{
-			// Punch uses 3D distance but a horizontal facing test.
-			var halfAngle = System.MathF.Acos((PunchFacingThreshold / planarLength).Clamp(0f, 1f));
-			var yaw = System.MathF.Atan2(forward.y, forward.x);
-			for (var elevationIndex = -1; elevationIndex <= 1; elevationIndex++)
-			{
-				var elevation = elevationIndex * System.MathF.PI / 4f;
-				var radius = range * System.MathF.Cos(elevation);
-				var height = Vector3.Up * (range * System.MathF.Sin(elevation));
-				var previous = origin;
-				for (var i = 0; i <= segments; i++)
-				{
-					var angle = yaw - halfAngle + 2f * halfAngle * i / segments;
-					var point = origin + height + new Vector3(System.MathF.Cos(angle), System.MathF.Sin(angle), 0f) * radius;
-					if (i > 0)
-					{
-						DebugOverlay.Line(previous, point, color, duration);
-					}
-
-					if (i == 0 || i == segments)
-					{
-						DebugOverlay.Line(origin, point, color, duration);
-					}
-
-					previous = point;
-				}
-			}
-
-			for (var side = -1; side <= 1; side++)
-			{
-				var angle = yaw + side * halfAngle;
-				var direction = new Vector3(System.MathF.Cos(angle), System.MathF.Sin(angle), 0f);
-				var previous = origin - Vector3.Up * range;
-				for (var i = 1; i <= segments; i++)
-				{
-					var elevation = -System.MathF.PI / 2f + System.MathF.PI * i / segments;
-					var point = origin + range * (direction * System.MathF.Cos(elevation) + Vector3.Up * System.MathF.Sin(elevation));
-					DebugOverlay.Line(previous, point, color, duration);
-					previous = point;
-				}
-			}
-		}
-
-		if (hit)
-		{
-			DebugOverlay.Line(origin + Vector3.Up * PunchTraceHeight,
-				targetPosition + Vector3.Up * PunchTraceHeight, Color.Yellow, duration);
-		}
+		GameDebugTools.DrawPunchHitbox(
+			entity: this,
+			origin: origin,
+			forward: forward,
+			range: range,
+			hit: hit,
+			targetPosition: targetPosition
+		);
 	}
 
 	[Rpc.Broadcast(NetFlags.HostOnly)]

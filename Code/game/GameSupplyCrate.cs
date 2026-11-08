@@ -12,6 +12,7 @@ public sealed class GameSupplyCrate : GameEntity
 	[Property, Group("Loot"), Description("Maximum items dropped, inclusive. Must be at least MinDrops.")] public int MaxDrops { get; set; } = DefaultMaxDrops;
 	public override bool CanTakeDamage => Health > 0f && !_opened;
 	private bool _opened;
+	private bool _visualCreated;
 
 	public static GameSupplyCrate Spawn(
 		Vector3 groundPosition,
@@ -50,20 +51,88 @@ public sealed class GameSupplyCrate : GameEntity
 			return null;
 		}
 
+		crate.EnsureVisual();
 		return crate;
 	}
 
 	protected override void OnStart()
 	{
 		base.OnStart();
-		AddPart("Wooden Crate", Vector3.Zero, new Vector3(40f, 40f, 44f), new Color(0.55f, 0.32f, 0.12f));
-		AddPart("Left Band", new Vector3(0f, -13f, 0f), new Vector3(42f, 4f, 46f), new Color(0.23f, 0.25f, 0.27f));
-		AddPart("Right Band", new Vector3(0f, 13f, 0f), new Vector3(42f, 4f, 46f), new Color(0.23f, 0.25f, 0.27f));
+		EnsureVisual();
 	}
 
-	private void AddPart(string name, Vector3 position, Vector3 size, Color color)
+	private void EnsureVisual()
 	{
-		var part = new GameObject(GameObject, true, name);
+		if (_visualCreated)
+		{
+			return;
+		}
+
+		// OnStart is deferred while paused, but newly spawned crates should already be visible.
+		var crateSize = new Vector3(
+			40f,
+			40f,
+			44f
+		);
+		var crateColor = new Color(
+			0.55f,
+			0.32f,
+			0.12f
+		);
+		AddPart(
+			name: "Wooden Crate",
+			position: Vector3.Zero,
+			size: crateSize,
+			color: crateColor
+		);
+
+		var bandSize = new Vector3(
+			42f,
+			4f,
+			46f
+		);
+		var bandColor = new Color(
+			0.23f,
+			0.25f,
+			0.27f
+		);
+		var leftBandPosition = new Vector3(
+			0f,
+			-13f,
+			0f
+		);
+		AddPart(
+			name: "Left Band",
+			position: leftBandPosition,
+			size: bandSize,
+			color: bandColor
+		);
+		var rightBandPosition = new Vector3(
+			0f,
+			13f,
+			0f
+		);
+		AddPart(
+			name: "Right Band",
+			position: rightBandPosition,
+			size: bandSize,
+			color: bandColor
+		);
+		_visualCreated = true;
+	}
+
+	private void AddPart(
+		string name,
+		Vector3 position,
+		Vector3 size,
+		Color color
+	)
+	{
+		var part = new GameObject(
+			parent: GameObject,
+			enabled: true,
+			name: name
+		);
 		part.Flags |= GameObjectFlags.NotNetworked | GameObjectFlags.NotSaved;
 		part.LocalPosition = position;
 		part.LocalScale = size / 50f;

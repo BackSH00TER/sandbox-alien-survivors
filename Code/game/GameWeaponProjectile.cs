@@ -100,9 +100,13 @@ public sealed class GameWeaponProjectile : Component
 
 	protected override void OnUpdate()
 	{
-		if (ShowHitbox && GameHUD.IsDebugEnabled(Scene))
+		if (ShowHitbox)
 		{
-			DebugOverlay.Sphere(new Sphere(CollisionPosition, Radius), Color.Yellow, 0f);
+			GameDebugTools.DrawProjectileHitbox(
+				projectile: this,
+				position: CollisionPosition,
+				radius: Radius
+			);
 		}
 	}
 
@@ -188,12 +192,17 @@ public sealed class GameWeaponProjectile : Component
 	[Rpc.Broadcast(NetFlags.HostOnly)]
 	private void DrawTravel(Vector3 start, Vector3 end, Color color)
 	{
-		if (!ShowHitbox || !GameHUD.IsDebugEnabled(Scene))
+		if (!ShowHitbox)
 		{
 			return;
 		}
 
-		DebugOverlay.Line(start, end, color, 0.25f);
-		DebugOverlay.Sphere(new Sphere(end, Radius), color, 0.25f);
+		GameDebugTools.DrawProjectileTravel(
+			projectile: this,
+			start: start,
+			end: end,
+			color: color,
+			radius: Radius
+		);
 	}
 }

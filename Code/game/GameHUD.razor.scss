@@ -36,20 +36,6 @@ GameHUD
 		}
 	}
 
-	.attack-debug
-	{
-		position: absolute;
-		top: 24px;
-		left: 24px;
-		padding: 12px;
-		flex-direction: column;
-		background-color: #101218cc;
-		border-radius: 4px;
-		font-family: Oxanium;
-		font-size: 16px;
-		color: #fff;
-	}
-
 	.dead-banner
 	{
 		position: absolute;

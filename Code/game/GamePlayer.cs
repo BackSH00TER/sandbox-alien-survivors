@@ -112,7 +112,7 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 
 	/// <summary>Debug only: while true this player takes no damage.</summary>
 	[Sync(SyncFlags.FromHost)]
-	public bool GodMode { get; private set; }
+	public bool GodMode { get; internal set; }
 
 	/// <summary>
 	/// Missing health that is not shown as blood. Set on revive so a revived player comes back clean, then
@@ -187,8 +187,6 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 			return;
 		}
 
-		HandleDebugKeys();
-
 		if (Input.Pressed("Use"))
 		{
 			var pickup = GameLootPickup.FindNearestWeapon(this);
@@ -198,9 +196,9 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 			}
 		}
 
-		if (ShowAttackDebug && GameHUD.IsDebugEnabled(Scene))
+		if (ShowAttackDebug)
 		{
-			DrawAttackRange();
+			GameDebugTools.DrawAttackRange(this);
 		}
 
 		var camera = Scene.Camera;
@@ -413,137 +411,54 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 		NextAttackTime = Time.Now + EffectiveAttackInterval;
 	}
 
-	// Debug shortcuts are only active while the debug overlay is on.
-	private void HandleDebugKeys()
-	{
-		if (!GameHUD.IsDebugEnabled(Scene))
-		{
-			return;
-		}
-
-		if (Input.Keyboard.Pressed("K"))
-		{
-			DebugKill();
-		}
-
-		if (Input.Keyboard.Pressed("G"))
-		{
-			DebugSpawnFlarePickup();
-		}
-
-		if (Input.Keyboard.Pressed("H"))
-		{
-			DebugToggleGodMode();
-		}
-
-		if (Input.Keyboard.Pressed("J"))
-		{
-			DebugSpawnArmorPickup();
-		}
-
-		if (Input.Keyboard.Pressed("L"))
-		{
-			DebugSpawnCrate();
-		}
-	}
-
 	[Rpc.Host(NetFlags.OwnerOnly)]
 	public void DebugKill()
 	{
-		if (IsDead)
-		{
-			return;
-		}
-
-		// Killing on purpose wins over god mode, so it is switched off first.
-		GodMode = false;
-		TakeDamage(Health, bypassArmor: true);
+		GameDebugTools.Kill(this);
 	}
 
 	[Rpc.Host(NetFlags.OwnerOnly)]
 	public void DebugToggleGodMode()
 	{
-		GodMode = !GodMode;
+		GameDebugTools.ToggleGodMode(this);
+	}
+
+	[Rpc.Host(NetFlags.OwnerOnly)]
+	public void DebugToggleAttackHitboxes()
+	{
+		GameDebugTools.ToggleAttackHitboxes(this);
 	}
 
 	[Rpc.Host(NetFlags.OwnerOnly)]
 	public void DebugSpawnFlarePickup()
 	{
-		var position = WorldPosition + Controller.EyeAngles.ToRotation().Forward * 80f;
-		var definition = GameLootCatalog.Get(LootKind.Flare);
-		GameLootPickup.Spawn(groundPosition: position, definition: definition);
+		GameDebugTools.SpawnFlarePickup(this);
 	}
 
 	[Rpc.Host(NetFlags.OwnerOnly)]
 	public void DebugSpawnArmorPickup()
 	{
-		if (TryGetDebugSpawnPosition(out var position))
-		{
-			var definition = GameLootCatalog.Get(LootKind.Armor);
-			GameLootPickup.Spawn(groundPosition: position, definition: definition);
-		}
+		GameDebugTools.SpawnArmorPickup(this);
 	}
 
 	[Rpc.Host(NetFlags.OwnerOnly)]
 	public void DebugSpawnCrate()
 	{
-		if (!TryGetDebugSpawnPosition(out var position))
-		{
-			return;
-		}
-
-		var spawner = Scene.GetAllComponents<GameCrateSpawner>().FirstOrDefault();
-		var rifle = spawner?.Rifle ?? ResourceLibrary.Get<GameWeaponDefinition>("weapons/rifle.weapon");
-		var shotgun = spawner?.Shotgun ?? ResourceLibrary.Get<GameWeaponDefinition>("weapons/shotgun.weapon");
-		if (rifle == null || shotgun == null)
-		{
-			Log.Error("Debug crates require rifle and shotgun weapon resources.");
-			return;
-		}
-
-		if (!rifle.Validate() || !shotgun.Validate())
-		{
-			return;
-		}
-
-		GameSupplyCrate.Spawn(position, rifle, shotgun);
+		GameDebugTools.SpawnCrate(this);
 	}
 
-	private bool TryGetDebugSpawnPosition(out Vector3 position)
+	[Rpc.Host(NetFlags.OwnerOnly)]
+	public void DebugGrantModifier(GameModifier modifier)
 	{
-		position = default;
-		if (IsDead || IsRoundOver || !GameHUD.IsDebugEnabled(Scene))
+		var gameManager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
+		if (!Active || IsDead || IsRoundOver
+			|| (gameManager != null && gameManager.State != GameState.InProgress))
 		{
-			return false;
+			Log.Warning("Rejected a debug modifier grant for an inactive player or ended round.");
+			return;
 		}
 
-		if (!Controller.IsValid())
-		{
-			Log.Error("Debug spawning requires a player controller.");
-			return false;
-		}
-
-		var candidate = WorldPosition + Rotation.FromYaw(Controller.EyeAngles.yaw).Forward * 120f;
-		var ground = Scene.Trace.FromTo(candidate + Vector3.Up * 64f, candidate - Vector3.Up * 256f)
-			.IgnoreGameObjectHierarchy(GameObject).IgnoreDynamic().Run();
-		if (!ground.Hit || ground.StartedSolid || ground.Normal.z < 0.9f
-			|| (ground.GameObject.IsValid() && ground.GameObject.GetComponentInParent<GameEntity>().IsValid()))
-		{
-			Log.Warning("Cannot debug-spawn here: no suitable ground in front of the player.");
-			return false;
-		}
-
-		var bounds = new BBox(new Vector3(-21f, -21f, 1f), new Vector3(21f, 21f, 46f));
-		var clearance = Scene.Trace.Box(bounds, ground.EndPosition, ground.EndPosition)
-			.IgnoreGameObjectHierarchy(GameObject).Run();
-		if (clearance.Hit || clearance.StartedSolid)
-		{
-			Log.Warning("Cannot debug-spawn here: the space in front of the player is blocked.");
-			return false;
-		}
-
-		position = ground.EndPosition;
-		return true;
+		GameDebugTools.GrantModifier(this, modifier);
 	}
 
 	protected override void OnHealthDepleted()
@@ -640,20 +555,6 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 		}
 
 		PlayFire((int)EquippedWeapon.HoldType);
-	}
-
-	private void DrawAttackRange()
-	{
-		const int segments = 64;
-		var center = WorldPosition + Vector3.Up * 2f;
-		var previous = center + Vector3.Forward * EffectiveAttackRange;
-		for (var i = 1; i <= segments; i++)
-		{
-			var angle = i * (System.MathF.PI * 2f / segments);
-			var point = center + new Vector3(System.MathF.Cos(angle), System.MathF.Sin(angle), 0f) * EffectiveAttackRange;
-			DebugOverlay.Line(previous, point, Color.Yellow, 0f);
-			previous = point;
-		}
 	}
 
 	public void AddExperience(int amount)
