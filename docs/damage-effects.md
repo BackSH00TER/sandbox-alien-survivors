@@ -1,8 +1,38 @@
 # Damage effects
 
-Fire and electric shock are playable effects. Poison has a reserved damage-type
-entry; explosive and ice entries are preserved. Only entries in `DamageEffectCatalog`
-participate in bullet rolls. Other types are not implemented or offered yet.
+Fire, electric shock and explosion share `DamageEffectCatalog` and immutable
+`DamageEffectSettings`. Fire and shock are player-unlockable; explosion is
+enemy-only. Only catalog entries with an owned `Unlock` participate in bullet
+rolls. Poison and ice remain reserved and are not implemented or offered yet.
+
+## Explosion behavior
+
+Explosion uses the existing `Explosive` damage type for armor and statistics.
+Its catalog defaults are a 3-second fuse, 100-unit radius and 40 blast damage.
+`Duration` is the actual fuse, `InstantDamage` is the damage at detonation, and
+`BlastRadius` distinguishes area explosions from instant chains and timed stacks.
+Explosions never tick damage, spread fire-style stacks, or chain shock-style hops.
+A zero-duration fuse detonates on the first fixed update after the minimum
+0.1-second warning.
+
+`GameExplosionEffect.Apply` attaches the reusable effect to an origin object.
+The exploding enemy captures its existing prefab-tunable fuse, radius and damage
+into these shared settings on death, then attaches the effect to its ragdoll.
+The warning follows the corpse, and the corpse is removed 0.4 seconds after the
+blast (or immediately on round end), preserving the existing behavior.
+Other callers can leave the origin alive; only the effect and its visual are
+removed. `GameEnemy.ApplyDamageEffect` also dispatches explosion settings through
+this same implementation without destroying a surviving target.
+
+The host applies one full-damage hit to each active, living, damageable enemy or
+player within the radius. Walls block the blast; living entity hierarchies and the
+origin hierarchy do not obstruct it. Targets are snapshotted before damage can
+spawn additional corpses. Client-visible warning rings and lights use synchronized
+fuse/detonation state. An optional attacker supplies damage credit; death explosions
+remain uncredited, as before.
+
+Explosion has no player unlock or modifiers and cannot enter bullet rolls, so
+fire/shock selection probabilities, upgrade offers and projectile colors are unchanged.
 
 ## Fire progression and tuning
 
@@ -284,8 +314,9 @@ requires a positive radius. Nullable chain fields are not needed.
 an enemy before applying an effect; players and crates do not expose that method.
 `DamageEffectChain` selects each next target before dealing damage, then rechecks
 eligibility before hitting it. This supports lethal hits without chaining through a
-new ragdoll. Instant explosion damage still needs separate area-targeting behavior;
-do not model it as a fake duration. Stuns likewise need an explicit implementation.
+new ragdoll. Explosion settings dispatch to `GameExplosionEffect` for the delayed
+area blast rather than entering either the chain or timed-stack implementation.
+Stuns likewise need an explicit implementation.
 
 ## Validation
 
@@ -307,7 +338,8 @@ and caps, small eligible pools, rare-modifier offer frequency,
 proc thresholds, mixed fire/shock draws without retries, shock progression, per-hop
 chance thresholds, unique targets, exact chain limits, post-hit eligibility,
 independent expiries, exact damage, stack replacement, spread capacity, source
-attribution and cleanup.
+attribution and cleanup, explosion defaults, bullet-pool exclusion, and rejection
+of mixed explosion/stack/chain settings.
 
 For gameplay verification, open this worktree's `.sbproj` in s&box, pick Fire Rounds,
 then test fire bullets against enemies and crates. Burning enemies should display
@@ -316,6 +348,11 @@ Pick Shock Rounds to check blue bullets and brief cyan arcs. With Conductivity
 maxed, the base shock must hit at most two enemies; each Chain Reaction pick adds
 one target and 60 units of range per hop. Check walls, range, armor, lethal hops, round end, original-player electric
 damage credit, and that shocks never leave timed stacks or lingering arc objects.
+Kill an exploding enemy to verify its 3-second corpse warning and single blast:
+nearby enemies and players take 40 explosive damage, targets beyond 100 units
+or behind walls remain unharmed, and five armor blocks the hit. Check that the
+corpse disappears after the 0.4-second blast visual and that round end cancels
+pending explosions without damage.
 Pick Layered Flames and Spreading
 Flames to verify stacking and spread; Wildfire must not appear before spread is owned.
 The editor validates networking and rendering as well as the C# compile.

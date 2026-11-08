@@ -34,6 +34,8 @@ var tests = new (string Name, Action Run)[]
 	("shock damage falls linearly to a ten percent floor", ShockTests.Falloff),
 	("shock chain validation and timed isolation", ShockTests.Invalid),
 	("instant effects may omit chain settings", ShockTests.OptionalChains),
+	("explosion defaults and enemy-only bullet isolation", ExplosionTests.Catalog),
+	("explosion settings reject mixed behaviors and timed stacks", ExplosionTests.Invalid),
 	("independent expiries and exact stacked damage", Expiries),
 	("whole-second ticks and partial renewal damage", TickCadence),
 	("oldest replacement and attacker credit", Replacement),
@@ -96,8 +98,9 @@ static DamageEffectSettings Settings(int cap = 1, float duration = 10f, float dp
 static void Catalog()
 {
 	Check(ModifierCatalog.All.Select(modifier => modifier.Id).SequenceEqual(Enum.GetValues<GameModifier>()), "Missing or duplicate modifier.");
-	Check(DamageEffectCatalog.All.Select(effect => effect.Type).SequenceEqual(new[] { GameDamageType.Fire, GameDamageType.Electricity }),
-		"Only fire and electricity are implemented.");
+	var implementedTypes = DamageEffectCatalog.All.Select(effect => effect.Type);
+	var expectedTypes = new[] { GameDamageType.Fire, GameDamageType.Electricity, GameDamageType.Explosive };
+	Check(implementedTypes.SequenceEqual(expectedTypes), "Fire, electricity and explosion must be implemented.");
 	var picks = new Dictionary<GameModifier, int>();
 	int Stacks(GameModifier modifier) => picks.GetValueOrDefault(modifier);
 	Check(ModifierCatalog.Get(GameModifier.FireRounds).IsAvailable(Stacks), "Fire unlock must be available.");

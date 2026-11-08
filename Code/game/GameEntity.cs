@@ -211,6 +211,16 @@ public abstract class GameEntity : Component
 			return;
 		}
 
+		if (settings.IsExplosion)
+		{
+			GameExplosionEffect.Apply(
+				origin: enemy.GameObject,
+				settings: settings,
+				attacker: attacker
+			);
+			return;
+		}
+
 		if (settings.IsInstant)
 		{
 			ApplyInstantDamageEffect(
