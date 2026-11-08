@@ -14,7 +14,7 @@ public sealed class GameEnemySpawner : Component
 
 	[Group("Enemy Spawning")] [Property, Range(0f, 100f), Description("Percentage of spawns that explode after a short death fuse.")] public float ExplodingEnemyChance { get; set; } = 5f;
 
-	[Group("Enemy Spawning")] [Property, Range(0f, 100f), Description("Percentage of spawns that shoot projectiles. Exploders take priority if the total exceeds 100%.")] public float RangedEnemyChance { get; set; } = 10f;
+	[Group("Enemy Spawning")] [Property, Range(0f, 100f), Description("Percentage of spawns that shoot projectiles. Exploders take priority if the total exceeds 100%.")] public float RangedEnemyChance { get; set; } = 5f;
 
 	private readonly System.Random _random = new();
 	private float _spawnTimer;

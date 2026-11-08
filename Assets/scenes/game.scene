@@ -133,7 +133,7 @@
           "OnComponentStart": null,
           "OnComponentUpdate": null,
           "MinimumSpawnInterval": 0.6,
-          "RangedEnemyChance": 10,
+          "RangedEnemyChance": 5,
           "SpawnInterval": 1,
           "SpawnRampDuration": 60,
           "SpawnRadius": 400
