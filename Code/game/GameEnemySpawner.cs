@@ -6,16 +6,21 @@ public sealed class GameEnemySpawner : Component
 
 	[Group("Enemy Spawning")] [Property, Range(0.1f, 60f)] public float SpawnInterval { get; set; } = 3f;
 
+	[Group("Enemy Spawning")] [Property, Range(0.1f, 60f), Description("Spawn interval reached when the ramp completes.")] public float MinimumSpawnInterval { get; set; } = 0.6f;
+
+	[Group("Enemy Spawning")] [Property, Range(1f, 3600f), Description("Seconds of game time over which the spawn interval decreases from SpawnInterval to MinimumSpawnInterval.")] public float SpawnRampDuration { get; set; } = 60f;
+
 	[Group("Enemy Spawning")] [Property, Range(0f, 1000f)] public float SpawnRadius { get; set; } = 400f;
 
 	[Group("Enemy Spawning")] [Property, Range(0f, 100f), Description("Percentage of spawns that explode after a short death fuse.")] public float ExplodingEnemyChance { get; set; } = 5f;
 
-	[Group("Enemy Spawning")] [Property, Range(0f, 100f), Description("Percentage of spawns that shoot projectiles. Exploders take priority if the total exceeds 100%.")] public float RangedEnemyChance { get; set; } = 10f;
+	[Group("Enemy Spawning")] [Property, Range(0f, 100f), Description("Percentage of spawns that shoot projectiles. Exploders take priority if the total exceeds 100%.")] public float RangedEnemyChance { get; set; } = 5f;
 
 	private readonly System.Random _random = new();
 	private float _spawnTimer;
 	private bool _missingPrefabLogged;
-	private bool _invalidIntervalLogged;
+	private bool _invalidSpawnSettingsLogged;
+	private float _elapsedSpawnTime;
 
 	protected override void OnUpdate()
 	{
@@ -24,18 +29,19 @@ public sealed class GameEnemySpawner : Component
 			return;
 		}
 
-		if (SpawnInterval <= 0f)
+		if (SpawnInterval <= 0f || MinimumSpawnInterval <= 0f
+			|| MinimumSpawnInterval > SpawnInterval || SpawnRampDuration <= 0f)
 		{
-			if (!_invalidIntervalLogged)
+			if (!_invalidSpawnSettingsLogged)
 			{
-				Log.Error("EnemySpawner SpawnInterval must be greater than zero.");
-				_invalidIntervalLogged = true;
+				Log.Error("EnemySpawner requires positive spawn intervals, MinimumSpawnInterval no greater than SpawnInterval, and a positive SpawnRampDuration.");
+				_invalidSpawnSettingsLogged = true;
 			}
 
 			return;
 		}
 
-		_invalidIntervalLogged = false;
+		_invalidSpawnSettingsLogged = false;
 
 		var gameManager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
 		if (gameManager != null && gameManager.State != GameState.InProgress)
@@ -43,8 +49,15 @@ public sealed class GameEnemySpawner : Component
 			return;
 		}
 
+		var elapsedSeconds = gameManager != null
+			? gameManager.ElapsedSeconds
+			: _elapsedSpawnTime += Time.Delta;
+		var rampProgress = (elapsedSeconds / SpawnRampDuration).Clamp(0f, 1f);
+		var currentSpawnInterval = SpawnInterval
+			+ (MinimumSpawnInterval - SpawnInterval) * rampProgress;
+
 		_spawnTimer += Time.Delta;
-		if (_spawnTimer < SpawnInterval)
+		if (_spawnTimer < currentSpawnInterval)
 		{
 			return;
 		}
