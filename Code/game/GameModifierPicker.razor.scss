@@ -54,7 +54,7 @@ GameModifierPicker
 		border: 2px solid #4de38a;
 		border-radius: 8px;
 		pointer-events: all;
-		cursor: pointer;
+		cursor: none;
 
 		&:hover
 		{
@@ -81,7 +81,7 @@ GameModifierPicker
 		color: #f0deff;
 		font-size: 15px;
 		pointer-events: all;
-		cursor: pointer;
+		cursor: none;
 
 		&:hover
 		{
@@ -94,7 +94,7 @@ GameModifierPicker
 			border-color: #686870;
 			color: #888890;
 			pointer-events: none;
-			cursor: default;
+			cursor: none;
 		}
 	}
 

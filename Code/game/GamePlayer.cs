@@ -11,6 +11,8 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 	[Property, Group("Revive"), Range(0.05f, 1f), Description("Fraction of max health a revived player comes back with.")] public float ReviveHealthFraction { get; set; } = 0.5f;
 	[Property, Group("Revive"), Range(0f, 10f), Description("Seconds a revived player cannot take damage.")] public float ReviveInvulnerableSeconds { get; set; } = 3f;
 	[Property, Group("Weapon"), Description("Weapon equipped on spawn. If unassigned, uses weapons/pistol.weapon.")] public GameWeaponDefinition StartingWeapon { get; set; }
+	[Property, Group("Weapon"), Range(0.01f, 5f), Description("Width of the red aiming laser in world units.")] public float LaserWidth { get; set; } = 0.25f;
+	[Property, Group("Weapon"), Range(0f, 500f), Description("Minimum distance from the player used for aiming. Close cursor targets are extended outward to prevent sharp muzzle corrections.")] public float MinimumAimDistance { get; set; } = 100f;
 	[Sync(SyncFlags.FromHost)]
 	public GameWeaponDefinition EquippedWeapon { get; private set; }
 	[Property, Group("Debug")] public bool ShowAttackDebug { get; set; } = true;
@@ -173,6 +175,7 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 		}
 
 		Mouse.Visibility = MouseVisibility.Visible;
+		Mouse.CursorType = IsRoundOver ? "default" : "none";
 		if (IsRoundOver)
 		{
 			return;
@@ -220,9 +223,27 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 		CursorRayOrigin = ray.Position;
 		CursorRayDirection = ray.Forward;
 
-		if (TryGetAimDirection(WorldPosition + Vector3.Up * GameWeaponProjectile.CollisionHeight, out var direction))
+		var aimOrigin = WorldPosition + Vector3.Up * GameWeaponProjectile.CollisionHeight;
+		var heldWeapon = GetComponent<GamePlayerHeldWeaponModel>();
+		if (heldWeapon.IsValid() && heldWeapon.TryGetMuzzlePosition(out var muzzlePosition))
 		{
-			Controller.EyeAngles = Rotation.LookAt(direction, Vector3.Up).Angles();
+			aimOrigin = WorldPosition.WithZ(muzzlePosition.z);
+		}
+
+		if (TryGetAimDirection(aimOrigin, out var direction))
+		{
+			var bodyRotation = Rotation.LookAt(direction, Vector3.Up);
+			Controller.EyeAngles = bodyRotation.Angles();
+			// Aim the torso along the shot while keeping locomotion facing the cursor.
+			if (TryGetShotTransform(out _, out var shotDirection))
+			{
+				Controller.EyeAngles = Rotation.LookAt(shotDirection, Vector3.Up).Angles();
+			}
+
+			if (Controller.Renderer.IsValid())
+			{
+				Controller.Renderer.WorldRotation = bodyRotation;
+			}
 		}
 	}
 
@@ -242,6 +263,14 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 		}
 
 		var aimPosition = CursorRayOrigin + CursorRayDirection * distance;
+		var playerAtAimHeight = WorldPosition.WithZ(origin.z);
+		var cursorOffset = (aimPosition - playerAtAimHeight).WithZ(0f);
+		var cursorDistance = cursorOffset.Length;
+		if (cursorDistance > 0.001f && cursorDistance < MinimumAimDistance)
+		{
+			aimPosition = playerAtAimHeight + cursorOffset / cursorDistance * MinimumAimDistance;
+		}
+
 		var offset = aimPosition - origin;
 		var horizontal = new Vector3(offset.x, offset.y, 0f);
 		if (horizontal.LengthSquared <= 0.001f)
@@ -565,25 +594,42 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 		pickup.TryEquip(this);
 	}
 
-	private void FireWeapon()
+	public bool TryGetShotTransform(out Vector3 origin, out Vector3 forward)
 	{
+		origin = default;
+		forward = default;
 		var heldWeapon = GetComponent<GamePlayerHeldWeaponModel>();
 		if (!heldWeapon.IsValid())
 		{
 			Log.Error("GamePlayer requires a held weapon model to fire.");
-			return;
+			return false;
 		}
 
-		if (!heldWeapon.TryGetMuzzleTransform(out var muzzlePosition, out var forward))
+		if (!heldWeapon.TryGetMuzzlePosition(out origin)
+			|| !TryGetAimDirection(WorldPosition.WithZ(origin.z), out forward))
+		{
+			return false;
+		}
+
+		if (TryGetAimDirection(origin, out var muzzleDirection))
+		{
+			const float maxCorrectionDegrees = 15f;
+			var cross = Vector3.Cross(forward, muzzleDirection);
+			var dot = Vector3.Dot(forward, muzzleDirection);
+			var correctionDegrees = System.MathF.Atan2(cross.z, dot) * (180f / System.MathF.PI);
+			var limitedCorrection = correctionDegrees.Clamp(-maxCorrectionDegrees, maxCorrectionDegrees);
+			forward = Rotation.FromYaw(limitedCorrection) * forward;
+		}
+
+		return true;
+	}
+
+	private void FireWeapon()
+	{
+		if (!TryGetShotTransform(out var origin, out var forward))
 		{
 			return;
 		}
-
-		var clearance = Scene.Trace.Sphere(EquippedWeapon.ProjectileRadius,
-				WorldPosition + Vector3.Up * 36f, muzzlePosition)
-			.IgnoreGameObjectHierarchy(GameObject)
-			.Run();
-		var origin = clearance.Hit || clearance.StartedSolid ? clearance.EndPosition : muzzlePosition;
 
 		for (var i = 0; i < EquippedWeapon.BulletsPerShot; i++)
 		{
@@ -753,7 +799,12 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 	{
 		if (Controller.Renderer.IsValid())
 		{
-			Controller.Renderer.WorldRotation = Controller.EyeAngles.ToRotation();
+			if (TryGetShotTransform(out var shotOrigin, out _)
+				&& TryGetAimDirection(WorldPosition.WithZ(shotOrigin.z), out var bodyDirection))
+			{
+				Controller.Renderer.WorldRotation = Rotation.LookAt(bodyDirection, Vector3.Up);
+			}
+
 			if (EquippedWeapon != null)
 			{
 				Controller.Renderer.Set("holdtype", (int)EquippedWeapon.HoldType);
@@ -764,6 +815,11 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 	protected override void OnDisabled()
 	{
 		base.OnDisabled();
+		if (!IsProxy)
+		{
+			Mouse.CursorType = "default";
+		}
+
 		if (!IsProxy && Controller.IsValid())
 		{
 			Controller.WishVelocity = Vector3.Zero;
