@@ -9,6 +9,7 @@ public static class GameStatKeys
 	public const string Deaths = "deaths";
 	public const string TimesRevived = "times_revived";
 	public const string TimesRerolled = "times_rerolled";
+	public const string Level = "level";
 
 	public static string DamageDealtByType(GameDamageType type) => $"damage_dealt.type.{type}";
 	public static string DamageDealtToEnemy(GameEnemyKind kind) => $"damage_dealt.enemy.{kind}";

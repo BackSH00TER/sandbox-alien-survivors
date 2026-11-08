@@ -6,34 +6,45 @@
 <root>
 	<div class="stats-panel">
 		<div class="stats-title">Round Complete</div>
-		<div class="stats-grid">
-			<div class="stats-row stats-header">
-				<div class="stat-label"></div>
-				@foreach (GamePlayerStats player in _players)
-				{
-					<div class="stat-value @PlayerClass(player)">@player.PlayerName</div>
-				}
-			</div>
-
-			@foreach (StatSection section in GameStatCatalog.Sections)
-			{
-				List<StatRow> rows = VisibleRows(section);
-				if (rows.Count > 0)
-				{
-					<div class="stats-section">@section.Title</div>
-					@foreach (StatRow row in rows)
+		<div class="stats-tabs">
+			<button class="stats-button @(!_showSummary ? "selected" : "")" @onclick="@(() => _showSummary = false)">Timeline</button>
+			<button class="stats-button @(_showSummary ? "selected" : "")" @onclick="@(() => _showSummary = true)">Summary</button>
+		</div>
+		@if (!_showSummary)
+		{
+			<GameStatsGraph Players="@_players" />
+		}
+		else
+		{
+			<div class="stats-grid">
+				<div class="stats-row stats-header">
+					<div class="stat-label"></div>
+					@foreach (GamePlayerStats player in _players)
 					{
-						<div class="stats-row">
-							<div class="stat-label">@row.Label</div>
-							@foreach (GamePlayerStats player in _players)
-							{
-								<div class="stat-value @PlayerClass(player)">@player.Get(row.Key).ToString("0")</div>
-							}
-						</div>
+						<div class="stat-value @PlayerClass(player)">@player.PlayerName</div>
+					}
+				</div>
+
+				@foreach (StatSection section in GameStatCatalog.Sections)
+				{
+					List<StatRow> rows = VisibleRows(section);
+					if (rows.Count > 0)
+					{
+						<div class="stats-section">@(section.Title)</div>
+						@foreach (StatRow row in rows)
+						{
+							<div class="stats-row">
+								<div class="stat-label">@row.Label</div>
+								@foreach (GamePlayerStats player in _players)
+								{
+									<div class="stat-value @PlayerClass(player)">@player.Get(row.Key).ToString("0")</div>
+								}
+							</div>
+						}
 					}
 				}
-			}
-		</div>
+			</div>
+		}
 		<div class="stats-actions">
 			@if (Networking.IsHost)
 			{
@@ -51,6 +62,7 @@
 @code
 {
 	private List<GamePlayerStats> _players = new();
+	private bool _showSummary;
 
 	private static string PlayerClass(GamePlayerStats player) => player.IsProxy ? "" : "local";
 
@@ -74,10 +86,17 @@
 			.ThenByDescending(player => player.Get(GameStatKeys.DamageDealt))
 			.ToList();
 
-		int hash = _players.Count;
+		int hash = System.HashCode.Combine(_players.Count, _showSummary);
 		foreach (GamePlayerStats player in _players)
 		{
-			hash = System.HashCode.Combine(hash, player.ContentHash());
+			var content = (
+				player.ContentHash(),
+				player.PlayerName,
+				player.IsProxy,
+				player.HistoryBuckets.Count,
+				player.HistoryMoments.Count
+			);
+			hash = System.HashCode.Combine(hash, content);
 		}
 
 		return hash;
