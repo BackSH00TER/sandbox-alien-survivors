@@ -6,28 +6,53 @@
 
 <root>
 	<div class="filter-toolbar">
-		<div class="filter-label">Stats (select any combination)</div>
+		<div class="filter-label">View one stat family</div>
 		<button class="graph-button advanced-toggle @(_advanced ? "selected" : "")"
 				@onclick="@(() => _advanced = !_advanced)">@(_advanced ? "Basic" : "Advanced")</button>
 	</div>
 	<div class="metric-filters">
+		<div class="metric-section">
+			@foreach (var row in BasicMetrics)
+			{
+				<button class="graph-button @(_metric == row.Key ? "selected" : "")"
+						@onclick="@(() => SelectMetric(row.Key))">@row.Label</button>
+			}
+		</div>
 		@foreach (var section in GameStatCatalog.Sections)
 		{
-			var rows = section.Rows.Where(row => (_advanced || IsBasicMetric(row.Key) || _metrics.Contains(row.Key))
-				&& (!section.ShouldHideEmptyRows || _metrics.Contains(row.Key) || Players.Any(player => player.Get(row.Key) > 0f))).ToList();
+			var rows = section.Rows.Where(row => !IsBreakdownMetric(row.Key) && !IsBasicMetric(row.Key)
+				&& (_advanced || _metric == row.Key)
+				&& (!section.ShouldHideEmptyRows || _metric == row.Key || Players.Any(player => player.Get(row.Key) > 0f))).ToList();
 			if (rows.Count > 0)
 			{
 				<div class="metric-section">
 					<div class="filter-label">@(section.Title)</div>
 					@foreach (var row in rows)
 					{
-						<button class="graph-button @(_metrics.Contains(row.Key) ? "selected" : "")"
-								@onclick="@(() => ToggleMetric(row.Key))">@row.Label</button>
+						<button class="graph-button @(_metric == row.Key ? "selected" : "")"
+								@onclick="@(() => SelectMetric(row.Key))">@row.Label</button>
 					}
 				</div>
 			}
 		}
 	</div>
+	@if (_metric == GameStatKeys.Kills || _metric == GameStatKeys.DamageDealt || _metric == GameStatKeys.DamageTaken)
+	{
+		<div class="metric-section">
+			<div class="filter-label">Stacked breakdown</div>
+			<button class="graph-button @(_breakdown == "" ? "selected" : "")" @onclick="@(() => _breakdown = "")">None</button>
+			@if (_metric != GameStatKeys.DamageTaken)
+			{
+				var prefix = _metric == GameStatKeys.Kills ? "kills.enemy." : "damage_dealt.enemy.";
+				<button class="graph-button @(_breakdown == prefix ? "selected" : "")" @onclick="@(() => _breakdown = prefix)">By enemy type</button>
+			}
+			@if (_metric != GameStatKeys.Kills)
+			{
+				var prefix = _metric == GameStatKeys.DamageDealt ? "damage_dealt.type." : "damage_taken.type.";
+				<button class="graph-button @(_breakdown == prefix ? "selected" : "")" @onclick="@(() => _breakdown = prefix)">By damage type</button>
+			}
+		</div>
+	}
 	<div class="player-filters">
 		@for (var index = 0; index < Players.Count; index++)
 		{
@@ -48,7 +73,21 @@
 			</div>
 		}
 	</div>
-	<div class="graph-caption">Cumulative totals / @GameStatHistory.BucketSeconds-second buckets / compatible stats share an axis</div>
+	@if (_categories.Count > 0)
+	{
+		<div class="series-legend">
+			@foreach (var category in _categories)
+			{
+				<div class="legend-entry">
+					<div class="legend-swatch bar-swatch" style="background-color: @category.Color;"></div>
+					@category.Label
+				</div>
+			}
+		</div>
+	}
+	<div class="graph-caption">@(_metric == GameStatKeys.Level
+		? "Level / exact-time steps"
+		: $"Cumulative totals / {GameStatHistory.BucketSeconds}-second combat buckets")@(_breakdown == "" ? "" : " / cumulative stacked bars, side by side per player; outlines match player lines")</div>
 	<div class="chart-scroll">
 		<div class="chart" style="width: @(Number(PlotWidth + AxisPadding + 20f))px; padding-left: @(Number(AxisPadding))px;">
 			<div class="plot">
@@ -60,7 +99,7 @@
 						@for (var tick = 0; tick <= 4; tick++)
 						{
 							var fraction = tick / 4f;
-							<div class="axis-value" style="bottom: @(Number(fraction * PlotHeight))px;">@((axis.Maximum * fraction).ToString("0.##"))</div>
+							<div class="axis-value" style="bottom: @(Number(fraction * PlotHeight))px;">@((axis.Maximum * fraction).ToString("0"))</div>
 						}
 					</div>
 				}
@@ -69,6 +108,12 @@
 					var fraction = tick / 4f;
 					<div class="grid-line" style="bottom: @(Number(fraction * PlotHeight))px;"></div>
 					<div class="axis-time" style="left: @(Number(fraction * PlotWidth))px;">@FormatTime(_duration * fraction)</div>
+				}
+				@foreach (var bar in _bars)
+				{
+					<div class="stacked-bar"
+						 style="left: @(Number(bar.Left))px; bottom: @(Number(bar.Bottom / _axes[0].Maximum * PlotHeight))px; width: @(Number(bar.Width))px; height: @(Number(bar.Amount / _axes[0].Maximum * PlotHeight))px; background-color: @bar.Color; border-color: @bar.PlayerColor;"
+						 tooltip="@bar.Label"></div>
 				}
 				@foreach (var series in _series)
 				{
@@ -123,7 +168,7 @@
 	</div>
 	@if (_series.Count == 0)
 	{
-		<div class="graph-caption">Select at least one stat and one player to show their lines.</div>
+		<div class="graph-caption">Select at least one player to show their history.</div>
 	}
 	<div class="moment-controls">
 		<div class="filter-label">Key moments</div>
@@ -153,7 +198,16 @@
 	private readonly List<ChartSeries> _series = new();
 	private readonly List<ChartMoment> _moments = new();
 	private readonly List<ChartAxis> _axes = new();
-	private readonly HashSet<string> _metrics = new() { GameStatKeys.DamageDealt, GameStatKeys.Kills };
+	private readonly List<ChartBar> _bars = new();
+	private readonly List<ChartCategory> _categories = new();
+	private string _metric = GameStatKeys.DamageDealt;
+	private string _breakdown = "";
+	private static readonly IReadOnlyList<StatRow> BasicMetrics = new List<StatRow>
+	{
+		new("Damage dealt", GameStatKeys.DamageDealt),
+		new("Enemies killed", GameStatKeys.Kills),
+		new("Level", GameStatKeys.Level)
+	};
 	private bool _advanced;
 	private bool _showWorld = true;
 	private bool _showModifiers = true;
@@ -192,6 +246,22 @@
 		public int Lane { get; init; }
 	}
 
+	private sealed record ChartCategory(
+		string Key,
+		string Label,
+		string Color
+	);
+
+	private sealed record ChartBar(
+		float Left,
+		float Width,
+		float Bottom,
+		float Amount,
+		string Color,
+		string PlayerColor,
+		string Label
+	);
+
 	private static string Number(float value)
 	{
 		return value.ToString("0.###", CultureInfo.InvariantCulture);
@@ -225,30 +295,21 @@
 
 	private static bool IsBasicMetric(string key)
 	{
-		return key == GameStatKeys.DamageDealt || key == GameStatKeys.Kills;
+		return BasicMetrics.Any(row => row.Key == key);
 	}
 
-	private void ToggleMetric(string key)
+	private void SelectMetric(string key)
 	{
-		if (!_metrics.Add(key))
+		if (_metric != key)
 		{
-			_metrics.Remove(key);
+			_metric = key;
+			_breakdown = "";
 		}
 	}
 
-	private static string AxisKey(string key)
+	private static bool IsBreakdownMetric(string key)
 	{
-		if (key.StartsWith("damage_dealt") || key.StartsWith("damage_taken"))
-		{
-			return "Damage";
-		}
-
-		if (key == GameStatKeys.ArmorGained)
-		{
-			return "Armor";
-		}
-
-		return "Count";
+		return key.Contains(".enemy.") || key.Contains(".type.");
 	}
 
 	private float X(float seconds)
@@ -291,10 +352,8 @@
 		var manager = Game.ActiveScene.GetAllComponents<GameManager>().FirstOrDefault();
 		var hash = new System.HashCode();
 		hash.Add(_advanced);
-		foreach (var row in GameStatCatalog.Sections.SelectMany(section => section.Rows))
-		{
-			hash.Add(_metrics.Contains(row.Key));
-		}
+		hash.Add(_metric);
+		hash.Add(_breakdown);
 		hash.Add(_showWorld);
 		hash.Add(_showModifiers);
 		hash.Add(_showSurvival);
@@ -308,6 +367,7 @@
 			hash.Add(player.ContentHash());
 			hash.Add(player.HistoryBuckets.Count);
 			hash.Add(player.HistoryMoments.Count);
+			hash.Add(player.HistoryLevels.Count);
 			hash.Add(player.HistoryDuration);
 			hash.Add(_hidden.Contains(player));
 		}
@@ -327,59 +387,52 @@
 		_series.Clear();
 		_moments.Clear();
 		_axes.Clear();
+		_bars.Clear();
+		_categories.Clear();
 		var duration = Players.Count > 0 ? Players.Max(player => player.HistoryDuration) : 0f;
 		_duration = System.MathF.Max(1f, duration);
-		var metricIndex = 0;
-		foreach (var section in GameStatCatalog.Sections)
+		var row = BasicMetrics.Concat(GameStatCatalog.Sections.SelectMany(section => section.Rows)).First(row => row.Key == _metric);
+		var axis = new ChartAxis(
+			Key: _metric,
+			Label: row.Label,
+			Color: "#c4cbd7"
+		);
+		_axes.Add(axis);
+		for (var playerIndex = 0; playerIndex < Players.Count; playerIndex++)
 		{
-			foreach (var row in section.Rows)
+			var player = Players[playerIndex];
+			if (_hidden.Contains(player))
 			{
-				if (_metrics.Contains(row.Key))
-				{
-					var label = section.ShouldHideEmptyRows ? $"{section.Title}: {row.Label}" : row.Label;
-					var axisKey = AxisKey(row.Key);
-					var axis = _axes.FirstOrDefault(candidate => candidate.Key == axisKey);
-					if (axis == null)
-					{
-						var axisColorIndex = metricIndex * System.Math.Max(1, Players.Count);
-						var axisColor = PlayerColor(axisColorIndex);
-						axis = new ChartAxis(
-							Key: axisKey,
-							Label: axisKey,
-							Color: axisColor
-						);
-						_axes.Add(axis);
-					}
-
-					for (var playerIndex = 0; playerIndex < Players.Count; playerIndex++)
-					{
-						var player = Players[playerIndex];
-						if (_hidden.Contains(player))
-						{
-							continue;
-						}
-
-						var points = GameStatHistory.BuildSeries(
-							buckets: player.HistoryBuckets,
-							key: row.Key,
-							duration: duration
-						);
-						var playerMaximum = points.Max(point => point.Value);
-						axis.Maximum = System.MathF.Max(axis.Maximum, playerMaximum);
-						var color = PlayerColor(playerIndex + metricIndex * Players.Count);
-						_series.Add(new ChartSeries(
-							Player: player,
-							Color: color,
-							Points: points,
-							Axis: axis,
-							Label: label
-						));
-					}
-				}
-
-				metricIndex++;
+				continue;
 			}
+
+			List<GameStatPoint> points;
+			if (_metric == GameStatKeys.Level)
+			{
+				points = GameStatHistory.BuildLevelSeries(player.HistoryLevels, duration);
+			}
+			else
+			{
+				points = GameStatHistory.BuildSeries(
+					buckets: player.HistoryBuckets,
+					key: _metric,
+					duration: duration
+				);
+			}
+
+			var playerMaximum = points.Max(point => point.Value);
+			axis.Maximum = System.MathF.Max(axis.Maximum, playerMaximum);
+			var color = PlayerColor(playerIndex);
+			_series.Add(new ChartSeries(
+				Player: player,
+				Color: color,
+				Points: points,
+				Axis: axis,
+				Label: row.Label
+			));
 		}
+
+		RebuildBars(duration);
 		if (_showWorld && manager.IsValid())
 		{
 			foreach (var moment in manager.RoundMoments)
@@ -450,6 +503,78 @@
 		if (_selectedMoment != null && !_moments.Contains(_selectedMoment))
 		{
 			_selectedMoment = null;
+		}
+	}
+
+	private void RebuildBars(float duration)
+	{
+		if (_breakdown == "" || _series.Count == 0)
+		{
+			return;
+		}
+
+		var rows = GameStatCatalog.Sections.SelectMany(section => section.Rows)
+			.Where(row => row.Key.StartsWith(_breakdown)).ToList();
+		for (var index = 0; index < rows.Count; index++)
+		{
+			var row = rows[index];
+			if (_series.Any(series => series.Player.HistoryBuckets.Any(bucket => bucket.Key == row.Key && bucket.Amount > 0f)))
+			{
+				var color = PlayerColor(index + Players.Count);
+				_categories.Add(new ChartCategory(
+					Key: row.Key,
+					Label: row.Label,
+					Color: color
+				));
+			}
+		}
+
+		// Sample at most twelve cumulative snapshots; combat lines keep their full resolution.
+		var pointCount = _series[0].Points.Count;
+		var sampleCount = System.Math.Min(12, pointCount - 1);
+		if (sampleCount == 0)
+		{
+			return;
+		}
+
+		var groupWidth = System.MathF.Min(44f, PlotWidth / sampleCount * 0.7f);
+		var width = groupWidth / _series.Count;
+		for (var playerIndex = 0; playerIndex < _series.Count; playerIndex++)
+		{
+			var series = _series[playerIndex];
+			var categoryPoints = _categories.Select(category => GameStatHistory.BuildSeries(
+				buckets: series.Player.HistoryBuckets,
+				key: category.Key,
+				duration: duration
+			)).ToList();
+			for (var sample = 1; sample <= sampleCount; sample++)
+			{
+				var pointIndex = (int)System.MathF.Ceiling(sample * (pointCount - 1f) / sampleCount);
+				var seconds = series.Points[pointIndex].Seconds;
+				var left = X(seconds) - groupWidth + playerIndex * width;
+				var bottom = 0f;
+				for (var categoryIndex = 0; categoryIndex < _categories.Count; categoryIndex++)
+				{
+					var category = _categories[categoryIndex];
+					var amount = categoryPoints[categoryIndex][pointIndex].Value;
+					if (amount > 0f)
+					{
+						_bars.Add(new ChartBar(
+							Left: System.MathF.Max(0f, left),
+							Width: System.MathF.Max(1f, width - 1f),
+							Bottom: bottom,
+							Amount: amount,
+							Color: category.Color,
+							PlayerColor: series.Color,
+							Label: $"{series.Player.PlayerName} - {category.Label} - {amount:0}"
+						));
+					}
+
+					bottom += amount;
+				}
+
+				series.Axis.Maximum = System.MathF.Max(series.Axis.Maximum, bottom);
+			}
 		}
 	}
 }

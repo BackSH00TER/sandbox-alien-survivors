@@ -89,6 +89,37 @@ public sealed class GameStatHistory
 		return points;
 	}
 
+	/// <summary>Horizontal steps preserve level-up times rather than interpolating progression.</summary>
+	public static List<GameStatPoint> BuildLevelSeries(IEnumerable<GameStatPoint> levels, float duration)
+	{
+		ValidateSeconds(duration);
+		var points = new List<GameStatPoint> { new(0f, 1f) };
+		var previous = points[0];
+		foreach (var level in levels)
+		{
+			ValidateSeconds(level.Seconds);
+			if (!float.IsFinite(level.Value) || level.Value < previous.Value || level.Seconds < previous.Seconds || level.Seconds > duration)
+			{
+				throw new ArgumentException("Level history must be chronological, nondecreasing, and within the round.", nameof(levels));
+			}
+
+			if (level.Value != previous.Value)
+			{
+				points.Add(new GameStatPoint(level.Seconds, previous.Value));
+				points.Add(level);
+			}
+
+			previous = level;
+		}
+
+		if (points[^1].Seconds < duration)
+		{
+			points.Add(new GameStatPoint(duration, previous.Value));
+		}
+
+		return points;
+	}
+
 	private static void ValidateSeconds(float seconds)
 	{
 		if (!float.IsFinite(seconds) || seconds < 0f || seconds / BucketSeconds >= int.MaxValue)

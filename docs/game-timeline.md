@@ -30,24 +30,36 @@ the timeline.
 ## Round results
 
 The results screen opens on **Timeline**; **Summary** preserves the scorecard.
-Basic mode exposes damage dealt and enemies killed, with both selected initially.
-Stat buttons toggle independently, so any combination can be plotted together.
-**Advanced** exposes the remaining stat catalog, including damage breakdowns
-and upgrades; empty optional rows stay hidden. Returning to Basic preserves
-selected advanced stats and keeps their buttons visible so they can be removed.
+Basic mode exposes **Damage dealt**, **Enemies killed**, and **Level**, with
+damage selected initially. Choose one stat family at a time; switching families
+replaces the previous selection and resets its breakdown. **Advanced** exposes
+the remaining totals and individual upgrade counts; empty optional rows stay
+hidden. Returning to Basic keeps the selected advanced stat's button visible.
 Player buttons toggle all lines and moments belonging to that player.
 
-Compatible stats share a labeled raw-value axis on the left: all damage stats
-use **Damage**, kills/deaths/revives/rerolls/upgrade acquisitions use **Count**,
-and armor gained uses **Armor**. Each axis uses one scale across its selected
-stats and visible players, keeping the display to at most three axes.
-Damage cannot dwarf kill counts. Different axes share the round timeline, not
-units or a numerical scale; equal line heights across axes do not mean equal values.
-The legend identifies each player/stat line by color and shows its final total.
-Hover a point for its stat, actual total, and bucket endpoint. Several selected
-axes expand the horizontally scrollable chart. Deselecting every stat or player
-shows an explicit empty-state message; key-moment filters remain independent.
+Each view has exactly one labeled raw-value axis, shared across visible players.
+Axis tick labels round to the nearest whole number; underlying values, graph
+scaling, legend totals, and line-point tooltips retain their precision.
+The legend identifies each player's total line by color and shows its final value.
+Kills can show a stacked **By enemy type** breakdown. Damage dealt can show
+**By enemy type** or **By damage type**; these are alternatives, not combined,
+because they each partition the same total. Damage taken supports **By damage
+type**. Boss damage is already included in the enemy-type stack, not added again.
+Bars show cumulative category totals, not activity within an interval, so they
+use the same scale as the total line. At each snapshot, player stacks appear
+side by side; category colors are shared across players, and outlines match
+player line colors. Segment tooltips show only `Player - Category - Amount`,
+with the amount rounded to the nearest whole number. Up to twelve evenly spaced bucket-end snapshots
+(including the final endpoint) keep bars readable on long rounds; total lines
+retain every 15-second point. Hiding all players shows an explicit empty-state
+message; key-moment filters remain independent.
 Time labels are elapsed round time, not wall-clock time.
+
+Level starts at one and changes in steps at the exact host-clock time of each
+level-up, including multiple levels earned simultaneously. These sparse level
+changes are replicated with the frozen round results, not combat-bucketed.
+Level-ups and modifier consumption remain separate: choosing an upgrade later
+does not move the level-up time or the upgrade icon.
 
 The host aggregates each stat as it is recorded into sparse, half-open 15-second
 buckets (`[0,15)`, `[15,30)`, etc.). No raw combat event list is retained.
@@ -84,7 +96,8 @@ may include scheduled events that never occurred.
 Timeline boundary and pipeline calculations are covered by the existing
 test executable, alongside 15-second boundaries, partial/instant rounds, quiet
 buckets, snapshot isolation, invalid inputs, and a million-event aggregation
-check (forty retained buckets and forty-one chart points):
+check (forty retained buckets and forty-one chart points), exact-time level
+steps, and cumulative category/total alignment:
 
 ```powershell
 dotnet run --project Tests\DamageFramework.Tests.csproj -p:EngineDirectory="<s&box install>"

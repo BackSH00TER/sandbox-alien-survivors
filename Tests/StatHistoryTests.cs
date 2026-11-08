@@ -122,6 +122,78 @@ public static class StatHistoryTests
 		Check(points.Count == 41 && points[^1].Value == 1_000_000f, "Rendered point count must depend on duration, not event count; no totals may be lost.");
 	}
 
+	public static void Levels()
+	{
+		var levels = new[]
+		{
+			new GameStatPoint(0f, 1f),
+			new GameStatPoint(3.25f, 2f),
+			new GameStatPoint(3.25f, 3f),
+			new GameStatPoint(18.5f, 4f)
+		};
+		var points = GameStatHistory.BuildLevelSeries(levels, 20f);
+		var expected = new[]
+		{
+			new GameStatPoint(0f, 1f),
+			new GameStatPoint(3.25f, 1f),
+			new GameStatPoint(3.25f, 2f),
+			new GameStatPoint(3.25f, 2f),
+			new GameStatPoint(3.25f, 3f),
+			new GameStatPoint(18.5f, 3f),
+			new GameStatPoint(18.5f, 4f),
+			new GameStatPoint(20f, 4f)
+		};
+		Check(points.SequenceEqual(expected), "Levels must step at exact acquisition times, including multiple levels at the same time.");
+		var empty = GameStatHistory.BuildLevelSeries(Array.Empty<GameStatPoint>(), 20f);
+		Check(empty.SequenceEqual(new[] { new GameStatPoint(0f, 1f), new GameStatPoint(20f, 1f) }), "Players without level-ups start and finish at level one.");
+		var instant = GameStatHistory.BuildLevelSeries(Array.Empty<GameStatPoint>(), 0f);
+		Check(instant.SequenceEqual(new[] { new GameStatPoint(0f, 1f) }), "Instant rounds must retain starting level.");
+		var exact = GameStatHistory.BuildLevelSeries(levels, 18.5f);
+		Check(exact[^1] == new GameStatPoint(18.5f, 4f), "A level-up at round end must be included.");
+		Reject(() => GameStatHistory.BuildLevelSeries(levels, 18f));
+		Reject(() => GameStatHistory.BuildLevelSeries(levels.Reverse(), 20f));
+		Reject(() => GameStatHistory.BuildLevelSeries(new[] { new GameStatPoint(1f, 0f) }, 20f));
+		Reject(() => GameStatHistory.BuildLevelSeries(new[] { new GameStatPoint(1f, float.NaN) }, 20f));
+	}
+
+	public static void Breakdowns()
+	{
+		var history = new GameStatHistory();
+		var enemyKeys = System.Enum.GetValues<GameEnemyKind>().Select(GameStatKeys.KillsByEnemy).ToList();
+		for (var index = 0; index < enemyKeys.Count; index++)
+		{
+			history.Add(
+				key: GameStatKeys.Kills,
+				amount: index + 1f,
+				seconds: index * 15f
+			);
+			history.Add(
+				key: enemyKeys[index],
+				amount: index + 1f,
+				seconds: index * 15f
+			);
+		}
+
+		var duration = enemyKeys.Count * 15f + 3f;
+		var buckets = history.Snapshot();
+		var totals = GameStatHistory.BuildSeries(
+			buckets: buckets,
+			key: GameStatKeys.Kills,
+			duration: duration
+		);
+		var breakdowns = enemyKeys.Select(key => GameStatHistory.BuildSeries(
+			buckets: buckets,
+			key: key,
+			duration: duration
+		)).ToList();
+		for (var index = 0; index < totals.Count; index++)
+		{
+			var total = totals[index];
+			Check(breakdowns.All(points => points[index].Seconds == total.Seconds), "Category snapshots must align with the total line.");
+			Check(breakdowns.Sum(points => points[index].Value) == total.Value, "Cumulative category stacks must add up to the cumulative total at every bucket endpoint.");
+		}
+	}
+
 	public static void Invalid()
 	{
 		var history = new GameStatHistory();

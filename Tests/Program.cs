@@ -37,6 +37,8 @@ var tests = new (string Name, Action Run)[]
 	("stat history carries quiet buckets and final partial totals", StatHistoryTests.Series),
 	("stat history handles zero duration, exact boundaries and snapshots", StatHistoryTests.Boundaries),
 	("a million stat events retain only bucket aggregates", StatHistoryTests.Volume),
+	("level history uses exact-time steps and starting level", StatHistoryTests.Levels),
+	("cumulative enemy breakdowns align and sum to the total", StatHistoryTests.Breakdowns),
 	("stat history rejects invalid input", StatHistoryTests.Invalid)
 };
 foreach (var test in tests)

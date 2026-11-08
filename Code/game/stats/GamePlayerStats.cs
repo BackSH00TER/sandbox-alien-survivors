@@ -8,10 +8,12 @@ public sealed class GamePlayerStats : Component
 
 	[Sync(SyncFlags.FromHost)] public NetList<GameStatBucket> HistoryBuckets { get; private set; } = new();
 	[Sync(SyncFlags.FromHost)] public NetList<GameStatMoment> HistoryMoments { get; private set; } = new();
+	[Sync(SyncFlags.FromHost)] public NetList<GameStatPoint> HistoryLevels { get; private set; } = new();
 	[Sync(SyncFlags.FromHost)] public float HistoryDuration { get; private set; }
 
 	private readonly GameStatHistory _history = new();
 	private readonly List<GameStatMoment> _moments = new();
+	private readonly List<GameStatPoint> _levels = new() { new(0f, 1f) };
 	private GameManager _manager;
 
 	public string PlayerName => GameObject.Network.Owner?.DisplayName ?? GameObject.Name;
@@ -32,35 +34,17 @@ public sealed class GamePlayerStats : Component
 
 	public void Add(string key, float amount)
 	{
-		if (!Networking.IsHost)
-		{
-			Log.Error("Stats must be recorded on the host.");
-			return;
-		}
-
 		if (!float.IsFinite(amount) || amount <= 0f)
 		{
 			Log.Error("Stat amounts must be finite and positive.");
 			return;
 		}
 
-		if (IsRoundOver)
+		if (!TryGetRoundSeconds(out var seconds))
 		{
 			return;
 		}
 
-		if (!_manager.IsValid())
-		{
-			_manager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
-		}
-
-		if (!_manager.IsValid() || !_manager.TimelineReady)
-		{
-			Log.Error("Round stats require an initialized GameManager clock.");
-			return;
-		}
-
-		var seconds = _manager.ElapsedSeconds;
 		_history.Add(
 			key: key,
 			amount: amount,
@@ -86,6 +70,52 @@ public sealed class GamePlayerStats : Component
 		}
 
 		Values[key] = Get(key) + amount;
+	}
+
+	/// <summary>Host only. Level changes retain their exact time, independently of combat buckets.</summary>
+	public void RecordLevel(int level)
+	{
+		if (level <= _levels[^1].Value)
+		{
+			Log.Error("Recorded player levels must increase.");
+			return;
+		}
+
+		if (!TryGetRoundSeconds(out var seconds))
+		{
+			return;
+		}
+
+		_levels.Add(new GameStatPoint(seconds, level));
+	}
+
+	private bool TryGetRoundSeconds(out float seconds)
+	{
+		seconds = 0f;
+		if (!Networking.IsHost)
+		{
+			Log.Error("Stats must be recorded on the host.");
+			return false;
+		}
+
+		if (IsRoundOver)
+		{
+			return false;
+		}
+
+		if (!_manager.IsValid())
+		{
+			_manager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
+		}
+
+		if (!_manager.IsValid() || !_manager.TimelineReady)
+		{
+			Log.Error("Round stats require an initialized GameManager clock.");
+			return false;
+		}
+
+		seconds = _manager.ElapsedSeconds;
+		return true;
 	}
 
 	/// <summary>Host only. Adds to a player's stat.</summary>
@@ -158,6 +188,7 @@ public sealed class GamePlayerStats : Component
 			var buckets = stats._history.Snapshot();
 			stats.HistoryBuckets.AddRange(buckets);
 			stats.HistoryMoments.AddRange(stats._moments);
+			stats.HistoryLevels.AddRange(stats._levels);
 			stats.HistoryDuration = manager.ElapsedSeconds;
 			stats.IsRoundOver = true;
 		}
