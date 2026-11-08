@@ -273,6 +273,11 @@ into helpers. Its round-manager property caches the scene lookup while the manag
 is valid and reacquires it after removal or a scene change.
 
 Instant effects use `InstantDamage`, with zero duration/DPS and no timed spread.
+Chain settings are optional: omitted numeric properties default to zero and disable
+chaining. A non-chaining instant effect may omit its chain radius; enabled chaining
+requires a positive radius. Nullable chain fields are not needed.
+`GameEnemy.ApplyDamageEffect` is the public entry point, so projectile impacts select
+an enemy before applying an effect; players and crates do not expose that method.
 `DamageEffectChain` selects each next target before dealing damage, then rechecks
 eligibility before hitting it. This supports lethal hits without chaining through a
 new ragdoll. Instant explosion damage still needs separate area-targeting behavior;

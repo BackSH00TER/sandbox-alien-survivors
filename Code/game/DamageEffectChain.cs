@@ -24,9 +24,11 @@ public static class DamageEffectChain
 			throw new ArgumentException("Chains require an instant damage effect.", nameof(settings));
 		}
 
+		// Include the initial hit so later hops cannot bounce back to it or revisit any enemy.
 		var visited = new HashSet<TTarget>();
 		var current = initialTarget;
 		int remainingChains = settings.MaxChains;
+		// Recheck eligibility after each hit, which may kill another target or end the round.
 		while (current != null && !visited.Contains(current) && canHit(current))
 		{
 			visited.Add(current);
@@ -54,6 +56,7 @@ public static class DamageEffectChain
 				remainingChains--;
 			}
 
+			// Subtract from the original shot damage, not the previous hop, and retain the damage floor.
 			var hop = visited.Count - 1;
 			var damageMultiplier = MathF.Max(settings.MinimumChainDamageMultiplier, 1f - hop * settings.ChainDamageFalloff);
 			var damage = settings.InstantDamage * damageMultiplier;

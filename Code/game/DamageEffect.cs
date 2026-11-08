@@ -29,6 +29,7 @@ public sealed class DamageEffectDefinition
 	public float SpreadChance { get; init; }
 	public float SpreadRadius { get; init; }
 	public float InstantDamage { get; init; }
+	// Omitted chain values default to zero, disabling chains without requiring nullable fields.
 	public float ChainChance { get; init; }
 	public int MaxChains { get; init; }
 	public float ChainRadius { get; init; }

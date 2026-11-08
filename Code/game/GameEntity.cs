@@ -164,7 +164,11 @@ public abstract class GameEntity : Component
 		damageNumberObject.Components.Create<GameDamageNumber>().Damage = damage;
 	}
 
-	public void ApplyDamageEffect(DamageEffectSettings settings, GameEntity attacker)
+	protected void ApplyEnemyDamageEffect(
+		GameEnemy enemy,
+		DamageEffectSettings settings,
+		GameEntity attacker
+	)
 	{
 		if (!Networking.IsHost || settings == null || !attacker.IsValid()
 			|| !DamageEffectCatalog.All.Any(effectDefinition => effectDefinition.Type == settings.Type))
@@ -182,12 +186,6 @@ public abstract class GameEntity : Component
 
 		if (settings.IsInstant)
 		{
-			if (this is not GameEnemy enemy)
-			{
-				Log.Error("Instant damage effects require an enemy target.");
-				return;
-			}
-
 			ApplyInstantDamageEffect(
 				initialTarget: enemy,
 				settings: settings,
@@ -216,11 +214,13 @@ public abstract class GameEntity : Component
 
 		bool CanHit(GameEnemy enemy)
 		{
+			// The original attacker supplies credit; each target must still accept damage in this round.
 			return attacker.IsValid() && enemy.IsValid() && enemy.CanReceiveEffectDamage;
 		}
 
 		GameEnemy FindNext(GameEnemy previous, IReadOnlySet<GameEnemy> visited)
 		{
+			// Measure each hop from its previous enemy, excluding every target already hit.
 			var originPosition = previous.WorldPosition;
 			var originObject = previous.GameObject;
 			var radiusSquared = settings.ChainRadius * settings.ChainRadius;
@@ -230,6 +230,7 @@ public abstract class GameEntity : Component
 				.OrderBy(enemy => (enemy.WorldPosition - originPosition).LengthSquared);
 			foreach (var enemy in candidates)
 			{
+				// Choose the nearest visible candidate, not merely the nearest one behind a wall.
 				var visible = HasEffectLineOfSight(
 					scene: scene,
 					originPosition: originPosition,
@@ -247,6 +248,7 @@ public abstract class GameEntity : Component
 
 		void Hit(GameEnemy enemy, float damage)
 		{
+			// Broadcast the arc through the attacker so a lethal hit cannot remove its RPC sender.
 			var arcEnd = enemy.WorldPosition + Vector3.Up * GameWeaponProjectile.CollisionHeight;
 			attacker.ShowShockArc(arcStart, arcEnd);
 			arcStart = arcEnd;

@@ -45,7 +45,8 @@ public sealed class DamageEffectSettings
 			&& duration == 0f && damagePerSecond == 0f && maxStacks == 1
 			&& spreadChance == 0f && spreadRadius == 0f
 			&& float.IsFinite(chainChance) && chainChance >= 0f && chainChance <= 1f
-			&& maxChains >= 0 && float.IsFinite(chainRadius) && chainRadius > 0f;
+			&& maxChains >= 0 && float.IsFinite(chainRadius) && chainRadius >= 0f
+			&& (chainRadius > 0f || (maxChains == 0 && chainChance == 0f));
 		if (!Enum.IsDefined(type) || type == GameDamageType.Physical
 			|| !float.IsFinite(applicationChance) || applicationChance < 0f || applicationChance > 1f
 			|| maxStacks < 1

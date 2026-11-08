@@ -133,9 +133,9 @@ public sealed class GameWeaponProjectile : Component
 			if (canDamage)
 			{
 				target.TakeDamage(_damage, Direction, GameDamageType.Physical, Shooter);
-				if (_effect != null && target.IsValid() && target is GameEnemy && target.CanTakeDamage && target.Health > 0f)
+				if (_effect != null && target.IsValid() && target is GameEnemy enemy && enemy.CanTakeDamage && enemy.Health > 0f)
 				{
-					target.ApplyDamageEffect(_effect, Shooter);
+					enemy.ApplyDamageEffect(_effect, Shooter);
 				}
 			}
 			Finish();

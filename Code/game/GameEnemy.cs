@@ -4,6 +4,15 @@ public sealed class GameEnemy : GameEntity
 {
 	public override bool CanTakeDamage => Health > 0f && !IsDescending;
 
+	public void ApplyDamageEffect(DamageEffectSettings settings, GameEntity attacker)
+	{
+		ApplyEnemyDamageEffect(
+			enemy: this,
+			settings: settings,
+			attacker: attacker
+		);
+	}
+
 	public GameEnemyKind Kind => GetComponent<GameEnemyBoss>().IsValid() ? GameEnemyKind.Boss
 		: GetComponent<GameEnemyRanged>().IsValid() ? GameEnemyKind.Ranged
 		: GetComponent<GameEnemyExploding>().IsValid() ? GameEnemyKind.Exploding

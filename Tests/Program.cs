@@ -31,6 +31,7 @@ var tests = new (string Name, Action Run)[]
 	("shock chains respect limits, rolls and unique targets", ShockTests.Chains),
 	("shock damage falls linearly to a ten percent floor", ShockTests.Falloff),
 	("shock chain validation and timed isolation", ShockTests.Invalid),
+	("instant effects may omit chain settings", ShockTests.OptionalChains),
 	("independent expiries and exact stacked damage", Expiries),
 	("whole-second ticks and partial renewal damage", TickCadence),
 	("oldest replacement and attacker credit", Replacement),

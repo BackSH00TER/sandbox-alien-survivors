@@ -237,6 +237,31 @@ internal static class ShockTests
 		Check(effects.Stacks.Count == 0, "Instant shocks must never become timed damage stacks.");
 	}
 
+	internal static void OptionalChains()
+	{
+		var definition = new DamageEffectDefinition
+		{
+			Type = GameDamageType.Electricity,
+			ApplicationChance = 1f,
+			InstantDamage = 10f
+		};
+		var settings = definition.Resolve(_ => 0);
+		Check(settings.IsInstant && settings.MaxChains == 0, "Instant effects may omit chaining entirely.");
+		Near(settings.ChainChance, 0f);
+		Near(settings.ChainRadius, 0f);
+		var hits = Run(settings, rolls: Array.Empty<float>());
+		Check(hits.SequenceEqual(new[] { "A" }), "Omitted chaining must hit only the initial target without random rolls.");
+		var enabledWithoutRadius = new DamageEffectDefinition
+		{
+			Type = GameDamageType.Electricity,
+			ApplicationChance = 1f,
+			InstantDamage = 10f,
+			ChainChance = 0.2f,
+			MaxChains = 1
+		};
+		Reject<ArgumentOutOfRangeException>(() => enabledWithoutRadius.Resolve(_ => 0));
+	}
+
 	private static List<string> Run(
 		DamageEffectSettings settings,
 		float[] rolls,
