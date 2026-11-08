@@ -33,7 +33,9 @@ internal static class LootCatalogTests
 		}
 
 		Check(GameLootCatalog.Get(LootKind.Health).Amount == 50, "Medkits must still heal 50.");
-		Check(GameLootCatalog.Get(LootKind.Armor).Amount == 1, "Armor must still grant one plate.");
+		var armor = GameLootCatalog.Get(LootKind.Armor);
+		Check(condition: armor.Amount == 5, message: "Armor must grant five points.");
+		Check(condition: armor.Name == "Armor +5", message: "Armor's display name must match its pickup amount.");
 		Check(GameLootCatalog.Get(LootKind.RerollDice).Amount == 1, "Dice must still grant one reroll.");
 		Check(GameLootCatalog.Get(LootKind.Rifle).WeaponSlot == LootWeaponSlot.Rifle, "Rifle must retain its crate override.");
 		Check(GameLootCatalog.Get(LootKind.Shotgun).WeaponSlot == LootWeaponSlot.Shotgun, "Shotgun must retain its crate override.");
@@ -66,6 +68,10 @@ internal static class LootCatalogTests
 		Check(health.Collect(collector, health.Amount) && collector.Health == 100f, "Health callback must restore its configured amount.");
 
 		var armor = GameLootCatalog.Get(LootKind.Armor);
+		Check(condition: armor.Collect(collector, armor.Amount) && collector.Armor == 5, message: "An armor pickup must grant five points from zero.");
+		Check(condition: armor.Collect(collector, armor.Amount) && collector.Armor == 10, message: "Another armor pickup must add five more points.");
+		collector.Armor = int.MaxValue - 4;
+		Check(condition: !armor.CanCollect(collector, armor.Amount), message: "Armor eligibility must reject capacity below five points.");
 		collector.Armor = int.MaxValue;
 		Check(!armor.CanCollect(collector, armor.Amount), "Armor eligibility must reject counter overflow.");
 		collector.Armor = int.MaxValue - armor.Amount;

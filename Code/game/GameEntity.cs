@@ -2,6 +2,10 @@ using Sandbox;
 
 public abstract class GameEntity : Component
 {
+	internal const string PlayerCollisionTag = "alien_survivors_player";
+	internal const string EnemyCollisionTag = "alien_survivors_enemy";
+	internal const string EnemyRagdollCollisionTag = "alien_survivors_enemy_ragdoll";
+
 	[Property, Range(1f, 1000f), Sync(SyncFlags.FromHost)] public float MaxHealth { get; set; } = 100f;
 	[Property, Range(0.01f, 1f)] public float HitFlashDuration { get; set; } = 0.12f;
 	[Sync(SyncFlags.FromHost)] public float Health { get; private set; } = 100f;
@@ -80,6 +84,29 @@ public abstract class GameEntity : Component
 		{
 			Health = MaxHealth;
 		}
+	}
+
+	internal static bool AddCollisionTag(Rigidbody rigidbody, string tag)
+	{
+		if (!rigidbody.IsValid())
+		{
+			return false;
+		}
+
+		var body = rigidbody.PhysicsBody;
+		if (!body.IsValid)
+		{
+			return false;
+		}
+
+		var shapeCount = 0;
+		foreach (var shape in body.Shapes)
+		{
+			shape.Tags.Add(tag);
+			shapeCount++;
+		}
+
+		return shapeCount > 0;
 	}
 
 	public void TakeDamage(float amount, Vector3 hitDirection = default, GameDamageType type = GameDamageType.Physical, GameEntity attacker = null, bool bypassArmor = false)

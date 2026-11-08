@@ -132,6 +132,11 @@ public sealed class GameWeaponProjectile : Component
 			DrawTravel(start, trace.EndPosition, canDamage ? Color.Green : Color.Red);
 			if (canDamage)
 			{
+				if (target is GameEnemy aggroEnemy && Shooter is GamePlayer playerShooter)
+				{
+					aggroEnemy.SetAggroTarget(playerShooter);
+				}
+
 				target.TakeDamage(_damage, Direction, GameDamageType.Physical, Shooter);
 				if (_effect != null && target.IsValid() && target is GameEnemy enemy && enemy.CanTakeDamage && enemy.Health > 0f)
 				{

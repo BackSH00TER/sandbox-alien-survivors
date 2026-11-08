@@ -25,6 +25,8 @@ var tests = new (string Name, Action Run)[]
 	("loot rarity buckets preserve exact probabilities", LootCatalogTests.Drops),
 	("loot catalog preserves prototype visuals", LootCatalogTests.Visuals),
 	("invalid loot rolls and kinds are rejected", LootCatalogTests.Invalid),
+	("enemy aggro switches only after the cooldown", EnemyAggroTests.Cooldown),
+	("enemy aggro handles unavailable targets", EnemyAggroTests.Unavailable),
 	("fire chance, defaults and upgrade caps", FireRolls),
 	("shock progression and immutable settings", ShockTests.Progression),
 	("mixed damage effect rolls never retry", ShockTests.Rolls),

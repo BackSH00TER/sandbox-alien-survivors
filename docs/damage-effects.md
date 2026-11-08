@@ -133,6 +133,9 @@ the host checks both the offer ID and eligibility when accepting a pick.
 Crates drop an equally likely number of items between their configured `MinDrops`
 and `MaxDrops` (1-3 by default), rolling each item's kind independently. Multiple
 pickups are spaced around the crate, while a single pickup stays centered.
+Destroyed crates additionally drop 0-3 equally likely XP orbs, each worth 1 XP,
+scattered 24-48 units from the crate on the ground plane. This separate roll does
+not change the existing loot counts or item probabilities.
 Crates can drop an ivory die with dark pips. It joins health, rifle and shotgun in
 the equally weighted common pool: each has a 22.5% chance when no flare is rolled,
 while armor keeps its separate 10% chance. A flare roll still takes priority.
@@ -191,6 +194,7 @@ capabilities those callbacks need, keeping catalog rules testable without the
 engine. `GamePlayer` implements the contract using its existing health, armor,
 dice and revive-flare operations. Pickups retain host, round-state, range and
 line-of-sight checks and only disappear after successful effect application.
+Each armor pickup grants 5 armor points and is displayed as `Armor +5`.
 The display name for weapons still comes from
 their actual weapon resource. To add an item using an existing effect, append a
 stable ID to `LootKind` and add a catalog entry with its settings and visual parts.
