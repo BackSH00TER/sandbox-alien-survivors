@@ -8,6 +8,7 @@ public sealed class GameEnemyBoss : Component
 	[Property, Range(0f, 1000f)] public float MoveSpeed { get; set; } = 100f;
 	[Property, Range(1f, 1000f)] public float PunchDamage { get; set; } = 25f;
 	[Property, Range(1f, 500f)] public float PunchRange { get; set; } = 100f;
+	[Property, Range(1f, 500f)] public float PunchHitRange { get; set; } = 80f;
 
 	[Property, Group("Stun Attack"), Range(0.1f, 10f), Sync(SyncFlags.FromHost)] public float StunChargeTime { get; set; } = 1.5f;
 	[Property, Group("Stun Attack"), Range(1f, 1000f), Sync(SyncFlags.FromHost)] public float StunRadius { get; set; } = 120f;
@@ -153,6 +154,7 @@ public sealed class GameEnemyBoss : Component
 		enemy.MoveSpeed = MoveSpeed;
 		enemy.PunchDamage = PunchDamage;
 		enemy.PunchRange = PunchRange;
+		enemy.PunchHitRange = PunchHitRange;
 		enemy.HitStaggerDuration = 0f;
 		enemy.HitReactionStrength = 0.15f;
 		enemy.ExperienceDrop = 0;
