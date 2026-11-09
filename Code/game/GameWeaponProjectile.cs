@@ -192,7 +192,7 @@ public sealed class GameWeaponProjectile : Component
 
 			var target = trace.GameObject.IsValid() ? trace.GameObject.GetComponentInParent<GameEntity>() : null;
 			var canDamage = target.IsValid() && target.CanTakeDamage && target.Health > 0f
-				&& (IsEnemyProjectile ? target is GamePlayer : target is GameEnemy or GameSupplyCrate);
+				&& (IsEnemyProjectile ? target is GamePlayer : target is GameEnemy or GameSupplyCrate or GameDropship);
 			DrawTravel(
 				start: start,
 				end: trace.EndPosition,

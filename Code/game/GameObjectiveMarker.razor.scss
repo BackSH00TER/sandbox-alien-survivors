@@ -1,4 +1,4 @@
-GameFlareMarker
+GameObjectiveMarker
 {
 	position: absolute;
 	top: 0;
@@ -8,20 +8,29 @@ GameFlareMarker
 	pointer-events: none;
 	font-weight: 600;
 
-	.flare-marker {
+	.objective-marker {
 		position: absolute;
 		flex-direction: column;
 		align-items: center;
 		transform: translate(-50%, -50%);
-		color: #ff5a4d;
+		color: #62ffb0;
 		text-shadow: 0 0 6px #000;
 
-		.flare-arrow-icon {
+		&.flare {
+			color: #ff5a4d;
+		}
+
+		.objective-arrow-icon {
 			font-family: Material Icons;
 			font-size: 64px;
 		}
 
-		.flare-distance {
+		.objective-label {
+			font-size: 15px;
+			font-family: Oxanium;
+		}
+
+		.objective-distance {
 			font-size: 18px;
 			font-family: Oxanium;
 			color: #fff;
