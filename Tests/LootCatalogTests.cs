@@ -135,22 +135,23 @@ internal static class LootCatalogTests
 		{
 			for (var rarity = 0; rarity < 100; rarity++)
 			{
-				for (var common = 0; common < 4; common++)
+				for (var common = 0; common < 2; common++)
 				{
 					var item = Roll(
 						flareChance: 0.25f,
 						flareRoll: (flare + 0.5f) / 100f,
 						rarityRoll: (rarity + 0.5f) / 100f,
-						itemRoll: (common + 0.5f) / 4f
+						itemRoll: (common + 0.5f) / 2f
 					);
 					counts[item.Id]++;
 				}
 			}
 		}
 
-		Check(counts[LootKind.Flare] == 10000, "Flare roll must retain priority and its 25% contextual chance.");
-		Check(counts[LootKind.Armor] == 3000, "Rare must have a 10% chance after the flare roll fails.");
-		foreach (var kind in new[] { LootKind.Health, LootKind.Rifle, LootKind.Shotgun, LootKind.RerollDice })
+		Check(counts[LootKind.Flare] == 5000, "Flare roll must retain priority and its 25% contextual chance.");
+		Check(counts[LootKind.Armor] == 1500, "Rare must have a 10% chance after the flare roll fails.");
+		Check(counts[LootKind.Rifle] == 0 && counts[LootKind.Shotgun] == 0, "Supply crates must never drop weapons.");
+		foreach (var kind in new[] { LootKind.Health, LootKind.RerollDice })
 		{
 			Check(counts[kind] == 6750, "Common items must be equally likely within their 90% bucket.");
 		}
@@ -179,21 +180,21 @@ internal static class LootCatalogTests
 		var noFlareCounts = Enum.GetValues<LootKind>().ToDictionary(kind => kind, _ => 0);
 		for (var rarity = 0; rarity < 100; rarity++)
 		{
-			for (var common = 0; common < 4; common++)
+			for (var common = 0; common < 2; common++)
 			{
 				var item = Roll(
 					flareChance: 0f,
 					flareRoll: 0.5f,
 					rarityRoll: (rarity + 0.5f) / 100f,
-					itemRoll: (common + 0.5f) / 4f
+					itemRoll: (common + 0.5f) / 2f
 				);
 				noFlareCounts[item.Id]++;
 			}
 		}
-		Check(noFlareCounts[LootKind.Flare] == 0 && noFlareCounts[LootKind.Armor] == 40, "No-death drops must exclude flares and retain 10% armor.");
-		Check(noFlareCounts[LootKind.Health] == 90 && noFlareCounts[LootKind.Rifle] == 90
-			&& noFlareCounts[LootKind.Shotgun] == 90 && noFlareCounts[LootKind.RerollDice] == 90,
-			"Each common item must retain its 22.5% no-flare probability.");
+		Check(noFlareCounts[LootKind.Flare] == 0 && noFlareCounts[LootKind.Armor] == 20, "No-death drops must exclude flares and retain 10% armor.");
+		Check(noFlareCounts[LootKind.Health] == 90 && noFlareCounts[LootKind.Rifle] == 0
+			&& noFlareCounts[LootKind.Shotgun] == 0 && noFlareCounts[LootKind.RerollDice] == 90,
+			"Each common consumable must have a 45% no-flare probability.");
 		for (var item = 0; item <= 100; item++)
 		{
 			var rare = Roll(
@@ -203,6 +204,29 @@ internal static class LootCatalogTests
 				itemRoll: item / 100f
 			);
 			Check(rare.Rarity == GameRarity.Rare, "Item selection must never change the chosen rarity.");
+		}
+	}
+
+	internal static void WeaponDrops()
+	{
+		var counts = GameLootCatalog.All.ToDictionary(item => item.Id, _ => 0);
+		for (var index = 0; index < 1000; index++)
+		{
+			var roll = (index + 0.5f) / 1000f;
+			var item = GameLootCatalog.RollWeapon(random: () => roll);
+			Check(condition: item.Effect == LootEffect.Weapon, message: "Weapon crates must exclude every consumable, including contextual flares.");
+			counts[item.Id]++;
+		}
+
+		Check(condition: counts[LootKind.Rifle] == 500 && counts[LootKind.Shotgun] == 500, message: "Weapon crate drops must choose weapons equally.");
+		var first = GameLootCatalog.RollWeapon(random: () => 0f);
+		var boundary = GameLootCatalog.RollWeapon(random: () => 0.5f);
+		var last = GameLootCatalog.RollWeapon(random: () => 1f);
+		Check(condition: first.Id == LootKind.Rifle, message: "Zero must choose the first weapon.");
+		Check(condition: boundary.Id == LootKind.Shotgun && last.Id == LootKind.Shotgun, message: "Weapon interval boundaries and endpoint one must be valid.");
+		foreach (var invalidRoll in new[] { -0.1f, 1.1f, float.NaN, float.PositiveInfinity })
+		{
+			Reject(() => GameLootCatalog.RollWeapon(random: () => invalidRoll));
 		}
 	}
 

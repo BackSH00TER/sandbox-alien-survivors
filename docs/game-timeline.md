@@ -12,13 +12,16 @@ Events beyond the right edge appear as smaller pipeline icons. Their tiny
 the time until they occur. For example, a boss due at 5:00 starts in the
 pipeline with `4 min` and enters the view at 3:18.
 
-`GameManager.TimelineEvents` is the event source. Currently it exposes only
-the existing boss spawn, using `CountdownTime` and then the actual spawn time
-once spawning succeeds. Future event types can supply their timestamp,
+`GameManager.TimelineEvents` is the event source. It exposes the existing boss
+spawn, using `CountdownTime` and then the actual spawn time once spawning succeeds,
+and weapon airdrops at **1:00, 5:00, 10:00, then every five minutes** while the
+round remains in progress. Three upcoming airdrops are always scheduled; each
+successful launch adds the next one. A delayed launch uses its actual launch time
+on the timeline. Event types supply their timestamp,
 Material Icons glyph, and label as `GameTimelineEvent` values without adding
 event-specific layout logic.
 
-The timeline does not introduce recurring bosses or new gameplay events.
+The timeline does not introduce recurring bosses.
 Defeating the boss still ends the match; the clock freezes at round end.
 `ShouldEndWhenAllDead` is enabled by default and in the game scene: a solo
 death or a full-team wipe opens the round results. A teammate dying while
@@ -26,6 +29,32 @@ another player is alive still allows revives. Disable this setting in the
 GameManager inspector only when debugging revives.
 The boss health/status display and stunned-player indicator remain below
 the timeline.
+
+## Weapon airdrops and crates
+
+A host-spawned aircraft flies over clear ground selected by the crate spawner,
+releases cargo after three seconds, and delivers a blue-and-gold weapon crate
+after five seconds. The aircraft leaves after six seconds. Clear-ground selection
+avoids players, existing crates, and other incoming deliveries. Failed placement
+or spawning is logged and retried; no event is recorded as successful before it
+actually happens. Inbound deliveries stop when the round ends.
+
+Weapon crates have 30 health and drop **1–3 weapons**, each independently and
+equally chosen from the rifle and shotgun, plus **0–3 XP orbs**. Repeats are
+possible. They never drop consumables or revive flares, and do not consume regular
+crate respawn slots. Regular supply crates now exclude weapons: after the
+unchanged contextual flare roll, they retain 90% common (health or reroll dice,
+equally likely) and 10% rare (armor) loot, plus their existing XP orbs.
+
+Living players see a gold **Weapon crate** arrow and distance for each landed,
+unopened crate. Like the revive-flare pointer, it hovers above visible targets or
+pins to the screen edge for off-screen targets. Breaking the crate removes its
+pointer. Dead players retain their existing nearest-flare pointer.
+Actual airdrop launches and crate landings are recorded as world moments in the
+round results.
+
+The default boss countdown is still 60 seconds. Airdrops only occur if the match
+lasts long enough; this feature does not extend the round or delay the boss.
 
 ## Round results
 

@@ -20,9 +20,13 @@ public sealed class GameManager : Component
 	[Sync(SyncFlags.FromHost)] public TimeSince RoundClock { get; private set; }
 	[Sync(SyncFlags.FromHost)] public bool TimelineReady { get; private set; }
 	[Sync(SyncFlags.FromHost)] public float BossEventSeconds { get; private set; }
+	[Sync(SyncFlags.FromHost)] public NetList<float> WeaponAirdropSeconds { get; private set; } = new();
 	[Sync(SyncFlags.FromHost)] public NetList<GameStatMoment> RoundMoments { get; private set; } = new();
 	[Sync(SyncFlags.FromHost)] private float RoundEndedAt { get; set; }
 	private bool _isChangingScene;
+	private int _nextWeaponAirdrop;
+	private float _airdropRetryAt;
+	private bool _airdropFailureLogged;
 
 	public float ElapsedSeconds => State == GameState.Ended ? RoundEndedAt : System.Math.Max(0f, RoundClock.Relative);
 	public int RemainingSeconds => System.Math.Max(0, (int)System.MathF.Ceiling(BossEventSeconds - ElapsedSeconds));
@@ -31,14 +35,27 @@ public sealed class GameManager : Component
 	{
 		get
 		{
+			var events = new List<GameTimelineEvent>();
 			if (TimelineReady)
 			{
-				yield return new GameTimelineEvent(
+				foreach (var seconds in WeaponAirdropSeconds)
+				{
+					var airdropEvent = new GameTimelineEvent(
+						Seconds: seconds,
+						Icon: "flight",
+						Label: "Weapon airdrop"
+					);
+					events.Add(airdropEvent);
+				}
+
+				var bossEvent = new GameTimelineEvent(
 					Seconds: BossEventSeconds,
 					Icon: "star",
 					Label: "Boss spawn"
 				);
+				events.Add(bossEvent);
 			}
+			return events.OrderBy(timelineEvent => timelineEvent.Seconds);
 		}
 	}
 
@@ -50,6 +67,11 @@ public sealed class GameManager : Component
 		{
 			RoundClock = 0f;
 			BossEventSeconds = System.Math.Max(0, CountdownTime);
+			for (var index = 0; index < 3; index++)
+			{
+				var seconds = GameWeaponAirdropSchedule.SecondsFor(index);
+				WeaponAirdropSeconds.Add(seconds);
+			}
 			TimelineReady = true;
 			RecordRoundMoment("Round started");
 		}
@@ -72,6 +94,45 @@ public sealed class GameManager : Component
 		{
 			SpawnBoss();
 		}
+
+		UpdateWeaponAirdrops();
+	}
+
+	private void UpdateWeaponAirdrops()
+	{
+		if (ElapsedSeconds < WeaponAirdropSeconds[_nextWeaponAirdrop] || Time.Now < _airdropRetryAt)
+		{
+			return;
+		}
+
+		_airdropRetryAt = Time.Now + 1f;
+		var spawner = Scene.GetAllComponents<GameCrateSpawner>().FirstOrDefault(x => x.Active);
+		if (!spawner.IsValid() || !spawner.TryFindPosition(out var position))
+		{
+			if (!_airdropFailureLogged)
+			{
+				Log.Warning("Weapon airdrop requires an active crate spawner and clear ground; retrying in one second.");
+				_airdropFailureLogged = true;
+			}
+			return;
+		}
+
+		var airdrop = GameWeaponAirdrop.Spawn(
+			groundPosition: position,
+			rifle: spawner.Rifle,
+			shotgun: spawner.Shotgun
+		);
+		if (!airdrop.IsValid())
+		{
+			return;
+		}
+
+		_airdropFailureLogged = false;
+		WeaponAirdropSeconds[_nextWeaponAirdrop] = ElapsedSeconds;
+		_nextWeaponAirdrop++;
+		var nextSeconds = GameWeaponAirdropSchedule.SecondsFor(WeaponAirdropSeconds.Count);
+		WeaponAirdropSeconds.Add(nextSeconds);
+		RecordRoundMoment("Weapon airdrop inbound");
 	}
 
 	private void SpawnBoss()

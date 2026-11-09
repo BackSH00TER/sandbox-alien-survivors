@@ -19,6 +19,7 @@
     <Compile Include="..\Code\game\GameModifier.cs" Link="GameModifier.cs" />
     <Compile Include="..\Code\game\GameShotModifiers.cs" Link="GameShotModifiers.cs" />
     <Compile Include="..\Code\game\GameTimelineEvent.cs" Link="GameTimelineEvent.cs" />
+    <Compile Include="..\Code\game\GameWeaponAirdropSchedule.cs" Link="GameWeaponAirdropSchedule.cs" />
     <Compile Include="..\Code\game\GameLootCatalog.cs" Link="GameLootCatalog.cs" />
     <Compile Include="..\Code\game\stats\GameDamageType.cs" Link="GameDamageType.cs" />
     <Compile Include="..\Code\game\stats\GameEnemyKind.cs" Link="GameEnemyKind.cs" />

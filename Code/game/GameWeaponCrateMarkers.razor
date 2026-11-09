@@ -1,0 +1,83 @@
+@using Sandbox;
+@using Sandbox.UI;
+@using System.Globalization;
+@inherits Panel
+@namespace Sandbox
+
+<root>
+	@foreach (var marker in _markers)
+	{
+		<div class="weapon-marker" style="left: @(Percent(marker.Position.x)); top: @(Percent(marker.Position.y));">
+			<div class="arrow" style="transform: rotate(@(marker.ArrowAngle.ToString("0", CultureInfo.InvariantCulture))deg);">arrow_forward</div>
+			<div class="crate-name">Weapon crate</div>
+			<div class="distance">@(marker.Distance)m</div>
+		</div>
+	}
+</root>
+
+@code
+{
+	private readonly List<Marker> _markers = new();
+	private readonly record struct Marker(
+		Vector2 Position,
+		float ArrowAngle,
+		int Distance
+	);
+
+	private static string Percent(float value)
+	{
+		return (value * 100f).ToString("0.##", CultureInfo.InvariantCulture) + "%";
+	}
+
+	public override void Tick()
+	{
+		base.Tick();
+		_markers.Clear();
+		var scene = Game.ActiveScene;
+		if (!scene.IsValid())
+		{
+			return;
+		}
+
+		var player = scene.GetAllComponents<GamePlayer>().FirstOrDefault(x => !x.IsProxy);
+		var camera = scene.Camera;
+		if (!player.IsValid() || player.IsDead || player.IsRoundOver || !camera.IsValid())
+		{
+			return;
+		}
+
+		foreach (var crate in scene.GetAllComponents<GameSupplyCrate>())
+		{
+			if (crate.Kind != GameCrateKind.Weapon || !crate.CanTakeDamage)
+			{
+				continue;
+			}
+
+			var projection = GameWorldMarkerPosition.Project(
+				camera: camera,
+				position: crate.WorldPosition,
+				edgeY: 0.34f
+			);
+			var distance = (int)((crate.WorldPosition - player.WorldPosition).WithZ(0f).Length / 40f);
+			var marker = new Marker(
+				Position: projection.Position,
+				ArrowAngle: projection.ArrowAngle,
+				Distance: distance
+			);
+			_markers.Add(marker);
+		}
+	}
+
+	protected override int BuildHash()
+	{
+		var hash = new System.HashCode();
+		foreach (var marker in _markers)
+		{
+			hash.Add((int)(marker.Position.x * 500f));
+			hash.Add((int)(marker.Position.y * 500f));
+			hash.Add((int)marker.ArrowAngle / 2);
+			hash.Add(marker.Distance);
+		}
+		return hash.ToHashCode();
+	}
+}

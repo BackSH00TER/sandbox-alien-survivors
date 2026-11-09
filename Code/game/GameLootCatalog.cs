@@ -172,8 +172,9 @@ public static class GameLootCatalog
 	private static readonly IReadOnlyDictionary<LootKind, LootDefinition> ById = All.ToDictionary(item => item.Id);
 	private static readonly IReadOnlyDictionary<GameRarity, LootDefinition[]> RarityDrops = Rarities.ToDictionary(
 		keySelector: rarity => rarity.Id,
-		elementSelector: rarity => All.Where(item => item.Rarity == rarity.Id).ToArray()
+		elementSelector: rarity => All.Where(item => item.Rarity == rarity.Id && item.Effect != LootEffect.Weapon).ToArray()
 	);
+	private static readonly LootDefinition[] WeaponDrops = All.Where(item => item.Effect == LootEffect.Weapon).ToArray();
 
 	static GameLootCatalog()
 	{
@@ -251,6 +252,13 @@ public static class GameLootCatalog
 			getCandidates: rarity => RarityDrops[rarity],
 			random: () => NextRoll(random)
 		);
+	}
+
+	public static LootDefinition RollWeapon(Func<float> random)
+	{
+		var roll = NextRoll(random);
+		var index = Math.Min((int)(roll * WeaponDrops.Length), WeaponDrops.Length - 1);
+		return WeaponDrops[index];
 	}
 
 	private static float NextRoll(Func<float> random)

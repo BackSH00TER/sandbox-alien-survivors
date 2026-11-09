@@ -29,6 +29,8 @@ var tests = new (string Name, Action Run)[]
 	("loot catalog coverage, effects and magnet flags", LootCatalogTests.Coverage),
 	("loot callbacks apply effects and enforce eligibility", LootCatalogTests.Collection),
 	("loot rarity buckets preserve exact probabilities", LootCatalogTests.Drops),
+	("weapon crates drop only weapons with valid boundaries", LootCatalogTests.WeaponDrops),
+	("weapon airdrops follow the rare recurring schedule", WeaponAirdropSchedule),
 	("loot catalog preserves prototype visuals", LootCatalogTests.Visuals),
 	("invalid loot rolls and kinds are rejected", LootCatalogTests.Invalid),
 	("enemy aggro switches only after the cooldown", EnemyAggroTests.Cooldown),
@@ -61,6 +63,26 @@ foreach (var test in tests)
 	Console.WriteLine($"PASS {test.Name}");
 }
 Console.WriteLine($"{tests.Length} tests passed.");
+
+static void WeaponAirdropSchedule()
+{
+	var expected = new[] { 60f, 300f, 600f, 900f, 1200f, 1500f };
+	for (var index = 0; index < expected.Length; index++)
+	{
+		var actual = GameWeaponAirdropSchedule.SecondsFor(index);
+		Near(actual: actual, expected: expected[index]);
+	}
+
+	try
+	{
+		GameWeaponAirdropSchedule.SecondsFor(-1);
+	}
+	catch (ArgumentOutOfRangeException)
+	{
+		return;
+	}
+	throw new InvalidOperationException("Negative airdrop indices must be rejected.");
+}
 
 static void Timeline()
 {

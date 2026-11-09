@@ -1,0 +1,33 @@
+GameWeaponCrateMarkers
+{
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	pointer-events: none;
+	font-weight: 600;
+
+	.weapon-marker {
+		position: absolute;
+		flex-direction: column;
+		align-items: center;
+		transform: translate(-50%, -50%);
+		color: #ffc857;
+		text-shadow: 0 0 6px #000;
+
+		.arrow {
+			font-family: Material Icons;
+			font-size: 48px;
+		}
+
+		.crate-name, .distance {
+			font-family: Oxanium;
+			font-size: 18px;
+		}
+
+		.distance {
+			color: #fff;
+		}
+	}
+}
