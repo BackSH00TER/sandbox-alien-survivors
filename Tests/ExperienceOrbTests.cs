@@ -38,6 +38,13 @@ internal static class ExperienceOrbTests
 	{
 		var minimums = new[] { 1, 4, 8, 11, 16, 21, 31, 51 };
 		var maximums = new[] { 3, 7, 10, 15, 20, 30, 50, int.MaxValue };
+		var rangedDropColor = ExperienceOrbRules.GetColor(4);
+		var blue = new Color(
+			r: 0.25f,
+			g: 0.5f,
+			b: 1f
+		);
+		Check(rangedDropColor == blue, "A four-XP ranged enemy drop must be blue without merging.");
 		for (var i = 0; i < minimums.Length; i++)
 		{
 			var color = ExperienceOrbRules.GetColor(minimums[i]);

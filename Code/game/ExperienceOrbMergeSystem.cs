@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-/// <summary>Host-only, scene-local pairing. A fixed spatial grid keeps merging local even as orb sizes grow.</summary>
+/// <summary>Host-only, scene-local pairing. A fixed 2D spatial grid keeps merging local even as orb sizes grow.</summary>
 public sealed class ExperienceOrbMergeSystem : GameObjectSystem
 {
 	private sealed class Merge
@@ -17,7 +17,7 @@ public sealed class ExperienceOrbMergeSystem : GameObjectSystem
 	}
 
 	private readonly List<Merge> _merges = new();
-	private readonly Dictionary<(int X, int Y, int Z), List<GameExperienceOrb>> _cells = new();
+	private readonly Dictionary<(int X, int Y), List<GameExperienceOrb>> _cells = new();
 	private float _untilScan;
 
 	public ExperienceOrbMergeSystem(Scene scene) : base(scene)
@@ -43,6 +43,7 @@ public sealed class ExperienceOrbMergeSystem : GameObjectSystem
 			return;
 		}
 
+		// Animate every physics tick, but throttle spatial searches independently of the orb count.
 		AdvanceMerges();
 		_untilScan -= Time.Delta;
 		if (_untilScan > 0f)
@@ -61,6 +62,7 @@ public sealed class ExperienceOrbMergeSystem : GameObjectSystem
 			var merge = _merges[i];
 			if (!Available(merge.First) || !Available(merge.Second))
 			{
+				// Release the surviving orb if its partner was removed or disabled during the animation.
 				if (merge.First.IsValid())
 				{
 					merge.First.IsMerging = false;
@@ -83,6 +85,7 @@ public sealed class ExperienceOrbMergeSystem : GameObjectSystem
 				continue;
 			}
 
+			// Reuse one networked orb at the midpoint and retire the other without awarding XP twice.
 			merge.First.Amount = checked(merge.First.Amount + merge.Second.Amount);
 			merge.Second.Consume();
 			merge.First.IsMerging = false;
@@ -95,12 +98,11 @@ public sealed class ExperienceOrbMergeSystem : GameObjectSystem
 		return orb.IsValid() && orb.Active && !orb.IsProxy && !orb.Consumed;
 	}
 
-	private static (int X, int Y, int Z) Cell(Vector3 position)
+	private static (int X, int Y) Cell(Vector3 position)
 	{
 		return (
 			(int)MathF.Floor(position.x / ExperienceOrbRules.MergeDistance),
-			(int)MathF.Floor(position.y / ExperienceOrbRules.MergeDistance),
-			(int)MathF.Floor(position.z / ExperienceOrbRules.MergeDistance)
+			(int)MathF.Floor(position.y / ExperienceOrbRules.MergeDistance)
 		);
 	}
 
@@ -118,30 +120,29 @@ public sealed class ExperienceOrbMergeSystem : GameObjectSystem
 			GameExperienceOrb nearest = null;
 			List<GameExperienceOrb> nearestCell = null;
 			var nearestDistance = float.PositiveInfinity;
+			// Cells are one merge-radius wide, so only this cell and its eight XY neighbors can contain a match.
 			for (var x = -1; x <= 1; x++)
 			{
 				for (var y = -1; y <= 1; y++)
 				{
-					for (var z = -1; z <= 1; z++)
+					if (!_cells.TryGetValue((cell.X + x, cell.Y + y), out var candidates))
 					{
-						if (!_cells.TryGetValue((cell.X + x, cell.Y + y, cell.Z + z), out var candidates))
-						{
-							continue;
-						}
+						continue;
+					}
 
-						foreach (var candidate in candidates)
+					foreach (var candidate in candidates)
+					{
+						var offset = candidate.WorldPosition - orb.WorldPosition;
+						var distance = offset.x * offset.x + offset.y * offset.y;
+						if (distance < nearestDistance && ExperienceOrbRules.CanMerge(
+							amount: orb.Amount,
+							otherAmount: candidate.Amount,
+							distanceSquared: distance
+						))
 						{
-							var distance = (candidate.WorldPosition - orb.WorldPosition).LengthSquared;
-							if (distance < nearestDistance && ExperienceOrbRules.CanMerge(
-								amount: orb.Amount,
-								otherAmount: candidate.Amount,
-								distanceSquared: distance
-							))
-							{
-								nearest = candidate;
-								nearestCell = candidates;
-								nearestDistance = distance;
-							}
+							nearest = candidate;
+							nearestCell = candidates;
+							nearestDistance = distance;
 						}
 					}
 				}
@@ -149,6 +150,7 @@ public sealed class ExperienceOrbMergeSystem : GameObjectSystem
 
 			if (nearest != null)
 			{
+				// Remove and reserve both partners immediately so later orbs cannot claim them in this scan.
 				nearestCell.Remove(nearest);
 				nearest.IsMerging = true;
 				orb.IsMerging = true;
@@ -164,6 +166,7 @@ public sealed class ExperienceOrbMergeSystem : GameObjectSystem
 				continue;
 			}
 
+			// Only unmatched orbs enter the grid; each eligible pair is considered once per scan.
 			if (!_cells.TryGetValue(cell, out var occupants))
 			{
 				occupants = new List<GameExperienceOrb>();

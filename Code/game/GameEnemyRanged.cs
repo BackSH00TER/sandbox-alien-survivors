@@ -3,6 +3,7 @@ using Sandbox;
 /// <summary>Ranged enemy settings, firing and post-shot wandering, driven by Enemy's lifecycle.</summary>
 public sealed class GameEnemyRanged : Component
 {
+	[Property, Range(0, 100), Description("XP dropped by this ranged variant instead of the base enemy reward.")] public int ExperienceDrop { get; set; } = 4;
 	[Property, Range(1f, 2000f)] public float FiringRange { get; set; } = 400f;
 	[Property, Range(0.1f, 10f)] public float ShotInterval { get; set; } = 2f;
 	[Property, Range(0.1f, 5f), Description("Visible charge time before each shot, in seconds.")] public float ShotWindup { get; set; } = 0.5f;
@@ -19,6 +20,18 @@ public sealed class GameEnemyRanged : Component
 
 	protected override void OnStart()
 	{
+		if (Networking.IsHost && !IsProxy)
+		{
+			var enemy = GetComponent<GameEnemy>();
+			if (!enemy.IsValid())
+			{
+				Log.Error("Ranged enemy settings require a GameEnemy component.");
+				return;
+			}
+
+			enemy.ExperienceDrop = ExperienceDrop;
+		}
+
 		_beacon = new GameObject(GameObject, true, "Ranged Enemy Beacon");
 		_beacon.Flags |= GameObjectFlags.NotNetworked | GameObjectFlags.NotSaved;
 		_beacon.LocalPosition = Vector3.Up * 82f;

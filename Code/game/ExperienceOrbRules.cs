@@ -6,7 +6,9 @@ internal static class ExperienceOrbRules
 {
 	/// <summary>Fixed world-unit reach for every XP tier; larger orbs never attract from farther away.</summary>
 	internal const float MergeDistance = 64f;
+	/// <summary>Seconds a reserved pair spends moving toward its midpoint before combining XP.</summary>
 	internal const float MergeSeconds = 0.2f;
+	/// <summary>Seconds between neighbor searches; active merge animations still advance every fixed tick.</summary>
 	internal const float ScanSeconds = 0.25f;
 
 	internal static bool CanMerge(
@@ -15,8 +17,11 @@ internal static class ExperienceOrbRules
 		float distanceSquared
 	)
 	{
-		return amount > 0 && otherAmount > 0 && amount <= int.MaxValue - otherAmount
-			&& distanceSquared >= 0f && distanceSquared <= MergeDistance * MergeDistance;
+		return amount > 0
+			&& otherAmount > 0
+			&& amount <= int.MaxValue - otherAmount
+			&& distanceSquared >= 0f
+			&& distanceSquared <= MergeDistance * MergeDistance;
 	}
 
 	/// <summary>Green 1-3, blue 4-7, cyan 8-10, purple 11-15, pink 16-20, orange 21-30, gold 31-50, red 51+.</summary>
