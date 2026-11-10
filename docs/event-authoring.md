@@ -100,8 +100,8 @@ Supply visibility, target/origin positions, label, icon, and color rather than
 duplicating projection, edge clamping, distance rendering, or arrow styling.
 [GameWeaponCrateMarkers](../Code/game/markers/GameWeaponCrateMarkers.razor)
 shows multiple targets; the dropship and revive-flare wrappers select the nearest.
-Preserve s&box Razor's typed bindings, for example `Visible="@(true)"` and
-`EdgeY="@(0.34f)"`, rather than passing literal strings to those properties.
+Preserve s&box Razor's typed bindings, for example `Visible="@(true)"`,
+rather than passing literal strings to those properties.
 Wire the wrapper into [GameHUD](../Code/game/GameHUD.razor) for the intended
 player states. Timeline metadata requires no event-specific HUD layout.
 

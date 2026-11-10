@@ -29,10 +29,10 @@
 	public string Icon { get; set; } = "arrow_forward";
 	public string MarkerClass { get; set; }
 	public string MarkerColor { get; set; } = "#fff";
-	public float EdgeY { get; set; } = 0.42f;
 
 	private const float UnitsPerMeter = 40f;
 	private const float MarkerEdgeX = 0.44f;
+	private const float MarkerEdgeY = 0.42f;
 	private bool _isVisible;
 	private Vector2 _markerPosition;
 	private float _arrowAngle;
@@ -72,7 +72,7 @@
 			offset = -offset;
 		}
 
-		bool isOnScreen = isInFront && System.MathF.Abs(offset.x) <= MarkerEdgeX && System.MathF.Abs(offset.y) <= EdgeY;
+		bool isOnScreen = isInFront && System.MathF.Abs(offset.x) <= MarkerEdgeX && System.MathF.Abs(offset.y) <= MarkerEdgeY;
 		if (isOnScreen)
 		{
 			_markerPosition = new Vector2(screen.x, screen.y - 0.07f);
@@ -80,7 +80,7 @@
 			return;
 		}
 
-		float scale = System.MathF.Max(System.MathF.Abs(offset.x) / MarkerEdgeX, System.MathF.Abs(offset.y) / EdgeY);
+		float scale = System.MathF.Max(System.MathF.Abs(offset.x) / MarkerEdgeX, System.MathF.Abs(offset.y) / MarkerEdgeY);
 		if (scale < 0.0001f)
 		{
 			scale = 1f;
