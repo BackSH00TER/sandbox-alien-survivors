@@ -6,7 +6,8 @@ public enum GameEventKind
 {
 	// Quiet is an explicit outcome, not a missing event or an empty rarity.
 	None = 0,
-	Dropship = 1
+	Dropship = 1,
+	WeaponAirdrop = 2
 }
 
 public interface IGameEventWorld
@@ -49,6 +50,14 @@ public static class GameEventCatalog
 			Icon = "flight_land",
 			Rarity = GameRarity.Rare,
 			TryStart = world => world.TryStartEvent(GameEventKind.Dropship)
+		},
+		new GameEventDefinition
+		{
+			Id = GameEventKind.WeaponAirdrop,
+			Label = "Weapon airdrop",
+			Icon = "flight",
+			Rarity = GameRarity.Rare,
+			TryStart = world => world.TryStartEvent(GameEventKind.WeaponAirdrop)
 		}
 	});
 

@@ -35,23 +35,28 @@ public sealed class GameManager : Component, IGameEventWorld
 	{
 		get
 		{
+			var events = new List<GameTimelineEvent>();
 			if (TimelineReady)
 			{
-				yield return new GameTimelineEvent(
-					Seconds: BossEventSeconds,
-					Icon: "star",
-					Label: "Boss spawn"
-				);
-				foreach (var scheduled in ScheduledEvents.OrderBy(item => item.Seconds))
+				foreach (var scheduled in ScheduledEvents)
 				{
 					var definition = GameEventCatalog.Get(scheduled.Kind);
-					yield return new GameTimelineEvent(
+					var timelineEvent = new GameTimelineEvent(
 						Seconds: scheduled.Seconds,
 						Icon: definition.Icon,
 						Label: definition.Label
 					);
+					events.Add(timelineEvent);
 				}
+
+				var bossEvent = new GameTimelineEvent(
+					Seconds: BossEventSeconds,
+					Icon: "star",
+					Label: "Boss spawn"
+				);
+				events.Add(bossEvent);
 			}
+			return events.OrderBy(timelineEvent => timelineEvent.Seconds);
 		}
 	}
 
@@ -94,7 +99,7 @@ public sealed class GameManager : Component, IGameEventWorld
 
 	private void ScheduleEvents()
 	{
-		var newlyScheduled = _eventSchedule.Advance(ElapsedSeconds, () => Game.Random.Float());
+		var newlyScheduled = _eventSchedule.Advance(elapsedSeconds: ElapsedSeconds, random: () => Game.Random.Float());
 		foreach (var scheduled in newlyScheduled)
 		{
 			ScheduledEvents.Add(scheduled);

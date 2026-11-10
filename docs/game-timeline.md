@@ -18,7 +18,10 @@ time once spawning succeeds. World events use their scheduled time until they
 successfully spawn, then their actual arrival time. Failed spawns retry once
 per second and do not record a successful occurrence.
 
-## World events and alien dropships
+## World events
+
+For implementation steps and validation requirements, see
+[Adding a world event](event-authoring.md).
 
 `GameEventSchedule` controls event frequency through `GameEventSlot` definitions;
 there is no ship-specific guarantee in the scheduler. `GameEventCatalog` only defines event types,
@@ -27,7 +30,10 @@ The framework lives in `Code/game/events/`. `GameManager` dispatches catalog
 callbacks through the common `IGameEventAction` interface; event implementations
 are registered by `GameEventActions`, not hard-coded into the manager.
 `GameDropshipEvent` owns the dropship configuration and spawn logic, while
-`GameDropship` handles the ship's lifecycle. `GameEventCatalog.AllEvents` exposes
+`GameDropship` handles the ship's lifecycle. `GameWeaponAirdropEvent` owns weapon
+delivery placement and starts `GameWeaponAirdrop` through the same action registry.
+The manager has no weapon-specific schedule, retry clock, or dispatch branch.
+`GameEventCatalog.AllEvents` exposes
 the catalog's definitions.
 Every slot draws a rarity using the shared `RarityDraw`, then an equally likely
 event in that rarity. Slots have independent timing and rarity weights, so an
@@ -41,9 +47,11 @@ The current configuration lives in `GameEventSchedule.DefaultSlots`:
 | Recurring | 300 seconds | 0–300 seconds | 300 seconds | Common 75%, Rare 25% |
 
 Common currently contains an explicit quiet interval (no event); Rare contains
-the dropship. Both opening and recurring slots have a 25% dropship chance;
-neither guarantees a ship. Quiet is a real Common catalog choice, not an empty
-rarity.
+the alien dropship and weapon airdrop. Both opening and recurring slots have
+a 75% quiet chance, a 12.5% dropship chance, and a 12.5% weapon airdrop chance.
+Neither event is guaranteed. Quiet is a real Common catalog choice, not an empty
+rarity. Weapon airdrops no longer have separate fixed arrivals at 1:00, 5:00,
+10:00, etc.; they use the same slot delays and rarity draws as dropships.
 Rarities without event definitions are excluded and their weight is redistributed
 proportionally among populated, enabled rarities. This does not retry random rolls.
 A configuration with no populated positive-weight rarity is rejected explicitly.
@@ -92,12 +100,13 @@ variants. Custom prefabs retain their authored variants. No heavy enemy type
 is introduced yet. Ship visuals are an assembled prototype using existing
 development models.
 
-Objective UI lives in `Code/game/markers/`. `GameDropshipMarker` and
-`GameReviveFlareMarker` select targets and supply presentation data to the shared
+Objective UI lives in `Code/game/markers/`. `GameDropshipMarker`,
+`GameReviveFlareMarker`, and `GameWeaponCrateMarkers` select targets and supply presentation data to the shared
 `GameObjectiveMarker`. The shared component only projects a world position,
 clamps the arrow to screen edges, and renders the supplied label, icon, and
-color; it contains no target-type branches. New marker types can reuse it without
-changing existing markers.
+color; it contains no target-type branches. Weapon pointers use a tighter
+vertical edge inset to stay clear of the lower HUD. Existing marker types retain
+their default inset.
 
 Arrival, landing, and destruction are recorded as actual round-results moments.
 Scheduled events after round end do not execute. There are no recurring bosses.
@@ -110,6 +119,33 @@ another player is alive still allows revives. Disable this setting in the
 GameManager inspector only when debugging revives.
 The boss health/status display and stunned-player indicator remain below
 the timeline.
+
+## Weapon airdrops and crates
+
+A host-spawned aircraft flies over clear ground selected by the crate spawner,
+releases cargo after three seconds, and delivers a blue-and-gold weapon crate
+after five seconds. The aircraft leaves after six seconds. Clear-ground selection
+avoids players, existing crates, and other incoming deliveries. Failed placement
+or spawning is logged and retried; no event is recorded as successful before it
+actually happens. Inbound deliveries stop when the round ends.
+
+Weapon crates have 30 health and drop **1–3 weapons**, each independently and
+equally chosen from the rifle and shotgun, plus **0–3 XP orbs**. Repeats are
+possible. They never drop consumables or revive flares, and do not consume regular
+crate respawn slots. Regular supply crates now exclude weapons: after the
+unchanged contextual flare roll, they retain 90% common (health or reroll dice,
+equally likely) and 10% rare (armor) loot, plus their existing XP orbs.
+
+Living players see a gold **Weapon crate** arrow and distance for each landed,
+unopened crate. Like the revive-flare pointer, it hovers above visible targets or
+pins to the screen edge for off-screen targets. Breaking the crate removes its
+pointer. Dead players retain their existing nearest-flare pointer.
+Actual airdrop launches and crate landings are recorded as world moments in the
+round results. Launches use the catalog's generic arrival moment; landing remains
+part of the weapon delivery lifecycle.
+
+The default boss countdown is still 60 seconds. Airdrops only occur if the match
+lasts long enough; this feature does not extend the round or delay the boss.
 
 ## Round results
 

@@ -20,25 +20,60 @@ internal static class EventCatalogTests
 		var world = new TestWorld();
 		var quiet = GameEventCatalog.Get(GameEventKind.None);
 		Check(quiet.TryStart(world) && world.Attempts == 0, "Quiet intervals must not spawn anything.");
-		var dropship = GameEventCatalog.Get(GameEventKind.Dropship);
-		Check(!dropship.TryStart(world) && world.Attempts == 1, "Failed starts must propagate for retries.");
-		world.Success = true;
-		Check(dropship.TryStart(world) && world.Attempts == 2, "Successful starts must use the registered callback.");
-
-		var dropships = 0;
-		for (var i = 0; i < 10000; i++)
+		foreach (var kind in new[] { GameEventKind.Dropship, GameEventKind.WeaponAirdrop })
 		{
-			var definition = Roll(rarityRoll: (i + 0.5f) / 10000f, itemRoll: 0.5f);
-			if (definition.Id == GameEventKind.Dropship)
+			var definition = GameEventCatalog.Get(kind);
+			var attempts = world.Attempts;
+			world.Success = false;
+			Check(!definition.TryStart(world) && world.Attempts == attempts + 1, "Failed starts must propagate for retries.");
+			Check(world.LastKind == kind, "Callbacks must dispatch the selected event kind.");
+			world.Success = true;
+			Check(definition.TryStart(world) && world.Attempts == attempts + 2, "Successful starts must use the registered callback.");
+		}
+
+		var counts = expectedIds.ToDictionary(kind => kind, _ => 0);
+		for (var rarity = 0; rarity < 100; rarity++)
+		{
+			for (var item = 0; item < 100; item++)
 			{
-				dropships++;
+				var definition = Roll(rarityRoll: (rarity + 0.5f) / 100f, itemRoll: (item + 0.5f) / 100f);
+				counts[definition.Id]++;
 			}
 		}
-		Check(dropships == 2500, "Dropships must retain exactly 25%, without renormalizing away quiet intervals.");
+		Check(counts[GameEventKind.None] == 7500, "Quiet intervals must retain the full 75% common weight.");
+		Check(counts[GameEventKind.Dropship] == 1250 && counts[GameEventKind.WeaponAirdrop] == 1250,
+			"Both rare events must share the 25% rare weight equally.");
 		Check(Roll(rarityRoll: 0f, itemRoll: 1f).Id == GameEventKind.None, "Zero selects the common interval.");
 		Check(Roll(rarityRoll: 0.74999f, itemRoll: 0f).Id == GameEventKind.None, "Common ends below 75%.");
 		Check(Roll(rarityRoll: 0.75f, itemRoll: 0f).Id == GameEventKind.Dropship, "75% starts the rare interval.");
-		Check(Roll(rarityRoll: 1f, itemRoll: 1f).Id == GameEventKind.Dropship, "The upper RNG endpoint is supported.");
+		Check(Roll(rarityRoll: 0.75f, itemRoll: 0.49999f).Id == GameEventKind.Dropship, "The first half of Rare selects a dropship.");
+		Check(Roll(rarityRoll: 0.75f, itemRoll: 0.5f).Id == GameEventKind.WeaponAirdrop, "The second half of Rare selects a weapon airdrop.");
+		Check(Roll(rarityRoll: 1f, itemRoll: 1f).Id == GameEventKind.WeaponAirdrop, "The upper RNG endpoint is supported.");
+	}
+
+	internal static void WeaponAirdrops()
+	{
+		foreach (var timeRoll in new[] { 0f, 0.5f, 1f })
+		{
+			var schedule = new GameEventSchedule();
+			var openingRolls = new Queue<float>(new[] { 1f, 0.5f, timeRoll });
+			var opening = schedule.Advance(elapsedSeconds: 0f, random: () => openingRolls.Dequeue());
+			Check(opening.Count == 1 && opening[0].Kind == GameEventKind.WeaponAirdrop && !opening[0].Occurred,
+				"Weapon airdrops must be scheduled by the shared opening slot, not a separate guarantee.");
+			Check(opening[0].Seconds == 60f + 240f * timeRoll && openingRolls.Count == 0,
+				"Weapon airdrops must use the shared opening delay and consume exactly three rolls.");
+			Check(schedule.Advance(elapsedSeconds: 60f, random: UnexpectedRoll).Count == 0,
+				"One minute must not inject an extra guaranteed weapon event.");
+
+			var recurringRolls = new Queue<float>(new[] { 1f, 1f, timeRoll });
+			var recurring = schedule.Advance(elapsedSeconds: 300f, random: () => recurringRolls.Dequeue());
+			Check(recurring.Count == 1 && recurring[0].Kind == GameEventKind.WeaponAirdrop && !recurring[0].Occurred,
+				"Recurring slots must be able to select weapon airdrops.");
+			Check(recurring[0].Seconds == 300f + 300f * timeRoll && recurringRolls.Count == 0,
+				"Weapon airdrops must use recurring slot timing rather than fixed arrival times.");
+			Check(schedule.Advance(elapsedSeconds: 300f, random: UnexpectedRoll).Count == 0,
+				"Consumed weapon slots must not roll twice.");
+		}
 	}
 
 	internal static void Schedule()
@@ -286,10 +321,12 @@ internal static class EventCatalogTests
 	{
 		public int Attempts { get; private set; }
 		public bool Success { get; set; }
+		public GameEventKind LastKind { get; private set; }
 
 		public bool TryStartEvent(GameEventKind kind)
 		{
-			Check(kind == GameEventKind.Dropship, "The callback must dispatch the selected event kind.");
+			Check(kind is GameEventKind.Dropship or GameEventKind.WeaponAirdrop, "Only executable event kinds may reach the world dispatcher.");
+			LastKind = kind;
 			Attempts++;
 			return Success;
 		}
