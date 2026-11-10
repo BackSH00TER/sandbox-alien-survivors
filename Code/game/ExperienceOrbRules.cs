@@ -4,6 +4,19 @@ using System;
 /// <summary>Shared by merged orbs and direct high-XP drops, including future boss rewards.</summary>
 internal static class ExperienceOrbRules
 {
+	/// <summary>Preserves the full reward in a small ring of larger, value-colored orbs.</summary>
+	internal static int[] SplitReward(int amount)
+	{
+		ArgumentOutOfRangeException.ThrowIfNegative(amount);
+		var count = Math.Min(4, amount);
+		var amounts = new int[count];
+		for (var i = 0; i < count; i++)
+		{
+			amounts[i] = amount / count + (i < amount % count ? 1 : 0);
+		}
+		return amounts;
+	}
+
 	/// <summary>Fixed world-unit reach for every XP tier; larger orbs never attract from farther away.</summary>
 	internal const float MergeDistance = 64f;
 	/// <summary>Seconds a reserved pair spends moving toward its midpoint before combining XP.</summary>

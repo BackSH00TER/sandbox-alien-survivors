@@ -1,0 +1,57 @@
+@using Sandbox;
+@using Sandbox.UI;
+@inherits Panel
+@namespace Sandbox
+
+<root style="position: absolute; width: 100%; height: 100%; pointer-events: none;">
+	<GameObjectiveMarker Visible="@(_visible)"
+						 TargetPosition="@(_targetPosition)"
+						 OriginPosition="@(_originPosition)"
+						 Label="@(_label)"
+						 MarkerClass="dropship"
+						 MarkerColor="#62ffb0" />
+</root>
+
+@code
+{
+	private bool _visible;
+	private Vector3 _targetPosition;
+	private Vector3 _originPosition;
+	private string _label;
+
+	public override void Tick()
+	{
+		base.Tick();
+		_visible = false;
+		var scene = Game.ActiveScene;
+		var player = scene.GetAllComponents<GamePlayer>().FirstOrDefault(x => !x.IsProxy);
+		if (!player.IsValid() || player.IsDead)
+		{
+			return;
+		}
+
+		var ship = scene.GetAllComponents<GameDropship>()
+			.Where(x => x.Active && x.Health > 0f)
+			.OrderBy(x => (x.GroundPosition - player.WorldPosition).LengthSquared)
+			.FirstOrDefault();
+		if (!ship.IsValid())
+		{
+			return;
+		}
+
+		_visible = true;
+		_targetPosition = ship.WorldPosition + Vector3.Up * 120f;
+		_originPosition = player.WorldPosition;
+		_label = ship.Landed ? $"DROPSHIP {ship.Health:0} / {ship.MaxHealth:0}" : "DROPSHIP LANDING";
+	}
+
+	protected override int BuildHash()
+	{
+		return System.HashCode.Combine(
+			value1: _visible,
+			value2: _targetPosition,
+			value3: _originPosition,
+			value4: _label
+		);
+	}
+}
