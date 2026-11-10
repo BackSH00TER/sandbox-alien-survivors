@@ -21,6 +21,7 @@
 		@foreach (var section in GameStatCatalog.Sections)
 		{
 			var rows = section.Rows.Where(row => !IsBreakdownMetric(row.Key) && !IsBasicMetric(row.Key)
+				&& row.Key != GameStatKeys.TimesRerolled && !row.Key.StartsWith("modifier.")
 				&& (_advanced || _metric == row.Key)
 				&& (!section.ShouldHideEmptyRows || _metric == row.Key || Players.Any(player => player.Get(row.Key) > 0f))).ToList();
 			if (rows.Count > 0)
@@ -157,7 +158,14 @@
 										style="left: @(Number(iconX))px; top: @(Number(moment.Lane * UpgradeSpacing))px; color: @moment.Color; border-color: @moment.Color;"
 										tooltip="@($"{FormatTime(moment.Seconds)} - {moment.Label}")"
 										@onclick="@(() => _selectedMoment = moment)">
-									<div class="upgrade-icon">@moment.Icon</div>
+									@if (moment.Icon.StartsWith("/"))
+									{
+										<img class="moment-image" src="@moment.Icon" />
+									}
+									else
+									{
+										<div class="upgrade-icon">@moment.Icon</div>
+									}
 								</button>
 							}
 						}
