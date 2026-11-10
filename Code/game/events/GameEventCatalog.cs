@@ -4,13 +4,14 @@ using System.Linq;
 
 public enum GameEventKind
 {
+	// Quiet is an explicit outcome, not a missing event or an empty rarity.
 	None = 0,
 	Dropship = 1
 }
 
 public interface IGameEventWorld
 {
-	bool TryLandDropship();
+	bool TryStartEvent(GameEventKind kind);
 }
 
 public sealed class GameEventDefinition
@@ -31,7 +32,7 @@ public readonly record struct GameScheduledEvent(
 /// <summary>World-event definitions. Timing and rarity weights belong to schedule slots, not event types.</summary>
 public static class GameEventCatalog
 {
-	public static IReadOnlyList<GameEventDefinition> All { get; } = Array.AsReadOnly(new[]
+	public static IReadOnlyList<GameEventDefinition> AllEvents { get; } = Array.AsReadOnly(new[]
 	{
 		new GameEventDefinition
 		{
@@ -47,12 +48,12 @@ public static class GameEventCatalog
 			Label = "Alien dropship",
 			Icon = "flight_land",
 			Rarity = GameRarity.Rare,
-			TryStart = world => world.TryLandDropship()
+			TryStart = world => world.TryStartEvent(GameEventKind.Dropship)
 		}
 	});
 
-	private static readonly IReadOnlyDictionary<GameEventKind, GameEventDefinition> ById = All.ToDictionary(item => item.Id);
-	private static readonly IReadOnlyDictionary<GameRarity, GameEventDefinition[]> RarityEvents = All
+	private static readonly IReadOnlyDictionary<GameEventKind, GameEventDefinition> ById = AllEvents.ToDictionary(item => item.Id);
+	private static readonly IReadOnlyDictionary<GameRarity, GameEventDefinition[]> RarityEvents = AllEvents
 		.GroupBy(item => item.Rarity)
 		.ToDictionary(
 			keySelector: group => group.Key,
@@ -61,7 +62,7 @@ public static class GameEventCatalog
 
 	static GameEventCatalog()
 	{
-		foreach (var item in All)
+		foreach (var item in AllEvents)
 		{
 			if (!Enum.IsDefined(item.Id) || string.IsNullOrWhiteSpace(item.Label)
 				|| string.IsNullOrWhiteSpace(item.Icon) || item.TryStart == null
@@ -102,6 +103,7 @@ public static class GameEventCatalog
 			throw new ArgumentException("Event slots require non-null, distinct rarity buckets.", nameof(rarities));
 		}
 
+		// Removing unpopulated buckets redistributes their weight without rerolling.
 		var eligible = rarities.Where(bucket => bucket.Chance > 0f && RarityEvents.ContainsKey(bucket.Id)).ToArray();
 		if (eligible.Length == 0)
 		{
@@ -183,6 +185,7 @@ public sealed class GameEventSchedule
 				throw new ArgumentException("Event slots require finite non-negative times, maximum delay >= minimum delay, and a repeat interval that advances the clock.", nameof(slots));
 			}
 
+			// Active rounds retain a snapshot even when callers edit their configuration lists.
 			var rarities = GameEventCatalog.EligibleRarities(slot.Rarities);
 			_slots.Add(new SlotState
 			{
@@ -209,6 +212,7 @@ public sealed class GameEventSchedule
 		var scheduled = new List<GameScheduledEvent>();
 		while (true)
 		{
+			// Interleave overdue slots by due time; configuration order breaks ties.
 			SlotState next = null;
 			foreach (var slot in _slots)
 			{
@@ -234,6 +238,7 @@ public sealed class GameEventSchedule
 				scheduled.Add(new GameScheduledEvent(definition.Id, seconds));
 			}
 
+			// Quiet outcomes also consume the slot, but never consume a timestamp roll.
 			next.NextRollSeconds = next.Definition.RepeatIntervalSeconds > 0f
 				? next.NextRollSeconds + next.Definition.RepeatIntervalSeconds
 				: float.PositiveInfinity;

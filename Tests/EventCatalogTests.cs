@@ -6,10 +6,10 @@ internal static class EventCatalogTests
 {
 	internal static void Catalog()
 	{
-		var ids = GameEventCatalog.All.Select(item => item.Id);
+		var ids = GameEventCatalog.AllEvents.Select(item => item.Id);
 		var expectedIds = Enum.GetValues<GameEventKind>();
 		Check(ids.SequenceEqual(expectedIds), "Every stable event ID must have exactly one definition.");
-		foreach (var definition in GameEventCatalog.All)
+		foreach (var definition in GameEventCatalog.AllEvents)
 		{
 			Check(ReferenceEquals(definition, GameEventCatalog.Get(definition.Id)), "Lookup must use the catalog entry.");
 			Check(!string.IsNullOrWhiteSpace(definition.Label) && !string.IsNullOrWhiteSpace(definition.Icon),
@@ -287,8 +287,9 @@ internal static class EventCatalogTests
 		public int Attempts { get; private set; }
 		public bool Success { get; set; }
 
-		public bool TryLandDropship()
+		public bool TryStartEvent(GameEventKind kind)
 		{
+			Check(kind == GameEventKind.Dropship, "The callback must dispatch the selected event kind.");
 			Attempts++;
 			return Success;
 		}

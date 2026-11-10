@@ -23,6 +23,12 @@ per second and do not record a successful occurrence.
 `GameEventSchedule` controls event frequency through `GameEventSlot` definitions;
 there is no ship-specific guarantee in the scheduler. `GameEventCatalog` only defines event types,
 their rarities, icons, labels, and start callbacks, like the loot/modifier catalogs.
+The framework lives in `Code/game/events/`. `GameManager` dispatches catalog
+callbacks through the common `IGameEventAction` interface; event implementations
+are registered by `GameEventActions`, not hard-coded into the manager.
+`GameDropshipEvent` owns the dropship configuration and spawn logic, while
+`GameDropship` handles the ship's lifecycle. `GameEventCatalog.AllEvents` exposes
+the catalog's definitions.
 Every slot draws a rarity using the shared `RarityDraw`, then an equally likely
 event in that rarity. Slots have independent timing and rarity weights, so an
 early slot can use different rarities from a later or recurring slot.
@@ -65,17 +71,33 @@ Alive players get a green arrow and health/distance label for the nearest ship,
 pinned to the edge when off-screen. Dead players retain the red revive-flare
 arrow instead. Destruction stops reinforcements, removes the arrow (or retargets
 another ship), records a world moment, and drops **100 XP total**, **one health
-kit**, and **one armor kit**. XP is spread across at most twenty orbs, not
-awarded to every player separately. Kits use the existing loot catalog effects.
+kit**, and **one armor kit**. XP is spread across at most four larger orbs
+(four 25-XP orbs by default), using the shared value-based colors, scaling,
+and merging behavior from `GameExperienceOrb`. XP is not awarded to every player
+separately. Kits use the existing loot catalog effects.
 No reward is granted for cleanup or round end.
 
-The GameManager inspector's **Dropship** and **Dropship Loot** groups configure
-health (default 500), deployment interval, landing radius, XP (0–1000), and kit
-counts (0–20 each, with zero disabling that drop). An optional enemy prefab
+The `GameDropshipEvent` component configures health (default 500), deployment
+interval, landing radius, and XP (0–1000). The runtime action registry adds it
+to the manager object when a round starts, or it can be added beforehand in
+the editor to customize settings. Its typed `LootDrops` list is configured in
+code and accepts any `LootKind`, with inclusive minimum/maximum counts from
+0–20 per entry. Equal bounds give a fixed count; zero bounds disable that drop.
+For example, `new GameLootDrop(LootKind.Armor, 1, 3)` drops one to three armor
+pickups. The ship snapshots the table on arrival, and rolls each entry once on
+destruction. Adding loot never requires a new per-item property or spawn branch.
+An optional enemy prefab
 supports future heavy reinforcements; unset uses current randomized enemy
 variants. Custom prefabs retain their authored variants. No heavy enemy type
 is introduced yet. Ship visuals are an assembled prototype using existing
 development models.
+
+Objective UI lives in `Code/game/markers/`. `GameDropshipMarker` and
+`GameReviveFlareMarker` select targets and supply presentation data to the shared
+`GameObjectiveMarker`. The shared component only projects a world position,
+clamps the arrow to screen edges, and renders the supplied label, icon, and
+color; it contains no target-type branches. New marker types can reuse it without
+changing existing markers.
 
 Arrival, landing, and destruction are recorded as actual round-results moments.
 Scheduled events after round end do not execute. There are no recurring bosses.

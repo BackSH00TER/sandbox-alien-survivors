@@ -22,16 +22,10 @@ public sealed class GameManager : Component, IGameEventWorld
 	[Sync(SyncFlags.FromHost)] public float BossEventSeconds { get; private set; }
 	[Sync(SyncFlags.FromHost)] public NetList<GameStatMoment> RoundMoments { get; private set; } = new();
 	[Sync(SyncFlags.FromHost)] public NetList<GameScheduledEvent> ScheduledEvents { get; private set; } = new();
-	[Property, Group("Dropship")] public float DropshipHealth { get; set; } = 500f;
-	[Property, Group("Dropship")] public float DropshipSpawnInterval { get; set; } = 3f;
-	[Property, Group("Dropship")] public float DropshipSpawnRadius { get; set; } = 900f;
-	[Property, Group("Dropship"), Description("Optional enemy prefab for reinforcements, including future heavy enemies. Uses the regular enemy prefab when unset.")] public GameObject DropshipEnemyPrefab { get; set; }
-	[Property, Group("Dropship Loot")] public int DropshipExperience { get; set; } = 100;
-	[Property, Group("Dropship Loot")] public int DropshipHealthKits { get; set; } = 1;
-	[Property, Group("Dropship Loot")] public int DropshipArmorKits { get; set; } = 1;
 	[Sync(SyncFlags.FromHost)] private float RoundEndedAt { get; set; }
 	private bool _isChangingScene;
 	private GameEventSchedule _eventSchedule;
+	private IReadOnlyDictionary<GameEventKind, IGameEventAction> _eventActions;
 	private float _nextEventAttempt;
 
 	public float ElapsedSeconds => State == GameState.Ended ? RoundEndedAt : System.Math.Max(0f, RoundClock.Relative);
@@ -68,6 +62,7 @@ public sealed class GameManager : Component, IGameEventWorld
 		if (Networking.IsHost)
 		{
 			_eventSchedule = new GameEventSchedule();
+			_eventActions = GameEventActions.Create(GameObject);
 			RoundClock = 0f;
 			BossEventSeconds = System.Math.Max(0, CountdownTime);
 			TimelineReady = true;
@@ -138,32 +133,21 @@ public sealed class GameManager : Component, IGameEventWorld
 		}
 	}
 
-	public bool TryLandDropship()
+	public bool TryStartEvent(GameEventKind kind)
 	{
 		if (!Networking.IsHost || State != GameState.InProgress)
 		{
-			Log.Error("Dropship events require the host and an active round.");
+			Log.Error("World events require the host and an active round.");
 			return false;
 		}
 
-		var spawner = Scene.GetAllComponents<GameEnemySpawner>().FirstOrDefault(item => item.Active);
-		if (!spawner.IsValid())
+		if (!_eventActions.TryGetValue(kind, out var action))
 		{
-			Log.Error("Dropship events require an active EnemySpawner.");
+			Log.Error($"No runtime action is registered for world event '{kind}'.");
 			return false;
 		}
 
-		var ship = GameDropship.Spawn(
-			spawner: spawner,
-			health: DropshipHealth,
-			spawnInterval: DropshipSpawnInterval,
-			spawnRadius: DropshipSpawnRadius,
-			experience: DropshipExperience,
-			healthKits: DropshipHealthKits,
-			armorKits: DropshipArmorKits,
-			enemyPrefab: DropshipEnemyPrefab
-		);
-		return ship.IsValid();
+		return action.TryStart();
 	}
 
 	private void SpawnBoss()

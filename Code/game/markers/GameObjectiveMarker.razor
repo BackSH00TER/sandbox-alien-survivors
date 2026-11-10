@@ -6,14 +6,14 @@
 <root>
 	@if (_isVisible)
 	{
-		<div class="objective-marker @(ReviveFlare ? "flare" : "dropship")"
-			 style="left: @(Percent(_markerPosition.x)); top: @(Percent(_markerPosition.y));">
+		<div class="objective-marker @MarkerClass"
+			 style="left: @(Percent(_markerPosition.x)); top: @(Percent(_markerPosition.y)); color: @MarkerColor;">
 			<div class="objective-arrow-icon"
 				 style="transform: rotate(@(_arrowAngle.ToString("0", System.Globalization.CultureInfo.InvariantCulture))deg);">
-				arrow_forward</div>
-			@if (!ReviveFlare)
+				@Icon</div>
+			@if (!string.IsNullOrEmpty(Label))
 			{
-				<div class="objective-label">@_label</div>
+				<div class="objective-label">@Label</div>
 			}
 			<div class="objective-distance">@(_distance)m</div>
 		</div>
@@ -22,7 +22,13 @@
 
 @code
 {
-	public bool ReviveFlare { get; set; }
+	public bool Visible { get; set; }
+	public Vector3 TargetPosition { get; set; }
+	public Vector3 OriginPosition { get; set; }
+	public string Label { get; set; }
+	public string Icon { get; set; } = "arrow_forward";
+	public string MarkerClass { get; set; }
+	public string MarkerColor { get; set; } = "#fff";
 
 	private const float UnitsPerMeter = 40f;
 	private const float MarkerEdgeX = 0.44f;
@@ -31,7 +37,6 @@
 	private Vector2 _markerPosition;
 	private float _arrowAngle;
 	private int _distance;
-	private string _label;
 
 	private static string Percent(float value)
 	{
@@ -48,48 +53,19 @@
 	{
 		_isVisible = false;
 		Scene scene = Game.ActiveScene;
-		GamePlayer player = scene.GetAllComponents<GamePlayer>().FirstOrDefault(x => !x.IsProxy);
 		CameraComponent camera = scene.Camera;
 		var manager = scene.GetAllComponents<GameManager>().FirstOrDefault();
-		if (!player.IsValid() || player.IsDead != ReviveFlare || !camera.IsValid()
+		if (!Visible || !camera.IsValid()
 			|| (manager.IsValid() && manager.State != GameState.InProgress))
 		{
 			return;
 		}
 
-		Vector3 targetPosition;
-		if (ReviveFlare)
-		{
-			var flare = scene.GetAllComponents<GameReviveFlare>()
-				.OrderBy(x => (x.WorldPosition - player.WorldPosition).LengthSquared)
-				.FirstOrDefault();
-			if (!flare.IsValid())
-			{
-				return;
-			}
-
-			targetPosition = flare.WorldPosition;
-		}
-		else
-		{
-			var ship = scene.GetAllComponents<GameDropship>()
-				.Where(x => x.Active && x.Health > 0f)
-				.OrderBy(x => (x.GroundPosition - player.WorldPosition).LengthSquared)
-				.FirstOrDefault();
-			if (!ship.IsValid())
-			{
-				return;
-			}
-
-			targetPosition = ship.WorldPosition + Vector3.Up * 120f;
-			_label = ship.Landed ? $"DROPSHIP {ship.Health:0} / {ship.MaxHealth:0}" : "DROPSHIP LANDING";
-		}
-
 		_isVisible = true;
-		_distance = (int)((targetPosition - player.WorldPosition).WithZ(0f).Length / UnitsPerMeter);
+		_distance = (int)((TargetPosition - OriginPosition).WithZ(0f).Length / UnitsPerMeter);
 
-		Vector2 screen = camera.PointToScreenNormal(targetPosition);
-		bool isInFront = (targetPosition - camera.WorldPosition).Dot(camera.WorldRotation.Forward) > 0f;
+		Vector2 screen = camera.PointToScreenNormal(TargetPosition);
+		bool isInFront = (TargetPosition - camera.WorldPosition).Dot(camera.WorldRotation.Forward) > 0f;
 		Vector2 offset = new Vector2(screen.x - 0.5f, screen.y - 0.5f);
 		if (!isInFront)
 		{
@@ -116,14 +92,16 @@
 
 	protected override int BuildHash()
 	{
+		var presentationHash = System.HashCode.Combine(MarkerClass, MarkerColor);
 		return System.HashCode.Combine(
 			value1: _isVisible,
 			value2: (int)(_markerPosition.x * 500f),
 			value3: (int)(_markerPosition.y * 500f),
 			value4: (int)_arrowAngle / 2,
 			value5: _distance,
-			value6: _label,
-			value7: ReviveFlare
+			value6: Label,
+			value7: Icon,
+			value8: presentationHash
 		);
 	}
 }

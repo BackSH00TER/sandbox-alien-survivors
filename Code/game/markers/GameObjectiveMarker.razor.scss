@@ -13,12 +13,7 @@ GameObjectiveMarker
 		flex-direction: column;
 		align-items: center;
 		transform: translate(-50%, -50%);
-		color: #62ffb0;
 		text-shadow: 0 0 6px #000;
-
-		&.flare {
-			color: #ff5a4d;
-		}
 
 		.objective-arrow-icon {
 			font-family: Material Icons;

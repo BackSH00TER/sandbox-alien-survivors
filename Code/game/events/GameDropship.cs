@@ -1,12 +1,12 @@
 using Sandbox;
+using System.Collections.Generic;
 
 /// <summary>A persistent, shootable reinforcement source. Only its destruction awards loot.</summary>
 public sealed class GameDropship : GameEntity
 {
 	[Property, Range(0.1f, 60f)] public float SpawnInterval { get; set; } = 3f;
 	[Property, Range(0, 1000)] public int ExperienceReward { get; set; } = 100;
-	[Property, Range(0, 20)] public int HealthKits { get; set; } = 1;
-	[Property, Range(0, 20)] public int ArmorKits { get; set; } = 1;
+	public IReadOnlyList<GameLootDrop> LootDrops { get; private set; }
 	[Sync(SyncFlags.FromHost)] public bool Landed { get; private set; }
 	[Sync(SyncFlags.FromHost)] public Vector3 GroundPosition { get; private set; }
 	[Sync(SyncFlags.FromHost)] private TimeSince ArrivalClock { get; set; }
@@ -28,8 +28,7 @@ public sealed class GameDropship : GameEntity
 		float spawnInterval,
 		float spawnRadius,
 		int experience,
-		int healthKits,
-		int armorKits,
+		IReadOnlyList<GameLootDrop> lootDrops,
 		GameObject enemyPrefab = null
 	)
 	{
@@ -38,10 +37,10 @@ public sealed class GameDropship : GameEntity
 			|| !float.IsFinite(spawnInterval) || spawnInterval < 0.1f
 			|| !float.IsFinite(spawnRadius) || spawnRadius < 200f
 			|| experience < 0 || experience > 1000
-			|| healthKits < 0 || healthKits > 20 || armorKits < 0 || armorKits > 20
+			|| lootDrops == null || lootDrops.Any(drop => drop == null)
 			|| !(enemyPrefab ?? spawner.EnemyPrefab).IsValid())
 		{
-			Log.Error("Dropships require the host, a spawner with an enemy prefab, positive health/interval, radius >= 200, XP in [0,1000], and kit counts in [0,20].");
+			Log.Error("Dropships require the host, a spawner with an enemy prefab, positive health/interval, radius >= 200, XP in [0,1000], and a non-null loot table without null entries.");
 			return null;
 		}
 
@@ -57,8 +56,7 @@ public sealed class GameDropship : GameEntity
 		ship.MaxHealth = health;
 		ship.SpawnInterval = spawnInterval;
 		ship.ExperienceReward = experience;
-		ship.HealthKits = healthKits;
-		ship.ArmorKits = armorKits;
+		ship.LootDrops = lootDrops.ToArray();
 		ship.GroundPosition = groundPosition;
 		ship.ArrivalClock = 0f;
 		ship.Spawner = spawner;
@@ -287,26 +285,31 @@ public sealed class GameDropship : GameEntity
 
 		_destroyed = true;
 		_manager?.RecordRoundMoment("Alien dropship destroyed");
-		var orbCount = System.Math.Min(20, ExperienceReward);
-		for (var i = 0; i < orbCount; i++)
+		var orbAmounts = ExperienceOrbRules.SplitReward(ExperienceReward);
+		for (var i = 0; i < orbAmounts.Length; i++)
 		{
-			var position = RewardPosition(index: i, count: orbCount);
-			var amount = ExperienceReward / orbCount + (i < ExperienceReward % orbCount ? 1 : 0);
+			var position = RewardPosition(index: i, count: orbAmounts.Length);
 			GameExperienceOrb.Spawn(
 				scene: Scene,
 				position: position,
-				amount: amount
+				amount: orbAmounts[i]
 			);
 		}
 
-		var health = GameLootCatalog.Get(LootKind.Health);
-		var armor = GameLootCatalog.Get(LootKind.Armor);
-		var kitCount = HealthKits + ArmorKits;
-		for (var i = 0; i < kitCount; i++)
+		var loot = new List<LootDefinition>();
+		foreach (var drop in LootDrops)
 		{
-			var position = RewardPosition(index: i, count: kitCount);
-			var definition = i < HealthKits ? health : armor;
-			GameLootPickup.Spawn(groundPosition: position, definition: definition);
+			var count = drop.RollCount((minimum, maximum) => Game.Random.Next(minimum, maximum));
+			var definition = GameLootCatalog.Get(drop.Kind);
+			for (var i = 0; i < count; i++)
+			{
+				loot.Add(definition);
+			}
+		}
+		for (var i = 0; i < loot.Count; i++)
+		{
+			var position = RewardPosition(index: i, count: loot.Count);
+			GameLootPickup.Spawn(groundPosition: position, definition: loot[i]);
 		}
 
 		GameObject.Destroy();
