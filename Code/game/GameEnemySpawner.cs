@@ -115,14 +115,55 @@ public sealed class GameEnemySpawner : Component
 			spawnPosition = ground.EndPosition;
 		}
 
-		var enemy = EnemyPrefab.Clone(spawnPosition);
+		return SpawnAt(
+			spawnPosition: spawnPosition,
+			isBoss: isBoss,
+			prefab: EnemyPrefab
+		);
+	}
+
+	public GameEnemy SpawnReinforcement(Vector3 position, GameObject prefab = null)
+	{
+		if (!Networking.IsHost)
+		{
+			Log.Error("Only the host can spawn dropship reinforcements.");
+			return null;
+		}
+
+		var selectedPrefab = prefab ?? EnemyPrefab;
+		if (!selectedPrefab.IsValid())
+		{
+			Log.Error("Dropship reinforcements require an enemy prefab.");
+			return null;
+		}
+
+		return SpawnAt(
+			spawnPosition: position,
+			isBoss: false,
+			prefab: selectedPrefab,
+			fromDropship: true
+		);
+	}
+
+	private GameEnemy SpawnAt(
+		Vector3 spawnPosition,
+		bool isBoss,
+		GameObject prefab,
+		bool fromDropship = false
+	)
+	{
+		var enemy = prefab.Clone(spawnPosition);
 		var component = enemy.GetOrAddComponent<GameEnemy>();
+		if (fromDropship)
+		{
+			component.DescendOnSpawn = false;
+		}
 		if (isBoss)
 		{
 			enemy.Name = "Boss";
 			enemy.GetOrAddComponent<GameEnemyBoss>().Configure(component);
 		}
-		else
+		else if (prefab == EnemyPrefab)
 		{
 			var variantRoll = _random.NextDouble() * 100f;
 			var explodingChance = ExplodingEnemyChance.Clamp(0f, 100f);

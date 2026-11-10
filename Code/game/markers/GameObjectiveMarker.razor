@@ -1,0 +1,107 @@
+@using Sandbox;
+@using Sandbox.UI;
+@inherits Panel
+@namespace Sandbox
+
+<root>
+	@if (_isVisible)
+	{
+		<div class="objective-marker @MarkerClass"
+			 style="left: @(Percent(_markerPosition.x)); top: @(Percent(_markerPosition.y)); color: @MarkerColor;">
+			<div class="objective-arrow-icon"
+				 style="transform: rotate(@(_arrowAngle.ToString("0", System.Globalization.CultureInfo.InvariantCulture))deg);">
+				@Icon</div>
+			@if (!string.IsNullOrEmpty(Label))
+			{
+				<div class="objective-label">@Label</div>
+			}
+			<div class="objective-distance">@(_distance)m</div>
+		</div>
+	}
+</root>
+
+@code
+{
+	public bool Visible { get; set; }
+	public Vector3 TargetPosition { get; set; }
+	public Vector3 OriginPosition { get; set; }
+	public string Label { get; set; }
+	public string Icon { get; set; } = "arrow_forward";
+	public string MarkerClass { get; set; }
+	public string MarkerColor { get; set; } = "#fff";
+	public float EdgeY { get; set; } = 0.42f;
+
+	private const float UnitsPerMeter = 40f;
+	private const float MarkerEdgeX = 0.44f;
+	private bool _isVisible;
+	private Vector2 _markerPosition;
+	private float _arrowAngle;
+	private int _distance;
+
+	private static string Percent(float value)
+	{
+		return (value * 100f).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) + "%";
+	}
+
+	public override void Tick()
+	{
+		base.Tick();
+		UpdateMarker();
+	}
+
+	private void UpdateMarker()
+	{
+		_isVisible = false;
+		Scene scene = Game.ActiveScene;
+		CameraComponent camera = scene.Camera;
+		var manager = scene.GetAllComponents<GameManager>().FirstOrDefault();
+		if (!Visible || !camera.IsValid()
+			|| (manager.IsValid() && manager.State != GameState.InProgress))
+		{
+			return;
+		}
+
+		_isVisible = true;
+		_distance = (int)((TargetPosition - OriginPosition).WithZ(0f).Length / UnitsPerMeter);
+
+		Vector2 screen = camera.PointToScreenNormal(TargetPosition);
+		bool isInFront = (TargetPosition - camera.WorldPosition).Dot(camera.WorldRotation.Forward) > 0f;
+		Vector2 offset = new Vector2(screen.x - 0.5f, screen.y - 0.5f);
+		if (!isInFront)
+		{
+			offset = -offset;
+		}
+
+		bool isOnScreen = isInFront && System.MathF.Abs(offset.x) <= MarkerEdgeX && System.MathF.Abs(offset.y) <= EdgeY;
+		if (isOnScreen)
+		{
+			_markerPosition = new Vector2(screen.x, screen.y - 0.07f);
+			_arrowAngle = 90f;
+			return;
+		}
+
+		float scale = System.MathF.Max(System.MathF.Abs(offset.x) / MarkerEdgeX, System.MathF.Abs(offset.y) / EdgeY);
+		if (scale < 0.0001f)
+		{
+			scale = 1f;
+		}
+
+		_markerPosition = new Vector2(0.5f + offset.x / scale, 0.5f + offset.y / scale);
+		_arrowAngle = System.MathF.Atan2(offset.y, offset.x) * 180f / System.MathF.PI;
+	}
+
+	protected override int BuildHash()
+	{
+		var presentationHash = System.HashCode.Combine(MarkerClass, MarkerColor);
+		return System.HashCode.Combine(
+			value1: _isVisible,
+			value2: (int)(_markerPosition.x * 500f),
+			value3: (int)(_markerPosition.y * 500f),
+			value4: (int)_arrowAngle / 2,
+			value5: _distance,
+			value6: Label,
+			value7: Icon,
+			value8: presentationHash
+		);
+	}
+}

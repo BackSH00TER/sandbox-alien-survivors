@@ -30,11 +30,13 @@ var tests = new (string Name, Action Run)[]
 	("loot callbacks apply effects and enforce eligibility", LootCatalogTests.Collection),
 	("loot rarity buckets preserve exact probabilities", LootCatalogTests.Drops),
 	("weapon crates drop only weapons with valid boundaries", LootCatalogTests.WeaponDrops),
-	("weapon airdrops follow the rare recurring schedule", WeaponAirdropSchedule),
 	("loot catalog preserves prototype visuals", LootCatalogTests.Visuals),
 	("invalid loot rolls and kinds are rejected", LootCatalogTests.Invalid),
 	("enemy aggro switches only after the cooldown", EnemyAggroTests.Cooldown),
 	("enemy aggro handles unavailable targets", EnemyAggroTests.Unavailable),
+	("XP orbs merge only within fixed short reach without overflow", ExperienceOrbTests.Reach),
+	("XP orbs share eight value-based colors and capped size growth", ExperienceOrbTests.Appearance),
+	("XP orb presentation rejects invalid values", ExperienceOrbTests.Invalid),
 	("fire chance, defaults and upgrade caps", FireRolls),
 	("shock progression and immutable settings", ShockTests.Progression),
 	("mixed damage effect rolls never retry", ShockTests.Rolls),
@@ -49,6 +51,15 @@ var tests = new (string Name, Action Run)[]
 	("clearing and advancing cannot repeat damage", Clear),
 	("invalid settings are rejected", Invalid),
 	("timeline positions, dimming and pipeline boundaries", Timeline),
+	("event catalog metadata, callbacks and exact rarity probabilities", EventCatalogTests.Catalog),
+	("event slots draw opening and recurring events from configuration", EventCatalogTests.Schedule),
+	("weapon airdrops use shared rare slots without guaranteed arrivals", EventCatalogTests.WeaponAirdrops),
+	("event slots own timing, rarity weights and independent cadences", EventCatalogTests.Slots),
+	("event slots redistribute empty rarity weights", EventCatalogTests.EmptyRarities),
+	("event catalog and schedule reject invalid inputs", EventCatalogTests.Invalid),
+	("event loot supports fixed and inclusive random counts for every catalog item", EventRewardTests.LootCounts),
+	("event XP rewards preserve exact totals in larger orbs", EventRewardTests.Experience),
+	("event rewards reject invalid counts, kinds and rolls", EventRewardTests.Invalid),
 	("stat history uses half-open 15-second buckets and independent keys", StatHistoryTests.Buckets),
 	("stat history carries quiet buckets and final partial totals", StatHistoryTests.Series),
 	("stat history handles zero duration, exact boundaries and snapshots", StatHistoryTests.Boundaries),
@@ -63,26 +74,6 @@ foreach (var test in tests)
 	Console.WriteLine($"PASS {test.Name}");
 }
 Console.WriteLine($"{tests.Length} tests passed.");
-
-static void WeaponAirdropSchedule()
-{
-	var expected = new[] { 60f, 300f, 600f, 900f, 1200f, 1500f };
-	for (var index = 0; index < expected.Length; index++)
-	{
-		var actual = GameWeaponAirdropSchedule.SecondsFor(index);
-		Near(actual: actual, expected: expected[index]);
-	}
-
-	try
-	{
-		GameWeaponAirdropSchedule.SecondsFor(-1);
-	}
-	catch (ArgumentOutOfRangeException)
-	{
-		return;
-	}
-	throw new InvalidOperationException("Negative airdrop indices must be rejected.");
-}
 
 static void Timeline()
 {

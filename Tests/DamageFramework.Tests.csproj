@@ -13,13 +13,15 @@
     <Compile Include="..\Code\game\DamageEffect.cs" Link="DamageEffect.cs" />
     <Compile Include="..\Code\game\DamageEffectChain.cs" Link="DamageEffectChain.cs" />
     <Compile Include="..\Code\game\EnemyAggro.cs" Link="EnemyAggro.cs" />
+    <Compile Include="..\Code\game\ExperienceOrbRules.cs" Link="ExperienceOrbRules.cs" />
     <Compile Include="..\Code\game\TimedDamageEffects.cs" Link="TimedDamageEffects.cs" />
     <Compile Include="..\Code\game\WeightedDraw.cs" Link="WeightedDraw.cs" />
     <Compile Include="..\Code\game\GameRarity.cs" Link="GameRarity.cs" />
     <Compile Include="..\Code\game\GameModifier.cs" Link="GameModifier.cs" />
     <Compile Include="..\Code\game\GameShotModifiers.cs" Link="GameShotModifiers.cs" />
     <Compile Include="..\Code\game\GameTimelineEvent.cs" Link="GameTimelineEvent.cs" />
-    <Compile Include="..\Code\game\GameWeaponAirdropSchedule.cs" Link="GameWeaponAirdropSchedule.cs" />
+    <Compile Include="..\Code\game\events\GameEventCatalog.cs" Link="GameEventCatalog.cs" />
+    <Compile Include="..\Code\game\GameLootDrop.cs" Link="GameLootDrop.cs" />
     <Compile Include="..\Code\game\GameLootCatalog.cs" Link="GameLootCatalog.cs" />
     <Compile Include="..\Code\game\stats\GameDamageType.cs" Link="GameDamageType.cs" />
     <Compile Include="..\Code\game\stats\GameEnemyKind.cs" Link="GameEnemyKind.cs" />

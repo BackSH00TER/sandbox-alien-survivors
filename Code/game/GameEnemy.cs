@@ -52,6 +52,7 @@ public sealed class GameEnemy : GameEntity
 	[Property, Range(1f, 100f)] public float PunchDamage { get; set; } = 10f;
 	[Property, Range(50f, 1000f)] public float SpawnHeight { get; set; } = 300f;
 	[Property, Range(0.1f, 10f)] public float SpawnDuration { get; set; } = 2f;
+	[Property, Description("Disabled for enemies deployed directly from a landed dropship.")] public bool DescendOnSpawn { get; set; } = true;
 	[Property, Range(0, 100)] public int ExperienceDrop { get; set; } = 1;
 	[Property, Group("Hit Reaction"), Range(0f, 1f)] public float HitReactionStrength { get; set; } = 0.6f;
 	[Property, Group("Hit Reaction"), Range(0f, 2f), Description("Movement and attack interruption after damage, in seconds. Zero disables hitstun.")] public float HitStaggerDuration { get; set; } = 0f;
@@ -112,7 +113,8 @@ public sealed class GameEnemy : GameEntity
 
 		LandingPosition = ground.EndPosition;
 		DescentStartTime = Time.Now;
-		WorldPosition = LandingPosition + Vector3.Up * SpawnHeight;
+		IsDescending = DescendOnSpawn;
+		WorldPosition = DescendOnSpawn ? LandingPosition + Vector3.Up * SpawnHeight : LandingPosition;
 
 		var dresser = GetComponent<Dresser>();
 		if (dresser == null)
@@ -567,7 +569,11 @@ public sealed class GameEnemy : GameEntity
 			boss.Defeated(this);
 			return;
 		}
-		GameExperienceOrb.Spawn(Scene, WorldPosition, ExperienceDrop);
+		GameExperienceOrb.Spawn(
+			scene: Scene,
+			position: WorldPosition,
+			amount: ExperienceDrop
+		);
 
 		if (!Controller.Renderer.IsValid())
 		{
