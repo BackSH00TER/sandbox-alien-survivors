@@ -54,7 +54,7 @@ public sealed class GamePlayerStats : Component
 		{
 			var row = GameStatCatalog.Sections.SelectMany(section => section.Rows).First(stat => stat.Key == key);
 			var kind = key.StartsWith("modifier.") ? "modifier" : "survival";
-			var icon = "";
+			var icon = key == GameStatKeys.Deaths ? "/ui/icons/skull.svg" : "";
 			if (kind == "modifier")
 			{
 				var definition = ModifierCatalog.All.First(modifier => GameStatKeys.ModifierPicked(modifier.Id) == key);

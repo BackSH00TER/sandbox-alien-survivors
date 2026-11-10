@@ -245,6 +245,12 @@ GameStatsGraph {
 		pointer-events: none;
 	}
 
+	.moment-image {
+		width: 22px;
+		height: 22px;
+		pointer-events: none;
+	}
+
 	.moment-list {
 		flex-shrink: 0;
 		flex-direction: column;

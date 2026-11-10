@@ -95,8 +95,9 @@ The results screen opens on **Timeline**; **Summary** preserves the scorecard.
 Basic mode exposes **Damage dealt**, **Enemies killed**, and **Level**, with
 damage selected initially. Choose one stat family at a time; switching families
 replaces the previous selection and resets its breakdown. **Advanced** exposes
-the remaining totals and individual upgrade counts; empty optional rows stay
-hidden. Returning to Basic keeps the selected advanced stat's button visible.
+the remaining combat and survival totals; upgrade counts and rerolls are only
+shown in the Summary scorecard, not offered as chart metrics. Empty optional
+rows stay hidden. Returning to Basic keeps the selected advanced stat's button visible.
 Player buttons toggle all lines and moments belonging to that player.
 
 Each view has exactly one labeled raw-value axis, shared across visible players.
@@ -146,6 +147,8 @@ the plot at the exact acquisition time, colored for their player. Nearby
 acquisitions stack into separate lanes; a scrollable overlay keeps dense
 clusters accessible without covering the whole plot. Hiding modifiers or
 a player also hides their icons. Repeated acquisitions retain separate icons.
+Deaths show skull icons at their exact timestamps in the same overlay, with
+player-colored borders. The Deaths / revives filter also hides these skulls.
 
 Compared with one-minute buckets, 15-second buckets use at most four times as
 many aggregates and chart points, but still do not retain raw combat events.

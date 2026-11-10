@@ -569,7 +569,11 @@ public sealed class GameEnemy : GameEntity
 			boss.Defeated(this);
 			return;
 		}
-		GameExperienceOrb.Spawn(Scene, WorldPosition, ExperienceDrop);
+		GameExperienceOrb.Spawn(
+			scene: Scene,
+			position: WorldPosition,
+			amount: ExperienceDrop
+		);
 
 		if (!Controller.Renderer.IsValid())
 		{
