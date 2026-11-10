@@ -77,6 +77,11 @@ public sealed class GameSupplyCrate : GameEntity
 	protected override void OnStart()
 	{
 		base.OnStart();
+		BuildPrototypeVisuals();
+	}
+
+	private void BuildPrototypeVisuals()
+	{
 		var bodySize = new Vector3(
 			x: 40f,
 			y: 40f,

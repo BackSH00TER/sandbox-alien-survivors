@@ -20,6 +20,9 @@ per second and do not record a successful occurrence.
 
 ## World events
 
+For implementation steps and validation requirements, see
+[Adding a world event](event-authoring.md).
+
 `GameEventSchedule` controls event frequency through `GameEventSlot` definitions;
 there is no ship-specific guarantee in the scheduler. `GameEventCatalog` only defines event types,
 their rarities, icons, labels, and start callbacks, like the loot/modifier catalogs.
