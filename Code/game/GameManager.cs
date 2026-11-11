@@ -8,28 +8,23 @@ public enum GameState
 
 public sealed class GameManager : Component, IGameEventWorld
 {
-	[Group("Game Settings")] [Property, Description("Seconds until the boss spawns. Defeating the boss ends the match.")] public int CountdownTime { get; set; } = 60;
 	[Group("Game Settings"), Description("Ends the game as soon as every player is dead, since nobody is left to fire a revive flare. Turn off while debugging revives.")] [Property] public bool ShouldEndWhenAllDead { get; set; } = true;
 	[Sync(SyncFlags.FromHost)] public GameState State { get; set; } = GameState.InProgress;
-	[Sync(SyncFlags.FromHost)] public GameEnemy Boss { get; private set; }
-	[Sync(SyncFlags.FromHost)] public bool BossSpawned { get; private set; }
 
 	[Group("Scene Transition")] [Property] public string LobbyScene { get; set; }
 	[Group("Scene Transition")] [Property] public string GameScene { get; set; } = "scenes/game.scene";
 
 	[Sync(SyncFlags.FromHost)] public TimeSince RoundClock { get; private set; }
 	[Sync(SyncFlags.FromHost)] public bool TimelineReady { get; private set; }
-	[Sync(SyncFlags.FromHost)] public float BossEventSeconds { get; private set; }
 	[Sync(SyncFlags.FromHost)] public NetList<GameStatMoment> RoundMoments { get; private set; } = new();
 	[Sync(SyncFlags.FromHost)] public NetList<GameScheduledEvent> ScheduledEvents { get; private set; } = new();
 	[Sync(SyncFlags.FromHost)] private float RoundEndedAt { get; set; }
 	private bool _isChangingScene;
 	private GameEventSchedule _eventSchedule;
 	private IReadOnlyDictionary<GameEventKind, IGameEventAction> _eventActions;
-	private float _nextEventAttempt;
+	private readonly Dictionary<int, float> _nextEventAttempts = new();
 
 	public float ElapsedSeconds => State == GameState.Ended ? RoundEndedAt : System.Math.Max(0f, RoundClock.Relative);
-	public int RemainingSeconds => System.Math.Max(0, (int)System.MathF.Ceiling(BossEventSeconds - ElapsedSeconds));
 
 	public IEnumerable<GameTimelineEvent> TimelineEvents
 	{
@@ -48,19 +43,10 @@ public sealed class GameManager : Component, IGameEventWorld
 					);
 					events.Add(timelineEvent);
 				}
-
-				var bossEvent = new GameTimelineEvent(
-					Seconds: BossEventSeconds,
-					Icon: "star",
-					Label: "Boss spawn"
-				);
-				events.Add(bossEvent);
 			}
 			return events.OrderBy(timelineEvent => timelineEvent.Seconds);
 		}
 	}
-
-	private bool _missingSpawnerLogged;
 
 	protected override void OnStart()
 	{
@@ -69,7 +55,6 @@ public sealed class GameManager : Component, IGameEventWorld
 			_eventSchedule = new GameEventSchedule();
 			_eventActions = GameEventActions.Create(GameObject);
 			RoundClock = 0f;
-			BossEventSeconds = System.Math.Max(0, CountdownTime);
 			TimelineReady = true;
 			RecordRoundMoment("Round started");
 			ScheduleEvents();
@@ -89,11 +74,6 @@ public sealed class GameManager : Component, IGameEventWorld
 			return;
 		}
 
-		if (RemainingSeconds <= 0 && !BossSpawned)
-		{
-			SpawnBoss();
-		}
-
 		UpdateEvents();
 	}
 
@@ -109,11 +89,6 @@ public sealed class GameManager : Component, IGameEventWorld
 	private void UpdateEvents()
 	{
 		ScheduleEvents();
-		if (ElapsedSeconds < _nextEventAttempt)
-		{
-			return;
-		}
-
 		for (var i = 0; i < ScheduledEvents.Count; i++)
 		{
 			var scheduled = ScheduledEvents[i];
@@ -122,10 +97,21 @@ public sealed class GameManager : Component, IGameEventWorld
 				continue;
 			}
 
+			// Failed random starts must not retry into a fixed event's reserved window.
+			if (!scheduled.IsFixed && _eventSchedule.IsReserved(ElapsedSeconds))
+			{
+				continue;
+			}
+
+			if (_nextEventAttempts.TryGetValue(i, out var nextAttempt) && ElapsedSeconds < nextAttempt)
+			{
+				continue;
+			}
+
 			var definition = GameEventCatalog.Get(scheduled.Kind);
 			if (!definition.TryStart(this))
 			{
-				_nextEventAttempt = ElapsedSeconds + 1f;
+				_nextEventAttempts[i] = ElapsedSeconds + 1f;
 				continue;
 			}
 
@@ -134,7 +120,8 @@ public sealed class GameManager : Component, IGameEventWorld
 				Seconds = ElapsedSeconds,
 				Occurred = true
 			};
-			RecordRoundMoment($"{definition.Label} arrived");
+			_nextEventAttempts.Remove(i);
+			RecordRoundMoment(definition.ArrivalMoment ?? $"{definition.Label} arrived");
 		}
 	}
 
@@ -155,32 +142,6 @@ public sealed class GameManager : Component, IGameEventWorld
 		return action.TryStart();
 	}
 
-	private void SpawnBoss()
-	{
-		var spawner = Scene.GetAllComponents<GameEnemySpawner>().FirstOrDefault(x => x.Active);
-		if (!spawner.IsValid())
-		{
-			if (!_missingSpawnerLogged)
-			{
-				Log.Error("GameManager requires an active EnemySpawner to spawn the boss.");
-				_missingSpawnerLogged = true;
-			}
-			return;
-		}
-
-		_missingSpawnerLogged = false;
-		var boss = spawner.SpawnBoss();
-		if (!boss.IsValid())
-		{
-			return;
-		}
-
-		Boss = boss;
-		BossSpawned = true;
-		BossEventSeconds = ElapsedSeconds;
-		RecordRoundMoment("Boss spawned");
-	}
-
 	public void BossDefeated(GameEnemy enemy)
 	{
 		if (!Networking.IsHost)
@@ -194,7 +155,8 @@ public sealed class GameManager : Component, IGameEventWorld
 			return;
 		}
 
-		if (!BossSpawned || !enemy.IsValid() || enemy != Boss || enemy.Health > 0f)
+		var bossEvent = GetComponent<GameBossEvent>();
+		if (!bossEvent.IsValid() || !bossEvent.Spawned || !enemy.IsValid() || enemy != bossEvent.Boss || enemy.Health > 0f)
 		{
 			Log.Warning("Rejected a boss defeat for an enemy that is not the defeated match boss.");
 			return;

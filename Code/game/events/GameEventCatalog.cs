@@ -7,7 +7,8 @@ public enum GameEventKind
 	// Quiet is an explicit outcome, not a missing event or an empty rarity.
 	None = 0,
 	Dropship = 1,
-	WeaponAirdrop = 2
+	WeaponAirdrop = 2,
+	Boss = 3
 }
 
 public interface IGameEventWorld
@@ -21,13 +22,16 @@ public sealed class GameEventDefinition
 	public string Label { get; init; }
 	public string Icon { get; init; }
 	public GameRarity Rarity { get; init; }
+	public bool RandomEligible { get; init; } = true;
+	public string ArrivalMoment { get; init; }
 	public Func<IGameEventWorld, bool> TryStart { get; init; }
 }
 
 public readonly record struct GameScheduledEvent(
 	GameEventKind Kind,
 	float Seconds,
-	bool Occurred = false
+	bool Occurred = false,
+	bool IsFixed = false
 );
 
 /// <summary>World-event definitions. Timing and rarity weights belong to schedule slots, not event types.</summary>
@@ -58,11 +62,22 @@ public static class GameEventCatalog
 			Icon = "flight",
 			Rarity = GameRarity.Rare,
 			TryStart = world => world.TryStartEvent(GameEventKind.WeaponAirdrop)
+		},
+		new GameEventDefinition
+		{
+			Id = GameEventKind.Boss,
+			Label = "Boss spawn",
+			Icon = "star",
+			Rarity = GameRarity.Legendary,
+			RandomEligible = false,
+			ArrivalMoment = "Boss spawned",
+			TryStart = world => world.TryStartEvent(GameEventKind.Boss)
 		}
 	});
 
 	private static readonly IReadOnlyDictionary<GameEventKind, GameEventDefinition> ById = AllEvents.ToDictionary(item => item.Id);
 	private static readonly IReadOnlyDictionary<GameRarity, GameEventDefinition[]> RarityEvents = AllEvents
+		.Where(item => item.RandomEligible)
 		.GroupBy(item => item.Rarity)
 		.ToDictionary(
 			keySelector: group => group.Key,
@@ -133,10 +148,41 @@ public sealed class GameEventSlot
 	public IReadOnlyList<RarityBucket> Rarities { get; init; }
 }
 
+/// <summary>A guaranteed one-shot arrival with an inclusive reservation against random starts.</summary>
+public sealed class GameFixedEvent
+{
+	public GameEventKind Kind { get; init; }
+	public float Seconds { get; init; }
+	public float PaddingBeforeSeconds { get; init; }
+	public float PaddingAfterSeconds { get; init; }
+
+	public bool Contains(float seconds)
+	{
+		return seconds >= Seconds - PaddingBeforeSeconds && seconds <= Seconds + PaddingAfterSeconds;
+	}
+}
+
 /// <summary>Host-clock scheduling, independent of frame rate and of whether earlier ships are still alive.</summary>
 public sealed class GameEventSchedule
 {
 	public const float IntervalSeconds = 300f;
+	public static IReadOnlyList<GameFixedEvent> DefaultFixedEvents
+	{
+		get
+		{
+			return Array.AsReadOnly(new[]
+			{
+				new GameFixedEvent
+				{
+					Kind = GameEventKind.Boss,
+					Seconds = 300f,
+					PaddingBeforeSeconds = 30f,
+					PaddingAfterSeconds = 30f
+				}
+			});
+		}
+	}
+
 	// Hotload preserves cached static values, so build configuration from current code for each round.
 	public static IReadOnlyList<GameEventSlot> DefaultSlots
 	{
@@ -178,10 +224,37 @@ public sealed class GameEventSchedule
 	}
 
 	private readonly List<SlotState> _slots = new();
+	private readonly List<GameFixedEvent> _fixedEvents = new();
+	private bool _fixedEventsScheduled;
 	public float NextRollSeconds => _slots.Count == 0 ? float.PositiveInfinity : _slots.Min(slot => slot.NextRollSeconds);
 
-	public GameEventSchedule(IReadOnlyList<GameEventSlot> slots = null)
+	public GameEventSchedule(
+		IReadOnlyList<GameEventSlot> slots = null,
+		IReadOnlyList<GameFixedEvent> fixedEvents = null
+	)
 	{
+		foreach (var fixedEvent in fixedEvents ?? DefaultFixedEvents)
+		{
+			if (fixedEvent == null || !Enum.IsDefined(fixedEvent.Kind) || fixedEvent.Kind == GameEventKind.None
+				|| !float.IsFinite(fixedEvent.Seconds) || fixedEvent.Seconds < 0f
+				|| !float.IsFinite(fixedEvent.PaddingBeforeSeconds) || fixedEvent.PaddingBeforeSeconds < 0f
+				|| !float.IsFinite(fixedEvent.PaddingAfterSeconds) || fixedEvent.PaddingAfterSeconds < 0f
+				|| !float.IsFinite(fixedEvent.Seconds + fixedEvent.PaddingAfterSeconds))
+			{
+				throw new ArgumentException("Fixed events require an executable kind and finite non-negative times and padding.", nameof(fixedEvents));
+			}
+
+			var start = fixedEvent.Seconds - fixedEvent.PaddingBeforeSeconds;
+			var end = fixedEvent.Seconds + fixedEvent.PaddingAfterSeconds;
+			if (_fixedEvents.Any(existing => start <= existing.Seconds + existing.PaddingAfterSeconds
+				&& end >= existing.Seconds - existing.PaddingBeforeSeconds))
+			{
+				throw new ArgumentException("Fixed event reservations must not overlap, including their boundaries.", nameof(fixedEvents));
+			}
+
+			_fixedEvents.Add(fixedEvent);
+		}
+
 		foreach (var slot in slots ?? DefaultSlots)
 		{
 			if (slot == null || !float.IsFinite(slot.FirstRollSeconds) || slot.FirstRollSeconds < 0f
@@ -213,12 +286,26 @@ public sealed class GameEventSchedule
 		}
 		ArgumentNullException.ThrowIfNull(random);
 
-		if (elapsedSeconds < NextRollSeconds)
+		var scheduled = new List<GameScheduledEvent>();
+		if (!_fixedEventsScheduled)
 		{
-			return Array.Empty<GameScheduledEvent>();
+			foreach (var fixedEvent in _fixedEvents)
+			{
+				scheduled.Add(new GameScheduledEvent(
+					Kind: fixedEvent.Kind,
+					Seconds: fixedEvent.Seconds,
+					Occurred: false,
+					IsFixed: true
+				));
+			}
+			_fixedEventsScheduled = true;
 		}
 
-		var scheduled = new List<GameScheduledEvent>();
+		if (elapsedSeconds < NextRollSeconds)
+		{
+			return scheduled;
+		}
+
 		while (true)
 		{
 			// Interleave overdue slots by due time; configuration order breaks ties.
@@ -244,7 +331,10 @@ public sealed class GameEventSchedule
 					duration: next.Definition.MaximumDelaySeconds - next.Definition.MinimumDelaySeconds,
 					random: random
 				);
-				scheduled.Add(new GameScheduledEvent(definition.Id, seconds));
+				if (!IsReserved(seconds))
+				{
+					scheduled.Add(new GameScheduledEvent(definition.Id, seconds));
+				}
 			}
 
 			// Quiet outcomes also consume the slot, but never consume a timestamp roll.
@@ -254,6 +344,16 @@ public sealed class GameEventSchedule
 		}
 
 		return scheduled;
+	}
+
+	public bool IsReserved(float seconds)
+	{
+		if (!float.IsFinite(seconds) || seconds < 0f)
+		{
+			throw new ArgumentOutOfRangeException(nameof(seconds));
+		}
+
+		return _fixedEvents.Any(fixedEvent => fixedEvent.Contains(seconds));
 	}
 
 	private static float RollTime(

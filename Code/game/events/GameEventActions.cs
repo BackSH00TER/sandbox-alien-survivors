@@ -14,7 +14,8 @@ public static class GameEventActions
 		return new Dictionary<GameEventKind, IGameEventAction>
 		{
 			[GameEventKind.Dropship] = owner.GetOrAddComponent<GameDropshipEvent>(),
-			[GameEventKind.WeaponAirdrop] = owner.GetOrAddComponent<GameWeaponAirdropEvent>()
+			[GameEventKind.WeaponAirdrop] = owner.GetOrAddComponent<GameWeaponAirdropEvent>(),
+			[GameEventKind.Boss] = owner.GetOrAddComponent<GameBossEvent>()
 		};
 	}
 }
