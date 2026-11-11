@@ -18,7 +18,10 @@ public sealed class DamageEffectSettings
 	public float ChainRadius { get; }
 	public float ChainDamageFalloff { get; }
 	public float MinimumChainDamageMultiplier { get; }
-	public bool IsInstant => InstantDamage > 0f;
+	public float BlastRadius { get; }
+	public bool IsExplosion => BlastRadius > 0f;
+	public bool IsInstant => InstantDamage > 0f && !IsExplosion;
+	public bool IsTimed => InstantDamage == 0f;
 
 	public DamageEffectSettings(
 		GameDamageType type,
@@ -33,27 +36,37 @@ public sealed class DamageEffectSettings
 		int maxChains = 0,
 		float chainRadius = 0f,
 		float chainDamageFalloff = 0f,
-		float minimumChainDamageMultiplier = 0.1f
+		float minimumChainDamageMultiplier = 0.1f,
+		float blastRadius = 0f
 	)
 	{
 		var validTimed = instantDamage == 0f
 			&& float.IsFinite(duration) && duration > 0f
 			&& float.IsFinite(damagePerSecond) && damagePerSecond > 0f
 			&& float.IsFinite(spreadRadius) && spreadRadius > 0f
-			&& chainChance == 0f && maxChains == 0 && chainRadius == 0f;
+			&& chainChance == 0f && maxChains == 0 && chainRadius == 0f
+			&& blastRadius == 0f;
 		var validInstant = float.IsFinite(instantDamage) && instantDamage > 0f
 			&& duration == 0f && damagePerSecond == 0f && maxStacks == 1
 			&& spreadChance == 0f && spreadRadius == 0f
 			&& float.IsFinite(chainChance) && chainChance >= 0f && chainChance <= 1f
 			&& maxChains >= 0 && float.IsFinite(chainRadius) && chainRadius >= 0f
-			&& (chainRadius > 0f || (maxChains == 0 && chainChance == 0f));
+			&& (chainRadius > 0f || (maxChains == 0 && chainChance == 0f))
+			&& blastRadius == 0f;
+		var validExplosion = type == GameDamageType.Explosive
+			&& float.IsFinite(instantDamage) && instantDamage > 0f
+			&& float.IsFinite(duration) && duration >= 0f
+			&& float.IsFinite(blastRadius) && blastRadius > 0f
+			&& damagePerSecond == 0f && maxStacks == 1
+			&& spreadChance == 0f && spreadRadius == 0f
+			&& chainChance == 0f && maxChains == 0 && chainRadius == 0f;
 		if (!Enum.IsDefined(type) || type == GameDamageType.Physical
 			|| !float.IsFinite(applicationChance) || applicationChance < 0f || applicationChance > 1f
 			|| maxStacks < 1
 			|| !float.IsFinite(chainDamageFalloff) || chainDamageFalloff < 0f || chainDamageFalloff > 1f
 			|| !float.IsFinite(minimumChainDamageMultiplier) || minimumChainDamageMultiplier <= 0f || minimumChainDamageMultiplier > 1f
 			|| !float.IsFinite(spreadChance) || spreadChance < 0f || spreadChance > 1f
-			|| (!validTimed && !validInstant))
+			|| (!validTimed && !validInstant && !validExplosion))
 		{
 			throw new ArgumentOutOfRangeException(nameof(type), "Invalid damage effect settings.");
 		}
@@ -71,6 +84,7 @@ public sealed class DamageEffectSettings
 		ChainRadius = chainRadius;
 		ChainDamageFalloff = chainDamageFalloff;
 		MinimumChainDamageMultiplier = minimumChainDamageMultiplier;
+		BlastRadius = blastRadius;
 	}
 }
 
@@ -112,7 +126,7 @@ public sealed class TimedDamageEffects<TSource>
 	/// <remarks>Advance with flush enabled first so retiring applications do not lose their pending partial damage.</remarks>
 	public void Apply(DamageEffectSettings settings, TSource source, float now)
 	{
-		if (settings == null || settings.IsInstant || !float.IsFinite(now))
+		if (settings == null || !settings.IsTimed || !float.IsFinite(now))
 		{
 			throw new ArgumentException("Applying a timed effect requires timed settings and a finite time.");
 		}

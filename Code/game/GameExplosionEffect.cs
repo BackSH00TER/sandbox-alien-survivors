@@ -1,7 +1,7 @@
 using Sandbox;
 
-/// <summary>Host-authoritative death fuse configured by ExplodingEnemy, with a client-visible warning and blast.</summary>
-public sealed class GameEnemyExplosion : Component
+/// <summary>A shared host-authoritative explosion effect, with a client-visible fuse and area blast.</summary>
+public sealed class GameExplosionEffect : Component
 {
 	[Sync(SyncFlags.FromHost)] public float FuseDuration { get; set; }
 	[Sync(SyncFlags.FromHost)] public float BlastRadius { get; set; }
@@ -9,11 +9,34 @@ public sealed class GameEnemyExplosion : Component
 	[Sync(SyncFlags.FromHost)] private float DetonationTime { get; set; }
 	[Sync(SyncFlags.FromHost)] private bool HasExploded { get; set; }
 	[Sync(SyncFlags.FromHost)] private float ExplosionTime { get; set; }
+	[Sync(SyncFlags.FromHost)] private bool DestroyOriginAfterExplosion { get; set; }
 
 	private const float BlastVisualDuration = 0.4f;
 	private GameObject _visual;
 	private LineRenderer _ring;
 	private PointLight _light;
+	private GameEntity _attacker;
+
+	public static void Apply(
+		GameObject origin,
+		DamageEffectSettings settings,
+		GameEntity attacker = null,
+		bool destroyOriginAfterExplosion = false
+	)
+	{
+		if (!Networking.IsHost || !origin.IsValid() || settings == null || !settings.IsExplosion)
+		{
+			Log.Error("Applying an explosion requires the host, a valid origin and explosion effect settings.");
+			return;
+		}
+
+		var explosion = origin.AddComponent<GameExplosionEffect>();
+		explosion.FuseDuration = settings.Duration;
+		explosion.BlastRadius = settings.BlastRadius;
+		explosion.BlastDamage = settings.InstantDamage;
+		explosion.DestroyOriginAfterExplosion = destroyOriginAfterExplosion;
+		explosion._attacker = attacker;
+	}
 
 	protected override void OnStart()
 	{
@@ -22,7 +45,11 @@ public sealed class GameEnemyExplosion : Component
 			DetonationTime = Time.Now + System.MathF.Max(0.1f, FuseDuration);
 		}
 
-		_visual = new GameObject(GameObject, true, "Death Explosion Warning");
+		_visual = new GameObject(
+			parent: GameObject,
+			enabled: true,
+			name: "Explosion Warning"
+		);
 		_visual.Flags |= GameObjectFlags.NotNetworked | GameObjectFlags.NotSaved;
 		_ring = _visual.AddComponent<LineRenderer>();
 		_ring.UseVectorPoints = true;
@@ -54,17 +81,31 @@ public sealed class GameEnemyExplosion : Component
 			? ((Time.Now - ExplosionTime) / BlastVisualDuration).Clamp(0f, 1f) : 0f;
 		var pulse = 0.5f + 0.5f * System.MathF.Sin(Time.Now * 24f);
 		var alpha = HasExploded ? 1f - progress : 0.4f + pulse * 0.6f;
-		var color = new Color(1f, HasExploded ? 0.65f : 0.15f, 0.02f, alpha);
+		var color = new Color(
+			r: 1f,
+			g: HasExploded ? 0.65f : 0.15f,
+			b: 0.02f,
+			a: alpha
+		);
 		_ring.Color = color;
 		_ring.Width = HasExploded ? 12f * (1f - progress) : 3f + pulse * 3f;
-		_light.LightColor = new Color(1f, 0.3f, 0.02f) * alpha * (HasExploded ? 4f : 1f);
+		var lightColor = new Color(
+			r: 1f,
+			g: 0.3f,
+			b: 0.02f
+		);
+		_light.LightColor = lightColor * alpha * (HasExploded ? 4f : 1f);
 		var radius = BlastRadius * (HasExploded ? progress : 1f);
 		var center = WorldPosition + Vector3.Up * 4f;
 		for (var i = 0; i < _ring.VectorPoints.Count; i++)
 		{
 			var angle = i * (System.MathF.PI * 2f / (_ring.VectorPoints.Count - 1));
-			_ring.VectorPoints[i] = center + new Vector3(
-				System.MathF.Cos(angle), System.MathF.Sin(angle), 0f) * radius;
+			var direction = new Vector3(
+				x: System.MathF.Cos(angle),
+				y: System.MathF.Sin(angle),
+				z: 0f
+			);
+			_ring.VectorPoints[i] = center + direction * radius;
 		}
 	}
 
@@ -78,7 +119,7 @@ public sealed class GameEnemyExplosion : Component
 		var gameManager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
 		if (gameManager != null && gameManager.State != GameState.InProgress)
 		{
-			GameObject.Destroy();
+			Finish();
 			return;
 		}
 
@@ -86,7 +127,7 @@ public sealed class GameEnemyExplosion : Component
 		{
 			if (Time.Now >= ExplosionTime + BlastVisualDuration)
 			{
-				GameObject.Destroy();
+				Finish();
 			}
 
 			return;
@@ -100,6 +141,18 @@ public sealed class GameEnemyExplosion : Component
 		HasExploded = true;
 		ExplosionTime = Time.Now;
 		ApplyBlastDamage();
+	}
+
+	private void Finish()
+	{
+		if (DestroyOriginAfterExplosion)
+		{
+			GameObject.Destroy();
+		}
+		else
+		{
+			Destroy();
+		}
 	}
 
 	private void ApplyBlastDamage()
@@ -137,7 +190,14 @@ public sealed class GameEnemyExplosion : Component
 				continue;
 			}
 
-			target.TakeDamage(BlastDamage, offset.LengthSquared > 0.001f ? offset.Normal : Vector3.Up, GameDamageType.Explosive);
+			var hitDirection = offset.LengthSquared > 0.001f ? offset.Normal : Vector3.Up;
+			var attacker = _attacker.IsValid() ? _attacker : null;
+			target.TakeDamage(
+				amount: BlastDamage,
+				hitDirection: hitDirection,
+				type: GameDamageType.Explosive,
+				attacker: attacker
+			);
 		}
 	}
 

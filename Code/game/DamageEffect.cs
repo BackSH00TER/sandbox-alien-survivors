@@ -18,7 +18,7 @@ public enum DamageEffectStat
 public sealed class DamageEffectDefinition
 {
 	public GameDamageType Type { get; init; }
-	public GameModifier Unlock { get; init; }
+	public GameModifier? Unlock { get; init; }
 	public GameModifier? SpreadUnlock { get; init; }
 	public Color BulletColor { get; init; }
 	public float DrawWeight { get; init; } = 1f;
@@ -29,6 +29,7 @@ public sealed class DamageEffectDefinition
 	public float SpreadChance { get; init; }
 	public float SpreadRadius { get; init; }
 	public float InstantDamage { get; init; }
+	public float BlastRadius { get; init; }
 	// Omitted chain values default to zero, disabling chains without requiring nullable fields.
 	public float ChainChance { get; init; }
 	public int MaxChains { get; init; }
@@ -93,13 +94,18 @@ public sealed class DamageEffectDefinition
 			maxChains: maxChains,
 			chainRadius: chainRadius,
 			chainDamageFalloff: ChainDamageFalloff,
-			minimumChainDamageMultiplier: MinimumChainDamageMultiplier
+			minimumChainDamageMultiplier: MinimumChainDamageMultiplier,
+			blastRadius: BlastRadius
 		);
 	}
 }
 
 public static class DamageEffectCatalog
 {
+	public const float DefaultExplosionFuseDuration = 3f;
+	public const float DefaultExplosionBlastRadius = 100f;
+	public const float DefaultExplosionBlastDamage = 40f;
+
 	// Only implemented effects belong here; enum entries alone never enter the bullet draw.
 	public static IReadOnlyList<DamageEffectDefinition> All { get; } = new[]
 	{
@@ -132,6 +138,19 @@ public static class DamageEffectCatalog
 			ChainRadiusPerAdditionalChain = 60f,
 			ChainDamageFalloff = 0.1f,
 			MinimumChainDamageMultiplier = 0.1f
+		},
+		new DamageEffectDefinition
+		{
+			Type = GameDamageType.Explosive,
+			BulletColor = new Color(
+				r: 1f,
+				g: 0.3f,
+				b: 0.02f
+			),
+			ApplicationChance = 1f,
+			Duration = DefaultExplosionFuseDuration,
+			InstantDamage = DefaultExplosionBlastDamage,
+			BlastRadius = DefaultExplosionBlastRadius
 		}
 	};
 
@@ -140,7 +159,9 @@ public static class DamageEffectCatalog
 	/// <summary>Chooses one unlocked effect, then rolls its application chance; a failed roll leaves the bullet physical.</summary>
 	public static DamageEffectSettings Roll(Func<GameModifier, int> getModifierPickCount, Func<float> random)
 	{
-		var unlockedEffects = All.Where(effect => getModifierPickCount(effect.Unlock) > 0).ToList();
+		var unlockedEffects = All
+			.Where(effect => effect.Unlock.HasValue && getModifierPickCount(effect.Unlock.Value) > 0)
+			.ToList();
 		if (unlockedEffects.Count == 0)
 		{
 			return null;
