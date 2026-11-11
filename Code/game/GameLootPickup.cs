@@ -82,6 +82,12 @@ public sealed class GameLootPickup : Component
 			name: "Loot Visual"
 		);
 		_visual.Flags |= GameObjectFlags.NotNetworked | GameObjectFlags.NotSaved;
+		if (Definition.Effect == LootEffect.Weapon)
+		{
+			GameWeaponModel.Create(weapon: Weapon, parent: _visual);
+			return;
+		}
+
 		foreach (var part in Definition.VisualParts)
 		{
 			AddPart(part);

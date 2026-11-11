@@ -165,7 +165,7 @@
       "Name": "Plane",
       "Position": "0,0,0",
       "Rotation": "0,0,0,1",
-      "Scale": "5,5,5",
+      "Scale": "24,24,5",
       "Tags": "",
       "Enabled": true,
       "NetworkMode": 2,
@@ -205,7 +205,7 @@
             "AfterUILayer": false
           },
           "RenderType": "On",
-          "Tint": "0.39546,0.51163,0.27128,1"
+          "Tint": "0.4,0.52157,0.3098,1"
         },
         {
           "__type": "Sandbox.BoxCollider",
@@ -229,7 +229,7 @@
           "OnTriggerExit": null,
           "RollingResistance": null,
           "Scale": "100,100,10",
-          "Static": false,
+          "Static": true,
           "Surface": null,
           "SurfaceVelocity": "0,0,0"
         }
@@ -241,8 +241,8 @@
       "__version": 2,
       "Flags": 0,
       "Name": "Camera",
-      "Position": "-304.113495,-4.52875137,73.0847778",
-      "Rotation": "0,0.13052626,0,0.991444886",
+      "Position": "-420,0,140",
+      "Rotation": "-0,0.0804588944,0,0.996757984",
       "Scale": "1,1,1",
       "Tags": "maincamera",
       "Enabled": true,
@@ -260,7 +260,7 @@
           "BackgroundColor": "0.33333,0.46275,0.52157,1",
           "ClearFlags": "All",
           "EnablePostProcessing": true,
-          "FieldOfView": 90,
+          "FieldOfView": 65,
           "FovAxis": "Horizontal",
           "IsMainCamera": true,
           "OnComponentDestroy": null,
@@ -416,7 +416,7 @@
               "component_type": "SpawnPoint"
             }
           ],
-          "NameplateHeight": 80,
+          "NameplateHeight": 60,
           "OnComponentDestroy": null,
           "OnComponentDisabled": null,
           "OnComponentEnabled": null,
@@ -454,7 +454,7 @@
           "__version": 2,
           "Flags": 0,
           "Name": "SpawnPoint (4)",
-          "Position": "-29.0075836,-103.980232,6.80566406",
+          "Position": "21.778244,-131.072128,10.8056641",
           "Rotation": "0,0,-1,-3.12924385E-07",
           "Scale": "1,1,1",
           "Tags": "",
@@ -486,7 +486,7 @@
           "__version": 2,
           "Flags": 0,
           "Name": "SpawnPoint (3)",
-          "Position": "-25.2660599,-72.0098877,6.80566406",
+          "Position": "21.778244,-76.0721283,10.8056641",
           "Rotation": "0,0,-1,-3.12924385E-07",
           "Scale": "1,1,1",
           "Tags": "",
@@ -518,7 +518,7 @@
           "__version": 2,
           "Flags": 0,
           "Name": "SpawnPoint (2)",
-          "Position": "-23.9255295,-27.4324741,7.00736523",
+          "Position": "21.778244,-21.0721264,10.8056641",
           "Rotation": "0,0,-1,-3.12924385E-07",
           "Scale": "1,1,1",
           "Tags": "",
@@ -550,7 +550,7 @@
           "__version": 2,
           "Flags": 0,
           "Name": "SpawnPoint (1)",
-          "Position": "-23.9255066,9.34710121,7.00736523",
+          "Position": "21.778244,33.9278717,10.8056641",
           "Rotation": "0,0,-1,-3.12924385E-07",
           "Scale": "1,1,1",
           "Tags": "",
@@ -582,8 +582,8 @@
           "__version": 2,
           "Flags": 0,
           "Name": "SpawnPoint",
-          "Position": "-23.9254837,45.9547729,7.00736523",
-          "Rotation": "0,0,-0.991444826,0.130526245",
+          "Position": "21.778244,88.9278717,10.8056641",
+          "Rotation": "0,0,1,-4.37113883E-08",
           "Scale": "1,1,1",
           "Tags": "",
           "Enabled": true,
@@ -660,6 +660,506 @@
         }
       ],
       "Children": []
+    },
+    {
+      "__guid": "843ce5ea-d585-4aa8-9558-4344e77a7a22",
+      "__version": 2,
+      "__Prefab": {
+        "Id": "47959930-b68e-4c45-b1b1-7fc7d4a4c110",
+        "Path": "prefabs/suburbs/lobby_front_yard.prefab"
+      },
+      "__PrefabInstancePatch": {
+        "AddedObjects": [
+          {
+            "Id": {
+              "Type": "GameObject",
+              "IdValue": "84b10d06-a154-4eeb-ad0c-67358505aa12"
+            },
+            "Parent": {
+              "Type": "GameObject",
+              "IdValue": "143d6d85-fb92-4339-9865-2356e280e5cd"
+            },
+            "PreviousElement": null,
+            "ContainerProperty": "Children",
+            "IsContainerArray": true,
+            "Data": {
+              "__guid": "84b10d06-a154-4eeb-ad0c-67358505aa12",
+              "__version": 2,
+              "__Prefab": {
+                "Id": "0c5a9939-74e1-4261-90a6-5b22e2ce977d",
+                "Path": "prefabs/suburbs/lot_building-type-a.prefab"
+              },
+              "__PrefabInstancePatch": {
+                "AddedObjects": [],
+                "RemovedObjects": [],
+                "PropertyOverrides": [
+                  {
+                    "Target": {
+                      "Type": "GameObject",
+                      "IdValue": "a5d80dcd-1c43-49e4-8b6c-60d1c86e08bf"
+                    },
+                    "Property": "Name",
+                    "Value": "Front Yard and House"
+                  },
+                  {
+                    "Target": {
+                      "Type": "GameObject",
+                      "IdValue": "a5d80dcd-1c43-49e4-8b6c-60d1c86e08bf"
+                    },
+                    "Property": "Rotation",
+                    "Value": "0,0,0.707106769,0.707106769"
+                  }
+                ],
+                "MovedObjects": []
+              },
+              "__PrefabIdToInstanceId": {
+                "a5d80dcd-1c43-49e4-8b6c-60d1c86e08bf": "84b10d06-a154-4eeb-ad0c-67358505aa12",
+                "956289e1-0ca3-40c4-abcf-7ed3802034d6": "2cbe1459-01de-4bf1-b002-b4deb3f9ab30",
+                "98403369-3bff-4fac-b7b2-e49bf2275ed6": "d4b22174-175d-42ea-9cba-f3e64a4cd527",
+                "756d2e6f-2574-45da-bd0d-f0d29c4c1270": "f846be00-61b5-466b-b207-44ebcec8559d",
+                "ee396dc9-6747-4a0e-a6c0-c875d5514f15": "f8f5d556-a4b9-4ae3-b21d-afdefa9934ed",
+                "ba971f6c-730a-4da5-847c-252b43b83568": "70bc151e-bc44-494d-ab4c-3f7ccc22a67f",
+                "f9805a11-8aaf-44e9-acea-ec7a66656785": "8b9afafe-9af5-4a5a-97bb-0e1c171683d6",
+                "33047a8e-dcd2-435b-82a6-27bf0789426f": "a170312e-6f67-4b00-acd5-c4c376852d75",
+                "be54cdcb-cba1-41e5-a41a-065de233d07d": "0429b3dd-8c14-40f2-9df2-54a6510561bc",
+                "1c8810c0-35cc-442f-866e-82e47527501e": "db574a89-fdf5-46b4-bd9f-cca32f28a6c7",
+                "dcb79637-4c79-4b2d-a99e-f400a4987a78": "76292540-1a8b-4e7b-b134-6ce175d98704",
+                "95156249-18ac-4652-a5ff-1407732549c3": "128ba5d6-cd13-426c-ad1b-a13bf8fea29e",
+                "c31308fc-6743-454d-9bf4-f86c5540ef93": "47ae86e5-796a-4add-a162-d0313a286c66",
+                "4c9cd431-3dfd-4497-b1dd-4d7f6551199d": "058c3123-c6db-4ae6-b0bf-8c84fe2f8234",
+                "8bf6828f-e853-4959-b2cf-17fe5ec94287": "2fade02f-f706-4a61-be7f-4b0bb63400cd",
+                "fc67b961-bedb-4181-9135-5d3c3320dd40": "13c18b59-68fd-49e4-805f-7dbb32a20e45",
+                "8ea54c8a-652c-4374-937d-8b179fb38e01": "f7cd1cdb-f060-4c2f-aecc-af93a4a682c9",
+                "308ecdc0-8bed-49a4-92da-4b258b01d3b2": "4d986b38-6796-4241-b06e-5d7eb2aad01a",
+                "8ad9e35a-6aaa-4d89-90a6-b4c7650b7cdc": "ffc62460-9566-44ee-8e9e-dae88aa5b7de",
+                "ab383e5a-5f01-41a6-b426-de7ee07a70f1": "543ae3f7-bf10-4824-b6a7-2174c99d4702",
+                "f96188ef-bc41-44bb-a048-51ae7a9a13aa": "8b663f43-7898-4928-9d29-84193ffa2f1f",
+                "73cfb838-e4bd-473d-a193-c8cf23a939e4": "d8f06694-02e6-4394-8a86-9f9994311fec",
+                "93c786af-e56b-4cd2-9c8c-feda6eb48c72": "509385b2-b78d-45a4-a529-08bfba5f84c8",
+                "d114275d-e736-49e1-a087-17c7a1c64a8b": "0b4a5e32-349b-4212-89b3-1e81bce81527",
+                "a3ff7d79-ac0a-4a42-8448-658383535e46": "32326b38-d435-4b7f-8d07-6bce49528472",
+                "a057b184-240f-4aeb-955b-588493e6e70f": "c5b1d49d-9bca-4b72-819c-82fccbf49d3c",
+                "d20fdd24-1320-496f-bb5e-e6b9b46aac4e": "636a3ab6-5725-4aaa-abf5-35fd9a8106b8",
+                "0da47712-db4e-49c6-80fd-b840dbdab188": "7ab6a844-b7ad-4cec-9553-322f4b3f4ac4",
+                "11b65766-97aa-4d5d-b280-47932cff18a5": "d854006e-db23-48fe-a0f3-ccf4e88c8329",
+                "c4c0f426-7a8f-4b44-aee2-2752f3020a47": "e25963f1-bfca-49c1-9423-55775236be4d",
+                "d7322750-0f72-4010-9a84-5ac68ed42a1f": "44cbb3c6-b9ff-411b-be83-25f2f982eec4",
+                "fa08c6ee-5b95-482e-b32c-c1b17aaef2b7": "a7881483-678f-464a-a422-6a39ef23902b",
+                "479acb06-07bf-4c14-9dc8-866e0b7475e0": "63e24d91-73c0-4535-abfc-7a8318a8f68f",
+                "d3b14186-2652-474b-8c2e-112d9224c031": "5556bd18-a7cb-4dfe-8f78-9107bd2bcb5d",
+                "b09d9349-3dc1-4e05-92a9-675862dbe35c": "b08211aa-9b91-4a7c-a4fa-2ce492e0f313",
+                "3bad6845-60cf-4409-b51f-0a8fce6eed2a": "4c0a5d75-fad9-4b73-ab26-f78c38f24182",
+                "b03614d5-107b-4807-b727-1edd48acffc4": "d0542a8e-7abd-4ba7-9ed0-10f8b62ec914",
+                "00694814-d3cf-403d-b255-b537f8915b75": "6e7559db-4316-4866-9f68-92995d4d5fbd",
+                "10a32fac-2597-4f93-b29e-0a70516a1a86": "a7690d5a-46ec-4ac2-9bd6-4ddddb3f6d47",
+                "669ba2c6-7c3a-484c-b9d5-4d22c4e61807": "3802a599-8964-4282-8912-cab068168aa3",
+                "29e2b15f-73a2-4df4-a444-7f8e97430aba": "05a949ea-af4c-49cc-ad56-848ee08b93d4",
+                "dbffc7da-c231-4992-b4a0-2e05bc8e98a4": "6d21583a-0820-4603-b5c2-d6c1bc35bbf6",
+                "a7f44434-5b0b-4ecf-8e4a-267cbd098a15": "0f9f1902-b16d-4178-9278-2a826e993f44",
+                "583fbc88-f54a-477f-bc8d-ecf17567c46f": "65db4623-bfd4-451c-b73f-f0e3da62cd0b",
+                "5a2f5c8b-fcb8-4f0f-964e-6b715eac2f80": "760c737d-5129-48ba-b842-3e22f94a2d24",
+                "c8dd58d3-a277-49ad-bcc4-d1a9700e6fd9": "4fdfb49e-af02-49d2-b4a7-7d0efc1597e7",
+                "35949af2-eb6b-428a-8d1a-1c7df6128d36": "3a257ad4-8921-4672-b245-eb17856fc12e",
+                "c4006ea4-c6e3-45ab-a6d7-c92d6a52d18b": "8e94241d-f16f-462f-8c75-97faa3791dff",
+                "6d6a4a39-af9e-406b-b639-a09d52399032": "8ccaaaae-a7db-416a-8ffd-0d6915fee51f",
+                "139fb680-d7e0-4bbd-888f-3e62e1706827": "caabd541-4de7-4fb6-b91d-7dca6ea93ffa",
+                "7da0e3fd-d3ad-47d0-8945-6e81f2ff1499": "7cee6fc7-2f6a-4d4c-944c-0c97a0dd2204",
+                "3671c23c-8d2e-47a7-98fd-86dc44696eab": "26b9d3bd-0b8a-4819-a618-bfce78e0dfe7"
+              }
+            }
+          }
+        ],
+        "RemovedObjects": [
+          {
+            "Id": {
+              "Type": "GameObject",
+              "IdValue": "07e7636a-b6e5-4d3d-92e6-9dbf569e31c6"
+            }
+          },
+          {
+            "Id": {
+              "Type": "GameObject",
+              "IdValue": "f31b8bf9-6009-411f-af7a-ec2fadae0dff"
+            }
+          },
+          {
+            "Id": {
+              "Type": "Component",
+              "IdValue": "b302585a-033d-4861-9097-580330aacef4"
+            }
+          },
+          {
+            "Id": {
+              "Type": "Component",
+              "IdValue": "390571dd-5e09-4728-8baf-dc76002f58ea"
+            }
+          },
+          {
+            "Id": {
+              "Type": "GameObject",
+              "IdValue": "f0e3df78-95e5-4ef1-9a45-5d8c357d6aaf"
+            }
+          },
+          {
+            "Id": {
+              "Type": "Component",
+              "IdValue": "a30552df-af1c-4b2c-ae1f-a11f023ee771"
+            }
+          },
+          {
+            "Id": {
+              "Type": "GameObject",
+              "IdValue": "373794ed-7c59-4897-a520-2c33e13f8c72"
+            }
+          },
+          {
+            "Id": {
+              "Type": "Component",
+              "IdValue": "31aebc2e-60aa-4a15-8da2-a2bcf1e1ed0f"
+            }
+          },
+          {
+            "Id": {
+              "Type": "Component",
+              "IdValue": "39b0f032-3819-4739-b5c1-522de6cc6c64"
+            }
+          },
+          {
+            "Id": {
+              "Type": "GameObject",
+              "IdValue": "8a447718-0157-4b25-805c-3ce549425dee"
+            }
+          },
+          {
+            "Id": {
+              "Type": "Component",
+              "IdValue": "ece03b18-649d-4c86-8b7f-4cce89b598ff"
+            }
+          },
+          {
+            "Id": {
+              "Type": "Component",
+              "IdValue": "a93f2b21-f8c7-43f9-be5e-f8436a3b5a0f"
+            }
+          },
+          {
+            "Id": {
+              "Type": "GameObject",
+              "IdValue": "f99d1d20-c120-49bf-bec3-978fd903a711"
+            }
+          },
+          {
+            "Id": {
+              "Type": "Component",
+              "IdValue": "ff98c3db-68b5-4a10-b1af-83ae55267761"
+            }
+          },
+          {
+            "Id": {
+              "Type": "Component",
+              "IdValue": "3499dbc5-05e2-4029-b6cd-ee24340cd56b"
+            }
+          },
+          {
+            "Id": {
+              "Type": "GameObject",
+              "IdValue": "2d13189b-6e6c-4164-aa72-95ab2b799037"
+            }
+          },
+          {
+            "Id": {
+              "Type": "Component",
+              "IdValue": "9e36db5c-53cc-40b0-b364-25d5466eb3a7"
+            }
+          },
+          {
+            "Id": {
+              "Type": "Component",
+              "IdValue": "812b4c52-2399-4745-a24d-07de52a3070a"
+            }
+          },
+          {
+            "Id": {
+              "Type": "GameObject",
+              "IdValue": "f025e932-3353-4ee3-ad98-a3723685a120"
+            }
+          },
+          {
+            "Id": {
+              "Type": "Component",
+              "IdValue": "942bf584-6ae1-4a48-a625-ec13ae510174"
+            }
+          },
+          {
+            "Id": {
+              "Type": "Component",
+              "IdValue": "4a1b0134-6439-444b-8112-3c880aea75cb"
+            }
+          },
+          {
+            "Id": {
+              "Type": "GameObject",
+              "IdValue": "f6089ab1-2648-474a-be30-5593d29bcf35"
+            }
+          },
+          {
+            "Id": {
+              "Type": "Component",
+              "IdValue": "667c41a7-f792-45b4-b326-5846e6ed215d"
+            }
+          },
+          {
+            "Id": {
+              "Type": "Component",
+              "IdValue": "569f6fcf-ea6e-4f34-8aa0-e5059141f978"
+            }
+          },
+          {
+            "Id": {
+              "Type": "GameObject",
+              "IdValue": "deea37e9-2bb6-4aae-ad60-f99667d26323"
+            }
+          },
+          {
+            "Id": {
+              "Type": "Component",
+              "IdValue": "09675891-b278-45d8-b947-d4e2c1d4f31b"
+            }
+          },
+          {
+            "Id": {
+              "Type": "Component",
+              "IdValue": "11acdb9c-4e76-4845-87f3-2019798d906d"
+            }
+          },
+          {
+            "Id": {
+              "Type": "GameObject",
+              "IdValue": "591d4d0c-a1ad-4251-8cd4-45b0fd076a22"
+            }
+          },
+          {
+            "Id": {
+              "Type": "Component",
+              "IdValue": "b606e17a-5622-4b14-80b0-a27b368fbf22"
+            }
+          },
+          {
+            "Id": {
+              "Type": "Component",
+              "IdValue": "552e2cbe-2b60-46bc-ba1c-847aa1b781ee"
+            }
+          },
+          {
+            "Id": {
+              "Type": "GameObject",
+              "IdValue": "4e0b7c1d-b54f-4be5-bb62-d0ee93862ff6"
+            }
+          },
+          {
+            "Id": {
+              "Type": "Component",
+              "IdValue": "8a2a2d7a-3e72-41d8-9c23-f08ee70e6910"
+            }
+          },
+          {
+            "Id": {
+              "Type": "Component",
+              "IdValue": "f1fe9a32-7e4d-4a72-baaf-cf97c7b19d67"
+            }
+          },
+          {
+            "Id": {
+              "Type": "GameObject",
+              "IdValue": "748480fa-8de4-48da-a92c-877838429529"
+            }
+          },
+          {
+            "Id": {
+              "Type": "Component",
+              "IdValue": "f5d7731c-d33e-45b2-87d1-fb1bb273a78f"
+            }
+          },
+          {
+            "Id": {
+              "Type": "Component",
+              "IdValue": "32539dab-9257-4d2b-b6c3-41ee6b103c40"
+            }
+          },
+          {
+            "Id": {
+              "Type": "GameObject",
+              "IdValue": "d21beae5-b5b5-46cc-a2da-7d68cf6901bf"
+            }
+          },
+          {
+            "Id": {
+              "Type": "Component",
+              "IdValue": "6e933f66-9301-4fda-8598-70c8a942dc79"
+            }
+          },
+          {
+            "Id": {
+              "Type": "Component",
+              "IdValue": "30e3d844-aee8-4c13-9f93-ff41122b0c09"
+            }
+          },
+          {
+            "Id": {
+              "Type": "GameObject",
+              "IdValue": "82f7d300-93fc-4dcd-a46b-e65a6d8eb844"
+            }
+          },
+          {
+            "Id": {
+              "Type": "Component",
+              "IdValue": "ff74dc26-83bd-4707-b36f-0c4978f76f3a"
+            }
+          },
+          {
+            "Id": {
+              "Type": "Component",
+              "IdValue": "57a19569-8808-4325-a158-1dbf97a1f5a4"
+            }
+          },
+          {
+            "Id": {
+              "Type": "GameObject",
+              "IdValue": "dd109d14-ba8f-46f7-96ed-9ed1a501b01c"
+            }
+          },
+          {
+            "Id": {
+              "Type": "Component",
+              "IdValue": "3078e53a-3771-404a-b261-82b33c7e3975"
+            }
+          },
+          {
+            "Id": {
+              "Type": "Component",
+              "IdValue": "f6bfe5a1-8d60-4e99-8df5-e0f7b08e2897"
+            }
+          },
+          {
+            "Id": {
+              "Type": "GameObject",
+              "IdValue": "7e6f40a9-6d9f-4599-9bac-dc3e3603e849"
+            }
+          },
+          {
+            "Id": {
+              "Type": "Component",
+              "IdValue": "181ea737-0da7-47f6-9c9a-b3b6188d273a"
+            }
+          },
+          {
+            "Id": {
+              "Type": "Component",
+              "IdValue": "705cd96d-9576-4486-baf0-f9ad05bd3419"
+            }
+          },
+          {
+            "Id": {
+              "Type": "GameObject",
+              "IdValue": "a4b4a609-5c78-49d3-a13a-90254a9c2344"
+            }
+          },
+          {
+            "Id": {
+              "Type": "Component",
+              "IdValue": "5312fb1e-5187-45d6-945e-278e3d65f1de"
+            }
+          },
+          {
+            "Id": {
+              "Type": "GameObject",
+              "IdValue": "4adebc12-5bc3-456d-b43f-a533ce77f59f"
+            }
+          },
+          {
+            "Id": {
+              "Type": "Component",
+              "IdValue": "5a0ee9f5-a0ee-493b-8fba-c818b02f0470"
+            }
+          }
+        ],
+        "PropertyOverrides": [
+          {
+            "Target": {
+              "Type": "GameObject",
+              "IdValue": "143d6d85-fb92-4339-9865-2356e280e5cd"
+            },
+            "Property": "Name",
+            "Value": "Lobby Front Yard"
+          },
+          {
+            "Target": {
+              "Type": "GameObject",
+              "IdValue": "143d6d85-fb92-4339-9865-2356e280e5cd"
+            },
+            "Property": "Position",
+            "Value": "200,0,0"
+          }
+        ],
+        "MovedObjects": []
+      },
+      "__PrefabIdToInstanceId": {
+        "143d6d85-fb92-4339-9865-2356e280e5cd": "843ce5ea-d585-4aa8-9558-4344e77a7a22",
+        "07e7636a-b6e5-4d3d-92e6-9dbf569e31c6": "84b10d06-a154-4eeb-ad0c-67358505aa12",
+        "447e5af7-dda8-48bc-8617-c22159350e5a": "b6606dff-cd32-483a-949a-d80d0eaae6ea",
+        "f31b8bf9-6009-411f-af7a-ec2fadae0dff": "2cbe1459-01de-4bf1-b002-b4deb3f9ab30",
+        "f0e3df78-95e5-4ef1-9a45-5d8c357d6aaf": "d4b22174-175d-42ea-9cba-f3e64a4cd527",
+        "373794ed-7c59-4897-a520-2c33e13f8c72": "f846be00-61b5-466b-b207-44ebcec8559d",
+        "8a447718-0157-4b25-805c-3ce549425dee": "f8f5d556-a4b9-4ae3-b21d-afdefa9934ed",
+        "f99d1d20-c120-49bf-bec3-978fd903a711": "70bc151e-bc44-494d-ab4c-3f7ccc22a67f",
+        "2d13189b-6e6c-4164-aa72-95ab2b799037": "8b9afafe-9af5-4a5a-97bb-0e1c171683d6",
+        "f025e932-3353-4ee3-ad98-a3723685a120": "a170312e-6f67-4b00-acd5-c4c376852d75",
+        "f6089ab1-2648-474a-be30-5593d29bcf35": "0429b3dd-8c14-40f2-9df2-54a6510561bc",
+        "deea37e9-2bb6-4aae-ad60-f99667d26323": "db574a89-fdf5-46b4-bd9f-cca32f28a6c7",
+        "591d4d0c-a1ad-4251-8cd4-45b0fd076a22": "76292540-1a8b-4e7b-b134-6ce175d98704",
+        "4e0b7c1d-b54f-4be5-bb62-d0ee93862ff6": "128ba5d6-cd13-426c-ad1b-a13bf8fea29e",
+        "748480fa-8de4-48da-a92c-877838429529": "47ae86e5-796a-4add-a162-d0313a286c66",
+        "d21beae5-b5b5-46cc-a2da-7d68cf6901bf": "058c3123-c6db-4ae6-b0bf-8c84fe2f8234",
+        "82f7d300-93fc-4dcd-a46b-e65a6d8eb844": "2fade02f-f706-4a61-be7f-4b0bb63400cd",
+        "dd109d14-ba8f-46f7-96ed-9ed1a501b01c": "13c18b59-68fd-49e4-805f-7dbb32a20e45",
+        "7e6f40a9-6d9f-4599-9bac-dc3e3603e849": "f7cd1cdb-f060-4c2f-aecc-af93a4a682c9",
+        "a4b4a609-5c78-49d3-a13a-90254a9c2344": "4d986b38-6796-4241-b06e-5d7eb2aad01a",
+        "4adebc12-5bc3-456d-b43f-a533ce77f59f": "ffc62460-9566-44ee-8e9e-dae88aa5b7de",
+        "f41e7c1e-04bc-4d1b-841d-eaa96e3dfef4": "34d4097d-f16d-4c6f-a10a-558d2878c741",
+        "b302585a-033d-4861-9097-580330aacef4": "543ae3f7-bf10-4824-b6a7-2174c99d4702",
+        "390571dd-5e09-4728-8baf-dc76002f58ea": "8b663f43-7898-4928-9d29-84193ffa2f1f",
+        "a30552df-af1c-4b2c-ae1f-a11f023ee771": "d8f06694-02e6-4394-8a86-9f9994311fec",
+        "31aebc2e-60aa-4a15-8da2-a2bcf1e1ed0f": "509385b2-b78d-45a4-a529-08bfba5f84c8",
+        "39b0f032-3819-4739-b5c1-522de6cc6c64": "0b4a5e32-349b-4212-89b3-1e81bce81527",
+        "ece03b18-649d-4c86-8b7f-4cce89b598ff": "32326b38-d435-4b7f-8d07-6bce49528472",
+        "a93f2b21-f8c7-43f9-be5e-f8436a3b5a0f": "c5b1d49d-9bca-4b72-819c-82fccbf49d3c",
+        "ff98c3db-68b5-4a10-b1af-83ae55267761": "636a3ab6-5725-4aaa-abf5-35fd9a8106b8",
+        "3499dbc5-05e2-4029-b6cd-ee24340cd56b": "7ab6a844-b7ad-4cec-9553-322f4b3f4ac4",
+        "9e36db5c-53cc-40b0-b364-25d5466eb3a7": "d854006e-db23-48fe-a0f3-ccf4e88c8329",
+        "812b4c52-2399-4745-a24d-07de52a3070a": "e25963f1-bfca-49c1-9423-55775236be4d",
+        "942bf584-6ae1-4a48-a625-ec13ae510174": "44cbb3c6-b9ff-411b-be83-25f2f982eec4",
+        "4a1b0134-6439-444b-8112-3c880aea75cb": "a7881483-678f-464a-a422-6a39ef23902b",
+        "667c41a7-f792-45b4-b326-5846e6ed215d": "63e24d91-73c0-4535-abfc-7a8318a8f68f",
+        "569f6fcf-ea6e-4f34-8aa0-e5059141f978": "5556bd18-a7cb-4dfe-8f78-9107bd2bcb5d",
+        "09675891-b278-45d8-b947-d4e2c1d4f31b": "b08211aa-9b91-4a7c-a4fa-2ce492e0f313",
+        "11acdb9c-4e76-4845-87f3-2019798d906d": "4c0a5d75-fad9-4b73-ab26-f78c38f24182",
+        "b606e17a-5622-4b14-80b0-a27b368fbf22": "d0542a8e-7abd-4ba7-9ed0-10f8b62ec914",
+        "552e2cbe-2b60-46bc-ba1c-847aa1b781ee": "6e7559db-4316-4866-9f68-92995d4d5fbd",
+        "8a2a2d7a-3e72-41d8-9c23-f08ee70e6910": "a7690d5a-46ec-4ac2-9bd6-4ddddb3f6d47",
+        "f1fe9a32-7e4d-4a72-baaf-cf97c7b19d67": "3802a599-8964-4282-8912-cab068168aa3",
+        "f5d7731c-d33e-45b2-87d1-fb1bb273a78f": "05a949ea-af4c-49cc-ad56-848ee08b93d4",
+        "32539dab-9257-4d2b-b6c3-41ee6b103c40": "6d21583a-0820-4603-b5c2-d6c1bc35bbf6",
+        "6e933f66-9301-4fda-8598-70c8a942dc79": "0f9f1902-b16d-4178-9278-2a826e993f44",
+        "30e3d844-aee8-4c13-9f93-ff41122b0c09": "65db4623-bfd4-451c-b73f-f0e3da62cd0b",
+        "ff74dc26-83bd-4707-b36f-0c4978f76f3a": "760c737d-5129-48ba-b842-3e22f94a2d24",
+        "57a19569-8808-4325-a158-1dbf97a1f5a4": "4fdfb49e-af02-49d2-b4a7-7d0efc1597e7",
+        "3078e53a-3771-404a-b261-82b33c7e3975": "3a257ad4-8921-4672-b245-eb17856fc12e",
+        "f6bfe5a1-8d60-4e99-8df5-e0f7b08e2897": "8e94241d-f16f-462f-8c75-97faa3791dff",
+        "181ea737-0da7-47f6-9c9a-b3b6188d273a": "8ccaaaae-a7db-416a-8ffd-0d6915fee51f",
+        "705cd96d-9576-4486-baf0-f9ad05bd3419": "caabd541-4de7-4fb6-b91d-7dca6ea93ffa",
+        "5312fb1e-5187-45d6-945e-278e3d65f1de": "7cee6fc7-2f6a-4d4c-944c-0c97a0dd2204",
+        "5a0ee9f5-a0ee-493b-8fba-c818b02f0470": "26b9d3bd-0b8a-4819-a618-bfce78e0dfe7"
+      }
     }
   ],
   "SceneProperties": {

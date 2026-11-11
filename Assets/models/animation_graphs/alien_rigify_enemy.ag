@@ -1,0 +1,209 @@
+{
+  "Version": 1,
+  "nodes": [
+    {
+      "_class": "FloatParameterNode",
+      "ParameterIdentifier": "eb1d9a9b-5cd0-4132-b72f-63875172520c",
+      "ParameterName": "walk_phase",
+      "Identifier": "4881977b-2a9b-42c2-8840-021474e1e1cd",
+      "Position": "0,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "FloatParameterNode",
+      "ParameterIdentifier": "70b8c774-5b43-40a5-9d1c-4de73753e4ab",
+      "ParameterName": "melee_phase",
+      "Identifier": "972babce-9091-4f49-a82e-596551e390d3",
+      "Position": "240,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "FloatParameterNode",
+      "ParameterIdentifier": "5b61853f-5ad6-47ca-8191-9f0b5a0a8d3b",
+      "ParameterName": "hit_phase",
+      "Identifier": "2b3b3feb-eb5a-4845-835d-d8eacbda4582",
+      "Position": "480,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "FloatParameterNode",
+      "ParameterIdentifier": "921ab0b6-74c8-4d4d-a195-c0e83568d329",
+      "ParameterName": "melee_weight",
+      "Identifier": "f94b5ba7-cc38-4b0d-b175-d7671717aa19",
+      "Position": "720,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "FloatParameterNode",
+      "ParameterIdentifier": "5f2a8022-5129-461c-9671-36d4b32c77ba",
+      "ParameterName": "hit_weight",
+      "Identifier": "6d7d0745-7461-4dbc-8b62-e95ea21b2857",
+      "Position": "960,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "TimeControlledAnimationClipNode",
+      "Time": {
+        "Identifier": "4881977b-2a9b-42c2-8840-021474e1e1cd",
+        "Output": "Value"
+      },
+      "SampleRootMotion": false,
+      "GraphEvents": [],
+      "DefaultVariationData": {
+        "AnimationName": "models/alien_animations/walk.anim"
+      },
+      "Overrides": [],
+      "Identifier": "73c87596-0011-43ce-aab6-97c1dca441d0",
+      "Position": "1200,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "TimeControlledAnimationClipNode",
+      "Time": {
+        "Identifier": "972babce-9091-4f49-a82e-596551e390d3",
+        "Output": "Value"
+      },
+      "SampleRootMotion": false,
+      "GraphEvents": [],
+      "DefaultVariationData": {
+        "AnimationName": "models/alien_animations/melee.anim"
+      },
+      "Overrides": [],
+      "Identifier": "cdf302f2-b539-4cb2-a9d9-637079bd303f",
+      "Position": "1440,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "TimeControlledAnimationClipNode",
+      "Time": {
+        "Identifier": "2b3b3feb-eb5a-4845-835d-d8eacbda4582",
+        "Output": "Value"
+      },
+      "SampleRootMotion": false,
+      "GraphEvents": [],
+      "DefaultVariationData": {
+        "AnimationName": "models/alien_animations/hit.anim"
+      },
+      "Overrides": [],
+      "Identifier": "552dec42-91a7-4d81-9114-edd47ea3b237",
+      "Position": "1680,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "LocalLayerNode",
+      "Input": {
+        "Identifier": "cdf302f2-b539-4cb2-a9d9-637079bd303f",
+        "Output": "Result"
+      },
+      "Weight": {
+        "Identifier": "f94b5ba7-cc38-4b0d-b175-d7671717aa19",
+        "Output": "Value"
+      },
+      "BlendMode": "Overlay",
+      "IsSynchronized": false,
+      "IgnoreEvents": true,
+      "Identifier": "e0936c48-5606-4ccc-b373-f21bdd889f4f",
+      "Position": "1920,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "LocalLayerNode",
+      "Input": {
+        "Identifier": "552dec42-91a7-4d81-9114-edd47ea3b237",
+        "Output": "Result"
+      },
+      "Weight": {
+        "Identifier": "6d7d0745-7461-4dbc-8b62-e95ea21b2857",
+        "Output": "Value"
+      },
+      "BlendMode": "Overlay",
+      "IsSynchronized": false,
+      "IgnoreEvents": true,
+      "Identifier": "1e4658ac-6e45-45f9-a1d7-7437fa62edf0",
+      "Position": "2160,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "LayerBlendNode",
+      "Base": {
+        "Identifier": "73c87596-0011-43ce-aab6-97c1dca441d0",
+        "Output": "Result"
+      },
+      "Layers": [
+        {
+          "Identifier": "e0936c48-5606-4ccc-b373-f21bdd889f4f",
+          "Output": "Layer"
+        },
+        {
+          "Identifier": "1e4658ac-6e45-45f9-a1d7-7437fa62edf0",
+          "Output": "Layer"
+        }
+      ],
+      "OnlySampleBaseRootMotion": true,
+      "Identifier": "fe1a1ed0-a20b-4d6d-9c21-02eb615be4e5",
+      "Position": "2400,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "PoseResultNode",
+      "Pose": {
+        "Identifier": "fe1a1ed0-a20b-4d6d-9c21-02eb615be4e5",
+        "Output": "Result"
+      },
+      "Identifier": "4389de60-e3c2-435a-94a8-6a90be19bf35",
+      "Position": "2640,0",
+      "HandleOffsets": {}
+    }
+  ],
+  "Model": "models/alien_rigify.vmdl",
+  "Skeleton": "models/alien_rigify.skel",
+  "parameters": [
+    {
+      "Identifier": "eb1d9a9b-5cd0-4132-b72f-63875172520c",
+      "Type": "Float",
+      "Name": "walk_phase",
+      "RuntimeDefaultFloat": 0,
+      "DefaultFloat": 0,
+      "Min": -1,
+      "Max": 1
+    },
+    {
+      "Identifier": "70b8c774-5b43-40a5-9d1c-4de73753e4ab",
+      "Type": "Float",
+      "Name": "melee_phase",
+      "RuntimeDefaultFloat": 0,
+      "DefaultFloat": 0,
+      "Min": -1,
+      "Max": 1
+    },
+    {
+      "Identifier": "5b61853f-5ad6-47ca-8191-9f0b5a0a8d3b",
+      "Type": "Float",
+      "Name": "hit_phase",
+      "RuntimeDefaultFloat": 0,
+      "DefaultFloat": 0,
+      "Min": -1,
+      "Max": 1
+    },
+    {
+      "Identifier": "921ab0b6-74c8-4d4d-a195-c0e83568d329",
+      "Type": "Float",
+      "Name": "melee_weight",
+      "RuntimeDefaultFloat": 0,
+      "DefaultFloat": 0,
+      "Min": -1,
+      "Max": 1
+    },
+    {
+      "Identifier": "5f2a8022-5129-461c-9671-36d4b32c77ba",
+      "Type": "Float",
+      "Name": "hit_weight",
+      "RuntimeDefaultFloat": 0,
+      "DefaultFloat": 0,
+      "Min": -1,
+      "Max": 1
+    }
+  ],
+  "virtualParameters": [],
+  "variations": []
+}

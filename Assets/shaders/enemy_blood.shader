@@ -73,7 +73,7 @@ PS
 		clip(coverage - 0.001);
 
 		Material m = Material::Init(i);
-		m.Albedo = lerp(float3(0.008, 0.045, 0.025), float3(0.025, 0.22, 0.14), Noise(uv * 31));
+		m.Albedo = lerp(float3(0.008, 0.045, 0.04), float3(0.025, 0.22, 0.23), Noise(uv * 31));
 		m.Roughness = 0.22;
 		m.Metalness = 0;
 		m.Opacity = coverage * 0.88;

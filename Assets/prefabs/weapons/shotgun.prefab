@@ -1,0 +1,63 @@
+{
+  "RootObject": {
+    "__guid": "38a0d8dd-3469-4953-864e-1e07eb1ba47d",
+    "__version": 2,
+    "Flags": 0,
+    "Name": "Shotgun",
+    "Position": "0,0,0",
+    "Rotation": "0,0,0,1",
+    "Scale": "1,1,1",
+    "Enabled": true,
+    "NetworkMode": 0,
+    "Components": [
+      {
+        "__type": "GameWeaponModel",
+        "__guid": "6a247ced-e971-41df-b806-d5cfc77a76c2",
+        "__enabled": true,
+        "Muzzle": {
+          "_type": "gameobject",
+          "go": "c0a3f19e-1631-4fdd-abee-19a87fdb81c0"
+        }
+      }
+    ],
+    "Children": [
+      {
+        "__guid": "8ac4af32-270a-4653-ad2f-94d1f6b0d6ed",
+        "__version": 2,
+        "Flags": 0,
+        "Name": "Model",
+        "Position": "8,0,4",
+        "Rotation": "0,0,1,0",
+        "Scale": "0.4,0.4,0.4",
+        "Enabled": true,
+        "NetworkMode": 0,
+        "Components": [
+          {
+            "__type": "Sandbox.ModelRenderer",
+            "__guid": "d56f91c1-2dfb-4dca-b8b5-75a1a852cd25",
+            "__enabled": true,
+            "Model": "models/weapons/shotgun.vmdl",
+            "Tint": "1,1,1,1"
+          }
+        ],
+        "Children": [
+          {
+            "__guid": "c0a3f19e-1631-4fdd-abee-19a87fdb81c0",
+            "__version": 2,
+            "Flags": 0,
+            "Name": "Muzzle",
+            "Position": "-34.811,0,11.395",
+            "Rotation": "0,0,1,0",
+            "Scale": "1,1,1",
+            "Enabled": true,
+            "NetworkMode": 0,
+            "Components": [],
+            "Children": []
+          }
+        ]
+      }
+    ]
+  },
+  "__references": [],
+  "__version": 2
+}

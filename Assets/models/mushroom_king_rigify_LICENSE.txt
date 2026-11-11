@@ -1,0 +1,25 @@
+Mushroom King Rigify game asset
+
+Source model: user-supplied models/mushroom_king.fbx (superseded original removed
+during unused-asset cleanup; active mushroom_king_rigify FBX sources are retained).
+Only the MushroomKing body is used; the separate Mushroom weapon is excluded.
+Body geometry and UVs preserved: 2,835 vertices, 5,484 triangles.
+Fitted Rigify metarig with automatic weights and preserved rigid head details.
+Export weights are normalized and limited to four influences per vertex.
+
+Animation: Quaternius Universal Animation Library (UAL), CC0 1.0.
+Source: https://quaternius.com/packs/universalanimationlibrary.html
+Same source clips as the basic Alien enemy:
+walk: Walk_Fwd_Loop, frames 0-40, 30 FPS, in-place.
+melee: Punch_Cross, frames 0-30, 30 FPS.
+hit: Hit_Chest, frames 0-10, 30 FPS.
+Motion is adapted through fitted Rigify controls; gameplay owns world movement.
+All 58 export bones, including the coordinate-conversion root, are retained.
+Body and clip FBXs bake the same 0.2 scale; engine import scale is 1.
+
+Texture: Quaternius Ultimate Monsters atlas, CC0 1.0.
+Source: https://quaternius.com/packs/ultimatemonsters.html
+Material: materials/quaternius_monsters_atlas.vmat.
+
+Editable Mushroom_Rigify.blend and Mushroom_Rigify_Animated.blend authoring
+sources retain the metarig, control rig, drivers, packed atlas and full weights.

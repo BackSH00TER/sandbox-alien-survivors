@@ -1,0 +1,209 @@
+{
+  "Version": 1,
+  "nodes": [
+    {
+      "_class": "FloatParameterNode",
+      "ParameterIdentifier": "6e822e03-44a5-4517-97ca-a9cc015d1e65",
+      "ParameterName": "walk_phase",
+      "Identifier": "7b8102ca-f4a3-4d20-9bcc-e695aefba796",
+      "Position": "0,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "FloatParameterNode",
+      "ParameterIdentifier": "b1c74868-c654-4385-8470-c352ae45e28b",
+      "ParameterName": "melee_phase",
+      "Identifier": "a1364791-6812-4128-9757-06936fabe5f1",
+      "Position": "240,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "FloatParameterNode",
+      "ParameterIdentifier": "8af90c8d-3fab-4ac1-abcf-3d382dfd3ff8",
+      "ParameterName": "hit_phase",
+      "Identifier": "59084089-551c-4bdf-af01-0abc27f5b2a2",
+      "Position": "480,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "FloatParameterNode",
+      "ParameterIdentifier": "5ebdb006-74b0-4c35-bb9e-dafc2b9d9b37",
+      "ParameterName": "melee_weight",
+      "Identifier": "4a19bc16-7061-4fac-b07c-19eae84ee813",
+      "Position": "720,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "FloatParameterNode",
+      "ParameterIdentifier": "bbec0d7f-8171-4f44-a2be-a808495777dd",
+      "ParameterName": "hit_weight",
+      "Identifier": "f7d2ab59-f6a3-4248-b1ec-4a743b22ea4b",
+      "Position": "960,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "TimeControlledAnimationClipNode",
+      "Time": {
+        "Identifier": "7b8102ca-f4a3-4d20-9bcc-e695aefba796",
+        "Output": "Value"
+      },
+      "SampleRootMotion": false,
+      "GraphEvents": [],
+      "DefaultVariationData": {
+        "AnimationName": "models/mushroom_king_animations/walk.anim"
+      },
+      "Overrides": [],
+      "Identifier": "802cc4b7-6856-4fb0-9068-0bf3373a9b8c",
+      "Position": "1200,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "TimeControlledAnimationClipNode",
+      "Time": {
+        "Identifier": "a1364791-6812-4128-9757-06936fabe5f1",
+        "Output": "Value"
+      },
+      "SampleRootMotion": false,
+      "GraphEvents": [],
+      "DefaultVariationData": {
+        "AnimationName": "models/mushroom_king_animations/melee.anim"
+      },
+      "Overrides": [],
+      "Identifier": "af6bd6bd-02ed-4cf2-8b17-9262f0c9f28b",
+      "Position": "1440,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "TimeControlledAnimationClipNode",
+      "Time": {
+        "Identifier": "59084089-551c-4bdf-af01-0abc27f5b2a2",
+        "Output": "Value"
+      },
+      "SampleRootMotion": false,
+      "GraphEvents": [],
+      "DefaultVariationData": {
+        "AnimationName": "models/mushroom_king_animations/hit.anim"
+      },
+      "Overrides": [],
+      "Identifier": "6ea894d9-e8a6-4521-ae49-ba15e2f50d3b",
+      "Position": "1680,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "LocalLayerNode",
+      "Input": {
+        "Identifier": "af6bd6bd-02ed-4cf2-8b17-9262f0c9f28b",
+        "Output": "Result"
+      },
+      "Weight": {
+        "Identifier": "4a19bc16-7061-4fac-b07c-19eae84ee813",
+        "Output": "Value"
+      },
+      "BlendMode": "Overlay",
+      "IsSynchronized": false,
+      "IgnoreEvents": true,
+      "Identifier": "bc8938fc-a987-46e1-8745-2554272d4d86",
+      "Position": "1920,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "LocalLayerNode",
+      "Input": {
+        "Identifier": "6ea894d9-e8a6-4521-ae49-ba15e2f50d3b",
+        "Output": "Result"
+      },
+      "Weight": {
+        "Identifier": "f7d2ab59-f6a3-4248-b1ec-4a743b22ea4b",
+        "Output": "Value"
+      },
+      "BlendMode": "Overlay",
+      "IsSynchronized": false,
+      "IgnoreEvents": true,
+      "Identifier": "0652e950-d2e4-4fd6-861a-2fc341275647",
+      "Position": "2160,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "LayerBlendNode",
+      "Base": {
+        "Identifier": "802cc4b7-6856-4fb0-9068-0bf3373a9b8c",
+        "Output": "Result"
+      },
+      "Layers": [
+        {
+          "Identifier": "bc8938fc-a987-46e1-8745-2554272d4d86",
+          "Output": "Layer"
+        },
+        {
+          "Identifier": "0652e950-d2e4-4fd6-861a-2fc341275647",
+          "Output": "Layer"
+        }
+      ],
+      "OnlySampleBaseRootMotion": true,
+      "Identifier": "4bf33de3-6265-4e00-af07-66fcad0fbd2d",
+      "Position": "2400,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "PoseResultNode",
+      "Pose": {
+        "Identifier": "4bf33de3-6265-4e00-af07-66fcad0fbd2d",
+        "Output": "Result"
+      },
+      "Identifier": "a66ebce9-903d-4f13-80bd-7d43b128e9ce",
+      "Position": "2640,0",
+      "HandleOffsets": {}
+    }
+  ],
+  "Model": "models/mushroom_king.vmdl",
+  "Skeleton": "models/mushroom_king.skel",
+  "parameters": [
+    {
+      "Identifier": "6e822e03-44a5-4517-97ca-a9cc015d1e65",
+      "Type": "Float",
+      "Name": "walk_phase",
+      "RuntimeDefaultFloat": 0,
+      "DefaultFloat": 0,
+      "Min": -1,
+      "Max": 1
+    },
+    {
+      "Identifier": "b1c74868-c654-4385-8470-c352ae45e28b",
+      "Type": "Float",
+      "Name": "melee_phase",
+      "RuntimeDefaultFloat": 0,
+      "DefaultFloat": 0,
+      "Min": -1,
+      "Max": 1
+    },
+    {
+      "Identifier": "8af90c8d-3fab-4ac1-abcf-3d382dfd3ff8",
+      "Type": "Float",
+      "Name": "hit_phase",
+      "RuntimeDefaultFloat": 0,
+      "DefaultFloat": 0,
+      "Min": -1,
+      "Max": 1
+    },
+    {
+      "Identifier": "5ebdb006-74b0-4c35-bb9e-dafc2b9d9b37",
+      "Type": "Float",
+      "Name": "melee_weight",
+      "RuntimeDefaultFloat": 0,
+      "DefaultFloat": 0,
+      "Min": -1,
+      "Max": 1
+    },
+    {
+      "Identifier": "bbec0d7f-8171-4f44-a2be-a808495777dd",
+      "Type": "Float",
+      "Name": "hit_weight",
+      "RuntimeDefaultFloat": 0,
+      "DefaultFloat": 0,
+      "Min": -1,
+      "Max": 1
+    }
+  ],
+  "virtualParameters": [],
+  "variations": []
+}

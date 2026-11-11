@@ -38,8 +38,10 @@ PS
 {
 	#include "common/pixel.hlsl"
 
+	float4 g_vFlashColor < Attribute("FlashColor"); Default4(1, 1, 1, 1); >;
+
 	float4 MainPs( PixelInput i ) : SV_Target0
 	{
-		return float4( 1, 1, 1, 1 );
+		return g_vFlashColor;
 	}
 }

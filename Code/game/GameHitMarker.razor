@@ -1,0 +1,71 @@
+@using Sandbox
+@using Sandbox.UI
+@inherits PanelComponent
+@namespace Sandbox
+
+<root>
+	@if (_visible)
+	{
+		<div class="hit-marker" style="left: @ScreenLeft; top: @ScreenTop; opacity: @Opacity;">
+			<div class="ray horizontal"></div>
+			<div class="ray vertical"></div>
+			<div class="ray diagonal-left"></div>
+			<div class="ray diagonal-right"></div>
+		</div>
+	}
+</root>
+
+@code
+{
+	private const float Lifetime = 0.16f;
+	private float _startedAt;
+	private Vector2 _screenPosition;
+	private float _opacity;
+	private bool _visible;
+
+	private string ScreenLeft => (_screenPosition.x * 100f).ToString(System.Globalization.CultureInfo.InvariantCulture) + "%";
+	private string ScreenTop => (_screenPosition.y * 100f).ToString(System.Globalization.CultureInfo.InvariantCulture) + "%";
+	private string Opacity => _opacity.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+	protected override void OnStart()
+	{
+		_startedAt = Time.Now;
+	}
+
+	protected override void OnUpdate()
+	{
+		var progress = ((Time.Now - _startedAt) / Lifetime).Clamp(0f, 1f);
+		if (progress >= 1f)
+		{
+			GameObject.Destroy();
+			return;
+		}
+
+		_opacity = 1f - progress;
+		_visible = false;
+		var camera = Scene.Camera;
+		if (!camera.IsValid())
+		{
+			return;
+		}
+
+		var position = WorldPosition;
+		if ((position - camera.WorldPosition).Dot(camera.WorldRotation.Forward) <= 0f)
+		{
+			return;
+		}
+
+		_screenPosition = camera.PointToScreenNormal(position);
+		_visible = _screenPosition.x >= 0f && _screenPosition.x <= 1f
+			&& _screenPosition.y >= 0f && _screenPosition.y <= 1f;
+	}
+
+	protected override int BuildHash()
+	{
+		return System.HashCode.Combine(
+			value1: _screenPosition,
+			value2: _opacity,
+			value3: _visible
+		);
+	}
+}

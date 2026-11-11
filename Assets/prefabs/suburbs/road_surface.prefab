@@ -1,0 +1,61 @@
+{
+  "RootObject": {
+    "__guid": "42b4ab96-5ae4-49ca-a2dd-ca25d73d7646",
+    "__version": 2,
+    "Flags": 0,
+    "Name": "road_surface",
+    "Position": "0,0,0",
+    "Rotation": "0,0,0,1",
+    "Scale": "1,1,1",
+    "Tags": "",
+    "Enabled": true,
+    "NetworkMode": 0,
+    "NetworkFlags": 0,
+    "NetworkOrphaned": 0,
+    "NetworkTransmit": true,
+    "OwnerTransfer": 1,
+    "Components": [
+      {
+        "__type": "Sandbox.ModelRenderer",
+        "__guid": "ba8ec918-3120-41bf-bf8e-bde8d9aa5099",
+        "__enabled": true,
+        "Flags": 0,
+        "BodyGroups": 18446744073709551615,
+        "CreateAttachments": false,
+        "LodOverride": null,
+        "MaterialGroup": null,
+        "MaterialOverride": {
+          "Id": "eaa543a0-3df1-48b8-9cfd-1a27c5fc3dc7",
+          "Path": "materials/default.vmat"
+        },
+        "Materials": null,
+        "Model": {
+          "Id": "8a84e5a0-01f8-0000-f0db-b088f8010000",
+          "Path": "models/dev/box.vmdl"
+        },
+        "OnComponentDestroy": null,
+        "OnComponentDisabled": null,
+        "OnComponentEnabled": null,
+        "OnComponentFixedUpdate": null,
+        "OnComponentStart": null,
+        "OnComponentUpdate": null,
+        "RenderOptions": {
+          "GameLayer": true,
+          "OverlayLayer": false,
+          "BloomLayer": false,
+          "AfterUILayer": false
+        },
+        "RenderType": "Off",
+        "Tint": "0.25882,0.28627,0.32941,1"
+      }
+    ],
+    "Children": []
+  },
+  "ResourceVersion": 2,
+  "ShowInMenu": false,
+  "MenuPath": null,
+  "MenuIcon": null,
+  "DontBreakAsTemplate": false,
+  "__references": [],
+  "__version": 2
+}

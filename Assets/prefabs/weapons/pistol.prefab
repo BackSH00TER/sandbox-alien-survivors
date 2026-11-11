@@ -1,0 +1,63 @@
+{
+  "RootObject": {
+    "__guid": "36d083aa-f332-4e51-922b-24d2c93ebf6e",
+    "__version": 2,
+    "Flags": 0,
+    "Name": "Pistol",
+    "Position": "0,0,0",
+    "Rotation": "0,0,0,1",
+    "Scale": "1,1,1",
+    "Enabled": true,
+    "NetworkMode": 0,
+    "Components": [
+      {
+        "__type": "GameWeaponModel",
+        "__guid": "03b9db2b-79d3-40a2-872c-e92fe73c94eb",
+        "__enabled": true,
+        "Muzzle": {
+          "_type": "gameobject",
+          "go": "b9c84e41-c8f5-4207-848b-4a56b753aead"
+        }
+      }
+    ],
+    "Children": [
+      {
+        "__guid": "e3af31af-8cf1-4c08-b83f-be0f25eb972c",
+        "__version": 2,
+        "Flags": 0,
+        "Name": "Model",
+        "Position": "3.5,0,2.5",
+        "Rotation": "0,0,1,0",
+        "Scale": "0.35,0.35,0.35",
+        "Enabled": true,
+        "NetworkMode": 0,
+        "Components": [
+          {
+            "__type": "Sandbox.ModelRenderer",
+            "__guid": "ac656a42-97b8-4ed8-b8c1-3a5f61edcf4b",
+            "__enabled": true,
+            "Model": "models/weapons/pistol.vmdl",
+            "Tint": "1,1,1,1"
+          }
+        ],
+        "Children": [
+          {
+            "__guid": "b9c84e41-c8f5-4207-848b-4a56b753aead",
+            "__version": 2,
+            "Flags": 0,
+            "Name": "Muzzle",
+            "Position": "-23.7675,0,1.6997",
+            "Rotation": "0,0,1,0",
+            "Scale": "1,1,1",
+            "Enabled": true,
+            "NetworkMode": 0,
+            "Components": [],
+            "Children": []
+          }
+        ]
+      }
+    ]
+  },
+  "__references": [],
+  "__version": 2
+}

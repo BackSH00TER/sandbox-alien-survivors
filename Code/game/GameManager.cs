@@ -64,6 +64,7 @@ public sealed class GameManager : Component, IGameEventWorld
 
 	protected override void OnStart()
 	{
+		GameLootCatalog.Rebuild();
 		if (Networking.IsHost)
 		{
 			_eventSchedule = new GameEventSchedule();

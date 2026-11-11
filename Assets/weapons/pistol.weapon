@@ -1,6 +1,6 @@
 {
   "DisplayName": "Pistol",
-  "FireRate": 1,
+  "FireRate": 1.5,
   "BulletsPerShot": 1,
   "SpreadDegrees": 0,
   "Damage": 10,
@@ -8,7 +8,10 @@
   "ProjectileSpeed": 450,
   "ProjectileRadius": 2,
   "HoldType": "Pistol",
-  "WorldModel": null,
+  "ModelPrefab": {
+    "Id": "7b5a5504-4273-4388-8d83-2c22424b013e",
+    "Path": "prefabs/weapons/pistol.prefab"
+  },
   "__references": [],
   "__version": 0
 }

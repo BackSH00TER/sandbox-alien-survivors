@@ -1,9 +1,149 @@
 # Damage effects
 
+Direct player bullet hits show a brief white starburst at the impact point,
+including lethal and piercing hits. Nonlethal hits do not spawn blood particles
+or ground splats.
+
+Enemy deaths broadcast a radial teal (green-blue) blood burst before the enemy is removed,
+including damage-over-time and explosion kills. Nine soft, alpha-blended mist
+puffs expand and dissipate over 0.45-0.75 seconds, accompanied by fine spray and
+an irregular ground splat. Twelve additional, larger droplets launch radially
+outward with a slight bias away from the killing blow, arc under gravity, and
+spread into wider splats on landing. The original mist and fine spray remain.
+The landing plane excludes actor colliders and ragdolls, so spray settles onto
+the world floor rather than floating at an enemy's hitbox height. All ground marks
+fade away after four seconds. At most 24 bursts remain per client.
+The mist and splat textures are generated locally and shared between bursts;
+there are no solid sphere droplets or copied effect assets.
+This local-only effect does not apply damage and does not trigger on player or
+prop deaths. Persistent blood staining on damaged models uses the same teal palette.
+
+Health damage to a player shows a red floating number and briefly flashes their
+model red. Other entities retain their white hit flash and white damage numbers.
+Numbers show actual health lost, not the pre-armor attack damage. Fully absorbed
+armor hits still flash the model but do not show a health-loss number; god mode
+and revive invulnerability suppress both.
+
+### Visual networking
+
+Hit markers, damage popups, model flashes and death blood use one-shot host
+broadcasts, not synchronized visual state. Each client owns its particles,
+textures, positions, fade timers and cleanup. Transient visual objects and the
+blood-staining component are explicitly `NotNetworked`; the visual components
+have no `[Sync]` properties. Blood staining derives from existing gameplay health
+instead of replicating a second blood amount. Dedicated servers do not create
+these visual objects, textures, materials or UI, but still broadcast the events.
+
 Fire, electric shock and explosion share `DamageEffectCatalog` and immutable
 `DamageEffectSettings`. Fire and shock are player-unlockable; explosion is
 enemy-only. Only catalog entries with an owned `Unlock` participate in bullet
 rolls. Poison and ice remain reserved and are not implemented or offered yet.
+
+### Enemy landing
+
+Enemy and boss landing traces ignore player/enemy hierarchies and enemy ragdolls,
+while retaining world geometry. Overlapping spawns must land on the floor, not
+on top of another actor's capsule: pursuit keeps its landing height afterward.
+Spawn traces that miss ground or start inside solid world geometry are rejected.
+
+Pursuit uses continuous, acceleration-limited movement instead of periodic
+surges and planted recovery. `PursuitSpeedMultiplier` defaults to 0.35, preserving
+the old cadence's average pace: 35 units/second for melee, exploding enemies and
+bosses, and 26.95 for ranged pursuit/wandering before slows. Crowd separation
+shares that speed limit. Turning, collision, movement-driven walk animation and
+attack windups, lunges and recovery are unchanged.
+Grounded enemies' movement-driven walk cycles play 30% faster for a less
+slow-motion appearance, without changing travel speed, attack timing or ranged hover.
+
+### Enemy models
+
+Melee enemies retain the Alien. Exploding enemies use Mushroom King with the same
+UAL Walk_Fwd_Loop, Punch_Cross and Hit_Chest clips as the Alien, retargeted to a
+fitted Rigify rig. Only the MushroomKing body mesh is exported;
+the separate Mushroom weapon mesh is excluded without changing the source FBX.
+Ranged enemies use the supplied
+Hywirl model with a held flight pose and a visual-only hover: 20 units above its
+normal position, bobbing by 5 units over a 1.4-second cycle. Only the explicitly
+non-networked visual child moves; hitboxes, actor positions and projectile origins stay unchanged,
+and no bobbing transforms are synchronized. Hit reactions remain animated.
+Bosses use the supplied Fish mesh with a fitted
+Rigify rig and UAL Walk_Fwd_Loop, Punch_Cross and Hit_Chest animations, retaining
+the existing 1.8x boss scale and combat tuning.
+Each variant loads its authored `models/animation_graphs/*_enemy.ag` AnimGraph2
+asset with the matching skeleton and clips. Walk and hit timing still use actual
+clip durations; the graph blends walk, attack, then hit reaction in that order.
+Active Rigify FBX build sources share the existing
+Quaternius monster-atlas material. Superseded original Alien, Fish, and Mushroom
+FBXs were removed during unused-asset cleanup; the active Hywirl source remains.
+
+Ranged and exploding variants no longer create floating head spheres or their
+beacon lights. Ranged shot timing and the exploding corpse's warning ring,
+fuse, damage and cleanup are unchanged.
+
+### Player model
+
+The player uses `Character_Soldier.fbx` from Quaternius' Toon Shooter Game Kit
+(December 2022), fitted to a generated Rigify rig. The exported character keeps
+the helmet/head and shoulder pads, but excludes the kit's separate weapon meshes.
+The unused original kit was removed after export; active Soldier FBX build
+sources and retargeted clips remain. The body has 5,828 triangles, six solid-color
+materials, a 58-bone export skeleton, and at most four normalized weights per vertex.
+Colors come from the supplied materials, not vertex colors.
+The prefab's visual child uses a 1.2x scale to retain the previous character's
+standing height; the gameplay root and capsule remain unchanged.
+
+`models/soldier_rigify.vmdl` and `models/soldier_rigify.skel` use the matching
+retargeted UAL pistol idle/shoot and eight directional walk clips under
+`models/soldier_animations/`. Animations remain in-place; gameplay drives movement.
+The lower-body locomotion mask and upper-body shooting mask preserve steady aim
+while walking. Movement, combat tuning, and Kenney weapon prefabs are unchanged.
+`models/animation_graphs/soldier_player.ag` owns the directional blend space and
+masked layers; `GamePlayerAnimation` only drives phases, direction, and recoil
+weight. Edit the graph asset to change the pose composition.
+The pack is [free for personal and commercial use](https://quaternius.com/packs/toonshootergamekit.html).
+
+The lobby preview uses the same Soldier model at 1.2x visual scale.
+`LobbyPlayerAnimation` drives `models/animation_graphs/soldier_lobby.ag` locally
+on every peer; the
+Citizen player controller, clothing dresser, and cursor-reaching component
+are removed, including their unused outfit/cursor scripts. Rigidbody/collider
+grounding, cursor visibility, and the existing
+ready/start controls remain.
+Each lobby preview holds the pistol resource's existing weapon prefab, following
+the animated right hand with the same grip and facing convention as gameplay.
+The cosmetic is created locally on every peer; it has no firing behavior or laser.
+The lobby uses `prefabs/suburbs/lobby_front_yard.prefab`, nesting the existing
+house/yard lot prefab. Five front-facing preview slots stand in the yard, with
+nameplates positioned for the shorter Soldier and the camera framing the house
+behind them. Edit the backdrop prefab rather than duplicating its geometry.
+
+### Weapon model prefabs
+
+Pistol, rifle and shotgun resources each reference a `ModelPrefab` in
+`Assets/prefabs/weapons/`. These use Kenney's CC0 Blaster Kit 2.1:
+blaster-c for the pistol, blaster-r for the rifle and blaster-g for the shotgun,
+with the supplied colormap texture. Original FBXs remain unchanged.
+
+Each prefab's root is the hand grip, with a scaled/oriented `Model` child and
+a `Muzzle` marker beneath that child. `GameWeaponModel.Muzzle` references that
+marker. Adjust model placement, scale and muzzle position in the prefab rather
+than generating geometry or hard-coding offsets. Model forward and muzzle forward
+are +X relative to the grip. Held weapons follow the animated right hand while
+aim rotation remains gameplay-controlled; bullets and the laser originate at the
+marker's world position. Weapon stats and firing behavior are unchanged.
+`GameWeaponModel.TryAttachToHand` shares right-hand positioning between gameplay
+and lobby presentation, while each caller supplies its intended facing rotation.
+
+Player locomotion blends only into the pelvis branches and legs, over a fixed
+idle aiming pose. The root/spine/arms do not inherit walk-cycle sway, keeping both
+hands and the attached muzzle steady while moving in any direction. Shooting
+still overlays upper-body recoil; lower-body directional walking is preserved.
+
+Held weapons and weapon loot clone the same prefab locally, with no network
+spawn or synchronized visual transforms. Pickup bobbing, spinning and blinking
+remain intact. Missing prefabs or invalid muzzle references report errors;
+there is no procedural weapon fallback. The flare remains a consumable rather
+than an equippable weapon and retains its existing loot visual.
 
 ## Explosion behavior
 
@@ -35,6 +175,11 @@ Explosion has no player unlock or modifiers and cannot enter bullet rolls, so
 fire/shock selection probabilities, upgrade offers and projectile colors are unchanged.
 
 ## Common combat and survival modifiers
+
+Players start at level one without a modifier offer. The first offer is earned
+at the first level-up (5 XP by default); each further level-up queues one choice,
+including multiple levels earned together. Base player movement speed is
+140 world units/second; Fleet Footed continues to add 10% of that base per pick.
 
 Existing Rapid Strikes (+100% attack rate) and
 Vitality (+100 maximum health and healing) retain their behavior. New modifiers
@@ -265,11 +410,13 @@ Loot expiration is unchanged.
 
 `GameLootCatalog.All` defines every loot item in one typed table: its stable
 `LootKind` ID, display name, effect and amount, explicit `CanBeMagnetAttracted`
-boolean, rarity bucket, collection callbacks, weapon resource binding, and visual model parts.
-The existing procedural prototype models are represented as named parts with
+boolean, rarity bucket, collection callbacks, weapon resource binding, and non-weapon visual model parts.
+Consumable prototype models are represented as named parts with
 model paths, positions, dimensions and tints; the die's pip layout is generated
 once by the catalog. All prototype geometry builders are grouped at the bottom of
-the catalog, keeping the item table short. Pickups render these same parts on each client.
+the catalog, keeping the item table short. Consumable pickups render these same
+parts on each client; weapon pickups use the actual weapon resource's model prefab,
+including custom weapon overrides.
 
 Crates use `GameLootCatalog.Roll`: the contextual revive-flare roll comes first,
 then a rarity bucket is drawn using `GameLootCatalog.Rarities`, then an item is

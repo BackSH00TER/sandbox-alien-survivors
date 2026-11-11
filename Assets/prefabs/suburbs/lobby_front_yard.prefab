@@ -1,0 +1,115 @@
+{
+  "RootObject": {
+    "__guid": "143d6d85-fb92-4339-9865-2356e280e5cd",
+    "__version": 2,
+    "Flags": 0,
+    "Name": "Lobby Front Yard",
+    "Position": "0,0,0",
+    "Rotation": "0,0,0,1",
+    "Scale": "1,1,1",
+    "Tags": "",
+    "Enabled": true,
+    "NetworkMode": 0,
+    "NetworkFlags": 0,
+    "NetworkOrphaned": 0,
+    "NetworkTransmit": true,
+    "OwnerTransfer": 1,
+    "Components": [],
+    "Children": [
+      {
+        "__guid": "07e7636a-b6e5-4d3d-92e6-9dbf569e31c6",
+        "__version": 2,
+        "__Prefab": {
+          "Id": "0c5a9939-74e1-4261-90a6-5b22e2ce977d",
+          "Path": "prefabs/suburbs/lot_building-type-a.prefab"
+        },
+        "__PrefabInstancePatch": {
+          "AddedObjects": [],
+          "RemovedObjects": [],
+          "PropertyOverrides": [
+            {
+              "Target": {
+                "Type": "GameObject",
+                "IdValue": "a5d80dcd-1c43-49e4-8b6c-60d1c86e08bf"
+              },
+              "Property": "Name",
+              "Value": "Front Yard and House"
+            },
+            {
+              "Target": {
+                "Type": "GameObject",
+                "IdValue": "a5d80dcd-1c43-49e4-8b6c-60d1c86e08bf"
+              },
+              "Property": "Rotation",
+              "Value": "0,0,0.707106769,0.707106769"
+            }
+          ],
+          "MovedObjects": []
+        },
+        "__PrefabIdToInstanceId": {
+          "a5d80dcd-1c43-49e4-8b6c-60d1c86e08bf": "07e7636a-b6e5-4d3d-92e6-9dbf569e31c6",
+          "4330c74e-506c-409e-9f59-1a5fd05f0fef": "447e5af7-dda8-48bc-8617-c22159350e5a",
+          "956289e1-0ca3-40c4-abcf-7ed3802034d6": "f31b8bf9-6009-411f-af7a-ec2fadae0dff",
+          "98403369-3bff-4fac-b7b2-e49bf2275ed6": "f0e3df78-95e5-4ef1-9a45-5d8c357d6aaf",
+          "756d2e6f-2574-45da-bd0d-f0d29c4c1270": "373794ed-7c59-4897-a520-2c33e13f8c72",
+          "ee396dc9-6747-4a0e-a6c0-c875d5514f15": "8a447718-0157-4b25-805c-3ce549425dee",
+          "ba971f6c-730a-4da5-847c-252b43b83568": "f99d1d20-c120-49bf-bec3-978fd903a711",
+          "f9805a11-8aaf-44e9-acea-ec7a66656785": "2d13189b-6e6c-4164-aa72-95ab2b799037",
+          "33047a8e-dcd2-435b-82a6-27bf0789426f": "f025e932-3353-4ee3-ad98-a3723685a120",
+          "be54cdcb-cba1-41e5-a41a-065de233d07d": "f6089ab1-2648-474a-be30-5593d29bcf35",
+          "1c8810c0-35cc-442f-866e-82e47527501e": "deea37e9-2bb6-4aae-ad60-f99667d26323",
+          "dcb79637-4c79-4b2d-a99e-f400a4987a78": "591d4d0c-a1ad-4251-8cd4-45b0fd076a22",
+          "95156249-18ac-4652-a5ff-1407732549c3": "4e0b7c1d-b54f-4be5-bb62-d0ee93862ff6",
+          "c31308fc-6743-454d-9bf4-f86c5540ef93": "748480fa-8de4-48da-a92c-877838429529",
+          "4c9cd431-3dfd-4497-b1dd-4d7f6551199d": "d21beae5-b5b5-46cc-a2da-7d68cf6901bf",
+          "8bf6828f-e853-4959-b2cf-17fe5ec94287": "82f7d300-93fc-4dcd-a46b-e65a6d8eb844",
+          "fc67b961-bedb-4181-9135-5d3c3320dd40": "dd109d14-ba8f-46f7-96ed-9ed1a501b01c",
+          "8ea54c8a-652c-4374-937d-8b179fb38e01": "7e6f40a9-6d9f-4599-9bac-dc3e3603e849",
+          "308ecdc0-8bed-49a4-92da-4b258b01d3b2": "a4b4a609-5c78-49d3-a13a-90254a9c2344",
+          "8ad9e35a-6aaa-4d89-90a6-b4c7650b7cdc": "4adebc12-5bc3-456d-b43f-a533ce77f59f",
+          "092b5c04-4717-4569-a932-848c2d16a8a4": "f41e7c1e-04bc-4d1b-841d-eaa96e3dfef4",
+          "ab383e5a-5f01-41a6-b426-de7ee07a70f1": "b302585a-033d-4861-9097-580330aacef4",
+          "f96188ef-bc41-44bb-a048-51ae7a9a13aa": "390571dd-5e09-4728-8baf-dc76002f58ea",
+          "73cfb838-e4bd-473d-a193-c8cf23a939e4": "a30552df-af1c-4b2c-ae1f-a11f023ee771",
+          "93c786af-e56b-4cd2-9c8c-feda6eb48c72": "31aebc2e-60aa-4a15-8da2-a2bcf1e1ed0f",
+          "d114275d-e736-49e1-a087-17c7a1c64a8b": "39b0f032-3819-4739-b5c1-522de6cc6c64",
+          "a3ff7d79-ac0a-4a42-8448-658383535e46": "ece03b18-649d-4c86-8b7f-4cce89b598ff",
+          "a057b184-240f-4aeb-955b-588493e6e70f": "a93f2b21-f8c7-43f9-be5e-f8436a3b5a0f",
+          "d20fdd24-1320-496f-bb5e-e6b9b46aac4e": "ff98c3db-68b5-4a10-b1af-83ae55267761",
+          "0da47712-db4e-49c6-80fd-b840dbdab188": "3499dbc5-05e2-4029-b6cd-ee24340cd56b",
+          "11b65766-97aa-4d5d-b280-47932cff18a5": "9e36db5c-53cc-40b0-b364-25d5466eb3a7",
+          "c4c0f426-7a8f-4b44-aee2-2752f3020a47": "812b4c52-2399-4745-a24d-07de52a3070a",
+          "d7322750-0f72-4010-9a84-5ac68ed42a1f": "942bf584-6ae1-4a48-a625-ec13ae510174",
+          "fa08c6ee-5b95-482e-b32c-c1b17aaef2b7": "4a1b0134-6439-444b-8112-3c880aea75cb",
+          "479acb06-07bf-4c14-9dc8-866e0b7475e0": "667c41a7-f792-45b4-b326-5846e6ed215d",
+          "d3b14186-2652-474b-8c2e-112d9224c031": "569f6fcf-ea6e-4f34-8aa0-e5059141f978",
+          "b09d9349-3dc1-4e05-92a9-675862dbe35c": "09675891-b278-45d8-b947-d4e2c1d4f31b",
+          "3bad6845-60cf-4409-b51f-0a8fce6eed2a": "11acdb9c-4e76-4845-87f3-2019798d906d",
+          "b03614d5-107b-4807-b727-1edd48acffc4": "b606e17a-5622-4b14-80b0-a27b368fbf22",
+          "00694814-d3cf-403d-b255-b537f8915b75": "552e2cbe-2b60-46bc-ba1c-847aa1b781ee",
+          "10a32fac-2597-4f93-b29e-0a70516a1a86": "8a2a2d7a-3e72-41d8-9c23-f08ee70e6910",
+          "669ba2c6-7c3a-484c-b9d5-4d22c4e61807": "f1fe9a32-7e4d-4a72-baaf-cf97c7b19d67",
+          "29e2b15f-73a2-4df4-a444-7f8e97430aba": "f5d7731c-d33e-45b2-87d1-fb1bb273a78f",
+          "dbffc7da-c231-4992-b4a0-2e05bc8e98a4": "32539dab-9257-4d2b-b6c3-41ee6b103c40",
+          "a7f44434-5b0b-4ecf-8e4a-267cbd098a15": "6e933f66-9301-4fda-8598-70c8a942dc79",
+          "583fbc88-f54a-477f-bc8d-ecf17567c46f": "30e3d844-aee8-4c13-9f93-ff41122b0c09",
+          "5a2f5c8b-fcb8-4f0f-964e-6b715eac2f80": "ff74dc26-83bd-4707-b36f-0c4978f76f3a",
+          "c8dd58d3-a277-49ad-bcc4-d1a9700e6fd9": "57a19569-8808-4325-a158-1dbf97a1f5a4",
+          "35949af2-eb6b-428a-8d1a-1c7df6128d36": "3078e53a-3771-404a-b261-82b33c7e3975",
+          "c4006ea4-c6e3-45ab-a6d7-c92d6a52d18b": "f6bfe5a1-8d60-4e99-8df5-e0f7b08e2897",
+          "6d6a4a39-af9e-406b-b639-a09d52399032": "181ea737-0da7-47f6-9c9a-b3b6188d273a",
+          "139fb680-d7e0-4bbd-888f-3e62e1706827": "705cd96d-9576-4486-baf0-f9ad05bd3419",
+          "7da0e3fd-d3ad-47d0-8945-6e81f2ff1499": "5312fb1e-5187-45d6-945e-278e3d65f1de",
+          "3671c23c-8d2e-47a7-98fd-86dc44696eab": "5a0ee9f5-a0ee-493b-8fba-c818b02f0470"
+        }
+      }
+    ]
+  },
+  "ResourceVersion": 2,
+  "ShowInMenu": false,
+  "MenuPath": null,
+  "MenuIcon": null,
+  "DontBreakAsTemplate": false,
+  "__references": [],
+  "__version": 2
+}
