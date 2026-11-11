@@ -1,0 +1,174 @@
+GameDebugPanel
+{
+	pointer-events: none;
+
+	.debug-panel,
+	.debug-collapsed
+	{
+		position: absolute;
+		top: 24px;
+		left: 24px;
+		pointer-events: all;
+	}
+
+	.debug-panel
+	{
+		width: 340px;
+		padding: 14px;
+		flex-direction: column;
+		gap: 12px;
+		background-color: #101218ee;
+		border: 1px solid #5b6272;
+		border-radius: 6px;
+		font-family: Oxanium;
+		color: #fff;
+		max-height: 90%;
+		overflow-y: scroll;
+	}
+
+	.debug-header
+	{
+		align-items: center;
+		justify-content: space-between;
+	}
+
+	.debug-title,
+	.debug-section-title
+	{
+		font-weight: 800;
+		letter-spacing: 1px;
+	}
+
+	.debug-title
+	{
+		font-size: 19px;
+		color: #7ef0b0;
+	}
+
+	.debug-section
+	{
+		flex-direction: column;
+		gap: 5px;
+	}
+
+	.debug-section-title
+	{
+		margin-bottom: 3px;
+		font-size: 12px;
+		color: #9da8bd;
+	}
+
+	.debug-row
+	{
+		justify-content: space-between;
+		font-size: 14px;
+	}
+
+	.debug-actions
+	{
+		flex-direction: column;
+		gap: 5px;
+	}
+
+	.debug-modifier-list
+	{
+		max-height: 180px;
+		flex-direction: column;
+		overflow-y: scroll;
+		gap: 3px;
+	}
+
+	.debug-modifier-option
+	{
+		min-height: 28px;
+		padding: 4px 8px;
+		align-items: center;
+		justify-content: space-between;
+		background-color: #1b2029;
+		border: 1px solid #424958;
+		border-radius: 4px;
+		color: #dce2ed;
+		cursor: pointer;
+		font-size: 12px;
+	}
+
+	.debug-modifier-option:hover,
+	.debug-modifier-option.selected
+	{
+		background-color: #244333;
+		border-color: #7ef0b0;
+		color: #fff;
+	}
+
+	.debug-modifier-description
+	{
+		font-size: 12px;
+		color: #c5ccda;
+	}
+
+	.debug-action,
+	.debug-close,
+	.debug-collapsed
+	{
+		align-items: center;
+		justify-content: space-between;
+		background-color: #252a35;
+		border: 1px solid #424958;
+		border-radius: 4px;
+		color: #fff;
+		cursor: pointer;
+	}
+
+	.debug-action
+	{
+		min-height: 31px;
+		padding: 5px 8px;
+		font-size: 13px;
+		font-weight: 700;
+	}
+
+	.debug-action:hover,
+	.debug-close:hover,
+	.debug-collapsed:hover
+	{
+		background-color: #363e4d;
+	}
+
+	.debug-action:disabled
+	{
+		opacity: 0.4;
+	}
+
+	.debug-action.danger
+	{
+		border-color: #8b3e45;
+		color: #ff9a9f;
+	}
+
+	.debug-action span,
+	.debug-close span,
+	.debug-collapsed span
+	{
+		color: #9da8bd;
+		font-size: 11px;
+	}
+
+	.debug-close
+	{
+		padding: 4px 8px;
+	}
+
+	.debug-collapsed
+	{
+		padding: 8px 12px;
+		gap: 12px;
+		font-family: Oxanium;
+		font-weight: 800;
+	}
+
+	.debug-hint
+	{
+		font-size: 11px;
+		color: #9da8bd;
+	}
+}

@@ -12,13 +12,26 @@ public sealed class GameSupplyCrate : GameEntity
 	public const int DefaultMinDrops = 1;
 	public const int DefaultMaxDrops = 3;
 
-	[Sync(SyncFlags.FromHost)] public GameWeaponDefinition Rifle { get; set; }
-	[Sync(SyncFlags.FromHost)] public GameWeaponDefinition Shotgun { get; set; }
-	[Sync(SyncFlags.FromHost)] public GameCrateKind Kind { get; set; }
+	[Sync(SyncFlags.FromHost)]
+	public GameWeaponDefinition Rifle
+	{
+		get; set;
+	}
+	[Sync(SyncFlags.FromHost)]
+	public GameWeaponDefinition Shotgun
+	{
+		get; set;
+	}
+	[Sync(SyncFlags.FromHost)]
+	public GameCrateKind Kind
+	{
+		get; set;
+	}
 	[Property, Group("Loot"), Description("Minimum items dropped, inclusive. Must be at least one.")] public int MinDrops { get; set; } = DefaultMinDrops;
 	[Property, Group("Loot"), Description("Maximum items dropped, inclusive. Must be at least MinDrops.")] public int MaxDrops { get; set; } = DefaultMaxDrops;
 	public override bool CanTakeDamage => Health > 0f && !_opened;
 	private bool _opened;
+	private bool _visualCreated;
 
 	public static GameSupplyCrate Spawn(
 		Vector3 groundPosition,
@@ -71,17 +84,24 @@ public sealed class GameSupplyCrate : GameEntity
 			return null;
 		}
 
+		crate.EnsureVisual();
 		return crate;
 	}
 
 	protected override void OnStart()
 	{
 		base.OnStart();
-		BuildPrototypeVisuals();
+		EnsureVisual();
 	}
 
-	private void BuildPrototypeVisuals()
+	private void EnsureVisual()
 	{
+		if (_visualCreated)
+		{
+			return;
+		}
+
+		// OnStart is deferred while paused, but newly spawned crates should already be visible.
 		var bodySize = new Vector3(
 			x: 40f,
 			y: 40f,
@@ -110,6 +130,7 @@ public sealed class GameSupplyCrate : GameEntity
 				b: 0.34f
 			);
 		}
+
 		AddPart(
 			name: "Crate Body",
 			position: Vector3.Zero,
@@ -133,6 +154,8 @@ public sealed class GameSupplyCrate : GameEntity
 			size: bandSize,
 			color: bandColor
 		);
+
+		_visualCreated = true;
 	}
 
 	private void AddPart(
