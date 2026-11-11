@@ -11,6 +11,12 @@ var tests = new (string Name, Action Run)[]
 	("modifier rarity-first draws preserve exact probabilities", ModifierCatalogTests.Rarities),
 	("empty modifier buckets renormalize, including rerolls", ModifierCatalogTests.EmptyBuckets),
 	("modifier effects apply through the catalog", ModifierCatalogTests.Effects),
+	("new modifier progression, caps and prerequisites", ShotModifierTests.Progression),
+	("bullet procs capture independent immutable settings", ShotModifierTests.Bullets),
+	("bonus volleys roll once per trigger and cap their chance", ShotModifierTests.Volleys),
+	("power shots guarantee double damage and shorten their interval", ShotModifierTests.PowerShots),
+	("invalid shot rolls are rejected", ShotModifierTests.Invalid),
+	("pickup bonuses use scaled amounts and armor capacity", LootCatalogTests.Bonuses),
 	("invalid modifier draws and IDs are rejected", ModifierCatalogTests.Invalid),
 	("vacuum range scales, caps and uses common rarity", Vacuum),
 	("rerolls change the set without unlocking unavailable modifiers", Rerolls),
@@ -23,10 +29,14 @@ var tests = new (string Name, Action Run)[]
 	("loot catalog coverage, effects and magnet flags", LootCatalogTests.Coverage),
 	("loot callbacks apply effects and enforce eligibility", LootCatalogTests.Collection),
 	("loot rarity buckets preserve exact probabilities", LootCatalogTests.Drops),
+	("weapon crates drop only weapons with valid boundaries", LootCatalogTests.WeaponDrops),
 	("loot catalog preserves prototype visuals", LootCatalogTests.Visuals),
 	("invalid loot rolls and kinds are rejected", LootCatalogTests.Invalid),
 	("enemy aggro switches only after the cooldown", EnemyAggroTests.Cooldown),
 	("enemy aggro handles unavailable targets", EnemyAggroTests.Unavailable),
+	("XP orbs merge only within fixed short reach without overflow", ExperienceOrbTests.Reach),
+	("XP orbs share eight value-based colors and capped size growth", ExperienceOrbTests.Appearance),
+	("XP orb presentation rejects invalid values", ExperienceOrbTests.Invalid),
 	("fire chance, defaults and upgrade caps", FireRolls),
 	("shock progression and immutable settings", ShockTests.Progression),
 	("mixed damage effect rolls never retry", ShockTests.Rolls),
@@ -42,7 +52,23 @@ var tests = new (string Name, Action Run)[]
 	("spread accepts burning targets only below cap", Spread),
 	("clearing and advancing cannot repeat damage", Clear),
 	("invalid settings are rejected", Invalid),
-	("timeline positions, dimming and pipeline boundaries", Timeline)
+	("timeline positions, dimming and pipeline boundaries", Timeline),
+	("event catalog metadata, callbacks and exact rarity probabilities", EventCatalogTests.Catalog),
+	("event slots draw opening and recurring events from configuration", EventCatalogTests.Schedule),
+	("weapon airdrops use shared rare slots without guaranteed arrivals", EventCatalogTests.WeaponAirdrops),
+	("event slots own timing, rarity weights and independent cadences", EventCatalogTests.Slots),
+	("event slots redistribute empty rarity weights", EventCatalogTests.EmptyRarities),
+	("event catalog and schedule reject invalid inputs", EventCatalogTests.Invalid),
+	("event loot supports fixed and inclusive random counts for every catalog item", EventRewardTests.LootCounts),
+	("event XP rewards preserve exact totals in larger orbs", EventRewardTests.Experience),
+	("event rewards reject invalid counts, kinds and rolls", EventRewardTests.Invalid),
+	("stat history uses half-open 15-second buckets and independent keys", StatHistoryTests.Buckets),
+	("stat history carries quiet buckets and final partial totals", StatHistoryTests.Series),
+	("stat history handles zero duration, exact boundaries and snapshots", StatHistoryTests.Boundaries),
+	("a million stat events retain only bucket aggregates", StatHistoryTests.Volume),
+	("level history uses exact-time steps and starting level", StatHistoryTests.Levels),
+	("cumulative enemy breakdowns align and sum to the total", StatHistoryTests.Breakdowns),
+	("stat history rejects invalid input", StatHistoryTests.Invalid)
 };
 foreach (var test in tests)
 {
@@ -187,6 +213,10 @@ static void Vacuum()
 	{
 		int Stacks(GameModifier modifier)
 		{
+			if (modifier >= GameModifier.AttackDamage)
+			{
+				return ModifierCatalog.Get(modifier).MaxPicks;
+			}
 			return modifier == GameModifier.Vacuum ? rank : 0;
 		}
 
@@ -209,7 +239,7 @@ static void Vacuum()
 
 	Near(ModifierCatalog.ExperienceCollectionRangeMultiplier(_ => 100), 2f);
 	Near(ModifierCatalog.ExperienceCollectionRangeMultiplier(_ => -1), 1f);
-	Near(ModifierCatalog.ExperienceCollectionRangeMultiplier(modifier => modifier == GameModifier.AttackRange ? 5 : 0), 1f);
+	Near(ModifierCatalog.ExperienceCollectionRangeMultiplier(modifier => modifier == GameModifier.AttackDamage ? 5 : 0), 1f);
 	var upgrades = GameStatCatalog.Sections.Single(section => section.Title == "Upgrades");
 	var vacuumKey = GameStatKeys.ModifierPicked(GameModifier.Vacuum);
 	Check(upgrades.Rows.Single(row => row.Key == vacuumKey).Label == "Vacuum", "The scorecard must include Vacuum.");
@@ -250,7 +280,7 @@ static void Rerolls()
 	}
 	var maxed = ModifierCatalog.All.ToDictionary(modifier => modifier.Id, modifier => modifier.MaxPicks);
 	maxed[GameModifier.AttackSpeed] = 0;
-	maxed[GameModifier.AttackRange] = 0;
+	maxed[GameModifier.AttackDamage] = 0;
 	maxed[GameModifier.Vitality] = 0;
 	int MaxedPicks(GameModifier modifier) => maxed[modifier];
 	var onlyOffer = ModifierCatalog.RollOffer(MaxedPicks, () => 0f);
@@ -308,21 +338,29 @@ static void ExpandedRerolls()
 	{
 		picks[modifier.Id] = modifier.MaxPicks;
 	}
+	foreach (var modifier in ModifierCatalog.All.Where(modifier => modifier.Id >= GameModifier.AttackDamage))
+	{
+		picks[modifier.Id] = modifier.MaxPicks;
+	}
 
 	fullyUnlocked = ModifierCatalog.RollOffer(Stacks, () => 0f);
-	Check(!ModifierCatalog.HasAlternativeOffer(Stacks, fullyUnlocked), "All eight eligible cards leave no reroll alternative.");
+	Check(!ModifierCatalog.HasAlternativeOffer(Stacks, fullyUnlocked), "All seven eligible cards leave no reroll alternative.");
 
 	picks.Clear();
+	foreach (var modifier in ModifierCatalog.All.Where(modifier => modifier.Id >= GameModifier.AttackDamage))
+	{
+		picks[modifier.Id] = modifier.MaxPicks;
+	}
 	picks[GameModifier.ExtraOption] = 5;
 	var allEligible = ModifierCatalog.RollOffer(Stacks, () => 0f);
-	Check(allEligible.Count == 6, "Locked effects must leave six eligible choices at rank five.");
+	Check(allEligible.Count == 5, "Locked effects must leave five eligible choices at rank five.");
 	Check(!ModifierCatalog.HasAlternativeOffer(Stacks, allEligible), "Reroll must be disabled when every eligible choice is shown.");
 	var noAlternative = ModifierCatalog.RollOffer(
 		getModifierPickCount: Stacks,
 		random: () => 1f,
 		previousOffer: allEligible
 	);
-	Check(noAlternative.Count == 6 && noAlternative.All(allEligible.Contains), "A full-pool offer cannot invent an alternative.");
+	Check(noAlternative.Count == 5 && noAlternative.All(allEligible.Contains), "A full-pool offer cannot invent an alternative.");
 }
 
 static void FireRolls()

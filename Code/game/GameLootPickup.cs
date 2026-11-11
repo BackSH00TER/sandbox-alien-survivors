@@ -58,13 +58,29 @@ public sealed class GameLootPickup : Component
 			return null;
 		}
 
+		pickup.EnsureVisual();
 		return pickup;
 	}
 
 	protected override void OnStart()
 	{
 		_spawnedAt = Time.Now;
-		_visual = new GameObject(GameObject, true, "Loot Visual");
+		EnsureVisual();
+	}
+
+	private void EnsureVisual()
+	{
+		if (_visual.IsValid())
+		{
+			return;
+		}
+
+		// OnStart is deferred while paused, but newly spawned loot should already be visible.
+		_visual = new GameObject(
+			parent: GameObject,
+			enabled: true,
+			name: "Loot Visual"
+		);
 		_visual.Flags |= GameObjectFlags.NotNetworked | GameObjectFlags.NotSaved;
 		foreach (var part in Definition.VisualParts)
 		{

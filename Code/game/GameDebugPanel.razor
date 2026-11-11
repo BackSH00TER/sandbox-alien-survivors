@@ -1,0 +1,313 @@
+@using Sandbox;
+@using Sandbox.UI;
+@inherits Panel
+@namespace Sandbox
+
+<root>
+	@if (_isOpen)
+	{
+		<div class="debug-panel">
+			<div class="debug-header">
+				<div class="debug-title">DEBUG TOOLS</div>
+				<button class="debug-close" onclick=@TogglePanel>B</button>
+			</div>
+
+			<div class="debug-section">
+				<div class="debug-section-title">PLAYER</div>
+				<div class="debug-row"><span>Health</span><span>@HealthText</span></div>
+				<div class="debug-row"><span>Armor</span><span>@ArmorText</span></div>
+				<div class="debug-row"><span>Weapon</span><span>@WeaponText</span></div>
+				<div class="debug-row"><span>Attack rate</span><span>@AttackRateText</span></div>
+				<div class="debug-row"><span>Interval</span><span>@AttackIntervalText</span></div>
+				<div class="debug-row"><span>Range</span><span>@AttackRangeText</span></div>
+				<div class="debug-row"><span>Bullets / shot</span><span>@BulletsPerShotText</span></div>
+				<div class="debug-row"><span>God mode</span><span>@GodModeText</span></div>
+			</div>
+
+			<div class="debug-section">
+				<div class="debug-section-title">ACTIONS</div>
+				<div class="debug-actions">
+					<button class="debug-action danger" disabled="@(!CanControlPlayer)" onclick=@KillPlayer>KILL SELF <span>K</span></button>
+					<button class="debug-action" disabled="@(!CanControlPlayer)" onclick=@ToggleGodMode>GOD MODE <span>H</span></button>
+					<button class="debug-action" disabled="@(!CanControlPlayer)" onclick=@SpawnFlare>SPAWN FLARE <span>G</span></button>
+					<button class="debug-action" disabled="@(!CanControlPlayer)" onclick=@SpawnArmor>SPAWN ARMOR <span>J</span></button>
+					<button class="debug-action" disabled="@(!CanControlPlayer)" onclick=@SpawnCrate>SPAWN CRATE <span>L</span></button>
+				</div>
+			</div>
+
+			<div class="debug-section">
+				<div class="debug-section-title">MODIFIER CATALOG</div>
+				@if (!_player.IsValid())
+				{
+					<div class="debug-hint">Waiting for a local player. Modifier grants are unavailable.</div>
+				}
+				<div class="debug-modifier-list">
+					@foreach (ModifierDefinition definition in ModifierCatalog.All)
+					{
+						<button class="debug-modifier-option @(_selectedModifier == definition.Id ? "selected" : "")"
+								onclick="@(() => SelectModifier(definition.Id))">
+							<span>@definition.Name</span>
+							<span>@(_player.IsValid() ? _player.ModifierStacks(definition.Id).ToString() : "-")</span>
+						</button>
+					}
+				</div>
+				<div class="debug-modifier-description">@SelectedModifier.Description</div>
+				<button class="debug-action" disabled="@(!CanGrantSelectedModifier)" onclick=@GrantSelectedModifier>
+					GRANT @SelectedModifier.Name
+				</button>
+				<div class="debug-hint">Locked prerequisites are granted automatically.</div>
+			</div>
+
+			<div class="debug-section">
+				<div class="debug-section-title">VISUALS</div>
+				<div class="debug-actions">
+					<button class="debug-action" disabled="@(!_player.IsValid())" onclick=@ToggleAttackInfo>
+						ATTACK RANGE <span>@ToggleText(_player.IsValid() && _player.ShowAttackDebug)</span>
+					</button>
+					<button class="debug-action" disabled="@(!_player.IsValid())" onclick=@ToggleHitboxes>
+						HITBOXES <span>@ToggleText(_player.IsValid() && _player.ShowAttackHitboxes)</span>
+					</button>
+				</div>
+			</div>
+
+			<div class="debug-hint">B toggles this panel · K/H/G/J/L run actions</div>
+		</div>
+	}
+	else
+	{
+		<button class="debug-collapsed" onclick=@TogglePanel>DEBUG <span>B</span></button>
+	}
+</root>
+
+@code
+{
+	private static bool _isOpen = false;
+	private GamePlayer _player;
+	private GameModifier _selectedModifier = GameModifier.AttackSpeed;
+	private bool _pauseStateCaptured;
+	private bool _wasPausedBeforePanelOpened;
+
+	private bool CanControlPlayer => _player.IsValid() && !_player.IsDead && !_player.IsRoundOver;
+	private ModifierDefinition SelectedModifier => ModifierCatalog.Get(_selectedModifier);
+	private bool CanGrantSelectedModifier => CanControlPlayer
+		&& _player.ModifierStacks(_selectedModifier) < SelectedModifier.MaxPicks;
+	private string HealthText => _player.IsValid()
+		? $"{_player.Health.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)} / {_player.MaxHealth.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)}"
+		: "Unavailable";
+	private string ArmorText => _player.IsValid() ? _player.Armor.ToString(System.Globalization.CultureInfo.InvariantCulture) : "-";
+	private string WeaponText => _player.IsValid() ? _player.EquippedWeapon?.DisplayName ?? "None" : "Unavailable";
+	private string AttackRateText => _player.IsValid()
+		? $"{(_player.EffectiveAttackInterval > 0f ? 1f / _player.EffectiveAttackInterval : 0f).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)} / sec"
+		: "Unavailable";
+	private string AttackIntervalText => _player.IsValid()
+		? $"{_player.EffectiveAttackInterval.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)} sec"
+		: "Unavailable";
+	private string AttackRangeText => _player.IsValid()
+		? $"{_player.EffectiveAttackRange.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)} units"
+		: "Unavailable";
+	private string BulletsPerShotText => _player.IsValid()
+		? (_player.EquippedWeapon?.BulletsPerShot ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture)
+		: "Unavailable";
+	private string GodModeText => _player.IsValid() ? ToggleText(_player.GodMode) : "Unavailable";
+
+	public static bool IsEnabled => _isOpen;
+
+	public override void Tick()
+	{
+		base.Tick();
+		_player = FindLocalPlayer();
+
+		if (Input.Pressed("ToggleDebug"))
+		{
+			TogglePanel();
+		}
+
+		UpdateGamePause();
+
+		if (!_isOpen || !CanControlPlayer)
+		{
+			return;
+		}
+
+		if (Input.Keyboard.Pressed("K"))
+		{
+			KillPlayer();
+		}
+		if (Input.Keyboard.Pressed("H"))
+		{
+			ToggleGodMode();
+		}
+		if (Input.Keyboard.Pressed("G"))
+		{
+			SpawnFlare();
+		}
+		if (Input.Keyboard.Pressed("J"))
+		{
+			SpawnArmor();
+		}
+		if (Input.Keyboard.Pressed("L"))
+		{
+			SpawnCrate();
+		}
+	}
+
+	private static string ToggleText(bool enabled)
+	{
+		return enabled ? "ON" : "OFF";
+	}
+
+	private static GamePlayer FindLocalPlayer()
+	{
+		var scene = Game.ActiveScene;
+		if (!scene.IsValid())
+		{
+			return null;
+		}
+
+		return scene.GetAllComponents<GamePlayer>().FirstOrDefault(player => !player.IsProxy);
+	}
+
+	private void UpdateGamePause()
+	{
+		if (!Game.IsPlaying)
+		{
+			_pauseStateCaptured = false;
+			return;
+		}
+
+		if (_isOpen)
+		{
+			var scene = Game.ActiveScene;
+			if (!scene.IsValid() || scene.IsLoading || !_player.IsValid() || _player.EquippedWeapon == null)
+			{
+				return;
+			}
+
+			if (!_pauseStateCaptured)
+			{
+				_wasPausedBeforePanelOpened = Game.IsPaused;
+				_pauseStateCaptured = true;
+			}
+
+			Game.IsPaused = true;
+			return;
+		}
+
+		if (_pauseStateCaptured)
+		{
+			Game.IsPaused = _wasPausedBeforePanelOpened;
+			_pauseStateCaptured = false;
+		}
+	}
+
+	private void TogglePanel()
+	{
+		_isOpen = !_isOpen;
+		UpdateGamePause();
+	}
+
+	public override void OnDeleted()
+	{
+		_isOpen = false;
+		if (_pauseStateCaptured)
+		{
+			Game.IsPaused = _wasPausedBeforePanelOpened;
+			_pauseStateCaptured = false;
+		}
+
+		base.OnDeleted();
+	}
+
+	private void SelectModifier(GameModifier modifier)
+	{
+		_selectedModifier = modifier;
+	}
+
+	private void GrantSelectedModifier()
+	{
+		if (CanGrantSelectedModifier)
+		{
+			_player.DebugGrantModifier(_selectedModifier);
+		}
+	}
+
+	private void KillPlayer()
+	{
+		if (CanControlPlayer)
+		{
+			_player.DebugKill();
+		}
+	}
+
+	private void ToggleGodMode()
+	{
+		if (CanControlPlayer)
+		{
+			_player.DebugToggleGodMode();
+		}
+	}
+
+	private void SpawnFlare()
+	{
+		if (CanControlPlayer)
+		{
+			_player.DebugSpawnFlarePickup();
+		}
+	}
+
+	private void SpawnArmor()
+	{
+		if (CanControlPlayer)
+		{
+			_player.DebugSpawnArmorPickup();
+		}
+	}
+
+	private void SpawnCrate()
+	{
+		if (CanControlPlayer)
+		{
+			_player.DebugSpawnCrate();
+		}
+	}
+
+	private void ToggleAttackInfo()
+	{
+		if (_player.IsValid())
+		{
+			_player.ShowAttackDebug = !_player.ShowAttackDebug;
+		}
+	}
+
+	private void ToggleHitboxes()
+	{
+		if (_player.IsValid())
+		{
+			_player.DebugToggleAttackHitboxes();
+		}
+	}
+
+	protected override int BuildHash()
+	{
+		_player = FindLocalPlayer();
+		var player = _player;
+		if (!player.IsValid())
+		{
+			return System.HashCode.Combine(
+				value1: _isOpen,
+				value2: player,
+				value3: _selectedModifier
+			);
+		}
+
+		return System.HashCode.Combine(
+			value1: _isOpen,
+			value2: player,
+			value3: player.Health,
+			value4: player.MaxHealth,
+			value5: (player.Armor, player.EquippedWeapon, player.EffectiveAttackInterval, player.EffectiveAttackRange),
+			value6: (player.GodMode, player.ShowAttackDebug, player.ShowAttackHitboxes, player.IsDead, player.IsRoundOver),
+			value7: (_selectedModifier, player.ModifierContentHash())
+		);
+	}
+}

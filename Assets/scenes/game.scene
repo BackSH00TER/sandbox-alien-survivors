@@ -527,7 +527,7 @@
           "OnComponentFixedUpdate": null,
           "OnComponentStart": null,
           "OnComponentUpdate": null,
-          "ShouldEndWhenAllDead": false
+          "ShouldEndWhenAllDead": true
         },
         {
           "__type": "GameCrateSpawner",

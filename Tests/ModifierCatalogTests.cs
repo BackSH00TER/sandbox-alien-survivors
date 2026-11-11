@@ -11,8 +11,11 @@ internal static class ModifierCatalogTests
 		Check(catalogIds.SequenceEqual(ids), "Every modifier needs one ordered definition.");
 		for (int index = 0; index < ids.Length; index++)
 		{
-			Check((int)ids[index] == index, "Existing synchronized modifier IDs must remain stable.");
+			var expectedId = index == 0 ? 0 : index + 1;
+			Check((int)ids[index] == expectedId, "Existing synchronized modifier IDs must remain stable; ID 1 is retired.");
 		}
+		Check(!Enum.IsDefined((GameModifier)1), "Long Reach's retired ID must not be reused.");
+		Reject<ArgumentOutOfRangeException>(() => ModifierCatalog.Get((GameModifier)1));
 
 		foreach (var definition in ModifierCatalog.All)
 		{
@@ -79,7 +82,7 @@ internal static class ModifierCatalogTests
 			rarityRoll: 0.89999f,
 			itemRoll: 1f
 		);
-		Check(lastCommon == GameModifier.ShockRounds, "The common upper boundary must select its last item.");
+		Check(lastCommon == GameModifier.EmpoweredShots, "The common upper boundary must select its last eligible item.");
 		var firstRare = FirstDraw(
 			stacks: _ => 0,
 			rarityRoll: 0.9f,
@@ -89,9 +92,9 @@ internal static class ModifierCatalogTests
 		var secondCommon = FirstDraw(
 			stacks: _ => 0,
 			rarityRoll: 0f,
-			itemRoll: 0.2f
+			itemRoll: 1.5f / commonCount
 		);
-		Check(secondCommon == GameModifier.AttackRange, "Items within the common bucket must be uniform.");
+		Check(secondCommon == GameModifier.Vitality, "Items within the common bucket must be uniform.");
 		var unlockedRare = FirstDraw(
 			stacks: id => id is GameModifier.FireRounds or GameModifier.FireSpread ? 1 : 0,
 			rarityRoll: 0.9f,
@@ -122,34 +125,39 @@ internal static class ModifierCatalogTests
 
 		int CappedRare(GameModifier id)
 		{
-			return id == GameModifier.ExtraOption ? 5 : 0;
+			return id == GameModifier.ExtraOption ? 5 : CappedNewModifier(id);
 		}
 		var onlyCommon = ModifierCatalog.RollOffer(CappedRare, () => 1f);
-		Check(onlyCommon.Count == 6 && onlyCommon.All(id => ModifierCatalog.Get(id).Rarity == GameRarity.Common),
+		Check(onlyCommon.Count == 5 && onlyCommon.All(id => ModifierCatalog.Get(id).Rarity == GameRarity.Common),
 			"A capped rare bucket must not stall or shorten a full-pool offer.");
 		Check(!ModifierCatalog.HasAlternativeOffer(CappedRare, onlyCommon), "A full eligible pool has no reroll alternative.");
 
 		int Expanded(GameModifier id)
 		{
-			return id == GameModifier.ExtraOption ? 4 : 0;
+			return id == GameModifier.ExtraOption ? 4 : CappedNewModifier(id);
 		}
 		var commonFirst = ModifierCatalog.RollOffer(Expanded, () => 0f);
-		Check(commonFirst.Count == 7 && commonFirst[^1] == GameModifier.ExtraOption,
+		Check(commonFirst.Count == 6 && commonFirst[^1] == GameModifier.ExtraOption,
 			"Exhausting all common cards must leave the rare bucket drawable.");
 
-		int SixSlots(GameModifier id)
+		int FiveSlots(GameModifier id)
 		{
-			return id == GameModifier.ExtraOption ? 3 : 0;
+			return id == GameModifier.ExtraOption ? 2 : CappedNewModifier(id);
 		}
-		var previous = ModifierCatalog.RollOffer(SixSlots, () => 0f);
+		var previous = ModifierCatalog.RollOffer(FiveSlots, () => 0f);
 		var rerolled = ModifierCatalog.RollOffer(
-			getModifierPickCount: SixSlots,
+			getModifierPickCount: FiveSlots,
 			random: () => 0f,
 			previousOffer: previous
 		);
 		Check(!previous.Contains(GameModifier.ExtraOption) && rerolled.Contains(GameModifier.ExtraOption),
 			"A forced reroll replacement with only a rare alternative must renormalize to rare.");
-		Check(rerolled.Count == 6 && rerolled.Distinct().Count() == 6, "Replacement must preserve size and distinctness.");
+		Check(rerolled.Count == 5 && rerolled.Distinct().Count() == 5, "Replacement must preserve size and distinctness.");
+	}
+
+	private static int CappedNewModifier(GameModifier id)
+	{
+		return id >= GameModifier.AttackDamage ? ModifierCatalog.Get(id).MaxPicks : 0;
 	}
 
 	internal static void Effects()
@@ -161,11 +169,6 @@ internal static class ModifierCatalogTests
 			"Attack speed must add a stack and refresh the pending attack.");
 		float attackRateMultiplier = ModifierCatalog.AttackRateMultiplier(recipient.ModifierStacks);
 		Near(attackRateMultiplier, 2f);
-		var attackRange = ModifierCatalog.Get(GameModifier.AttackRange);
-		attackRange.ApplyTo(recipient);
-		float attackRangeMultiplier = ModifierCatalog.AttackRangeMultiplier(recipient.ModifierStacks);
-		Near(attackRangeMultiplier, 2f);
-		Check(recipient.Refreshes == 1, "Other upgrades must not refresh attack cooldown.");
 		var vitality = ModifierCatalog.Get(GameModifier.Vitality);
 		vitality.ApplyTo(recipient);
 		Near(recipient.HealthGranted, 100f);

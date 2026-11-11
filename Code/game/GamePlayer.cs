@@ -2,33 +2,57 @@ using Sandbox;
 
 public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 {
-	[Property, RequireComponent] public PlayerController Controller { get; set; }
-	[Property, RequireComponent] public GamePlayerStats Stats { get; set; }
+	[Property, RequireComponent]
+	public PlayerController Controller
+	{
+		get; set;
+	}
+	[Property, RequireComponent]
+	public GamePlayerStats Stats
+	{
+		get; set;
+	}
 	[Property, Range(0.25f, 4f)] public float Zoom { get; set; } = 1.5f;
 	[Property, Group("Spectate"), Range(0f, 2000f), Description("Height above the death position that the UAV flies at.")] public float UavAltitude { get; set; } = 600f;
 	[Property, Group("Spectate"), Range(100f, 3000f)] public float UavSpeed { get; set; } = 900f;
 	[Property, Group("Spectate"), Description("Camera offset from the UAV. Higher and steeper than the alive camera.")] public Vector3 UavCameraOffset { get; set; } = new Vector3(-350f, 0f, 800f);
 	[Property, Group("Revive"), Range(0.05f, 1f), Description("Fraction of max health a revived player comes back with.")] public float ReviveHealthFraction { get; set; } = 0.5f;
 	[Property, Group("Revive"), Range(0f, 10f), Description("Seconds a revived player cannot take damage.")] public float ReviveInvulnerableSeconds { get; set; } = 3f;
-	[Property, Group("Weapon"), Description("Weapon equipped on spawn. If unassigned, uses weapons/pistol.weapon.")] public GameWeaponDefinition StartingWeapon { get; set; }
+	[Property, Group("Weapon"), Description("Weapon equipped on spawn. If unassigned, uses weapons/pistol.weapon.")]
+	public GameWeaponDefinition StartingWeapon
+	{
+		get; set;
+	}
 	[Property, Group("Weapon"), Range(0.01f, 5f), Description("Width of the red aiming laser in world units.")] public float LaserWidth { get; set; } = 0.25f;
 	[Property, Group("Weapon"), Range(0f, 500f), Description("Minimum distance from the player used for aiming. Close cursor targets are extended outward to prevent sharp muzzle corrections.")] public float MinimumAimDistance { get; set; } = 100f;
 	[Sync(SyncFlags.FromHost)]
-	public GameWeaponDefinition EquippedWeapon { get; private set; }
+	public GameWeaponDefinition EquippedWeapon
+	{
+		get; private set;
+	}
 	[Property, Group("Debug")] public bool ShowAttackDebug { get; set; } = true;
 
-	[Group("Experience")] [Property, Range(1, 1000)] public int BaseExperienceToLevel { get; set; } = 5;
-	[Group("Experience")] [Property, Range(0, 1000)] public int ExperienceGrowthPerLevel { get; set; } = 5;
+	[Group("Experience")][Property, Range(1, 1000)] public int BaseExperienceToLevel { get; set; } = 5;
+	[Group("Experience")][Property, Range(0, 1000)] public int ExperienceGrowthPerLevel { get; set; } = 5;
 
 	[Sync(SyncFlags.FromHost)] public int Level { get; private set; } = 1;
 	[Sync(SyncFlags.FromHost)]
-	public int Experience { get; private set; }
+	public int Experience
+	{
+		get; private set;
+	}
 	public int ExperienceToNextLevel => System.Math.Max(1, BaseExperienceToLevel + ExperienceGrowthPerLevel * (Level - 1));
 
 	[Sync(SyncFlags.FromHost)]
-	public int PendingModifierChoices { get; private set; }
+	public int PendingModifierChoices
+	{
+		get; private set;
+	}
 	[Sync(SyncFlags.FromHost)]
-	public int RerollDice { get; private set; }
+	public int RerollDice
+	{
+		get; private set;
+	}
 	public bool CanRerollModifiers => Active && !IsDead && !IsRoundOver && PendingModifierChoices > 0 && RerollDice > 0
 		&& ModifierCatalog.HasAlternativeOffer(ModifierStacks, CurrentModifierOffer());
 
@@ -53,21 +77,27 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 		return true;
 	}
 	[Sync(SyncFlags.FromHost)]
-	public int ModifierOfferId { get; private set; }
+	public int ModifierOfferId
+	{
+		get; private set;
+	}
 	[Sync(SyncFlags.FromHost)]
 	public NetList<GameModifier> ModifierOptions { get; private set; } = new();
 	[Sync(SyncFlags.FromHost)]
-	public int AttackSpeedStacks { get; private set; }
+	public int AttackSpeedStacks
+	{
+		get; private set;
+	}
 	[Sync(SyncFlags.FromHost)]
-	public int AttackRangeStacks { get; private set; }
-	[Sync(SyncFlags.FromHost)]
-	public int VitalityStacks { get; private set; }
+	public int VitalityStacks
+	{
+		get; private set;
+	}
 	[Sync(SyncFlags.FromHost)] private NetDictionary<GameModifier, int> EffectModifierStacks { get; set; } = new();
 
 	public int ModifierStacks(GameModifier modifier) => modifier switch
 	{
 		GameModifier.AttackSpeed => AttackSpeedStacks,
-		GameModifier.AttackRange => AttackRangeStacks,
 		GameModifier.Vitality => VitalityStacks,
 		_ => EffectModifierStacks.TryGetValue(modifier, out var count) ? count : 0
 	};
@@ -75,7 +105,7 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 	/// <summary>Lets the inventory UI detect changed upgrade counts without depending on dictionary iteration order.</summary>
 	public int ModifierContentHash()
 	{
-		int hash = System.HashCode.Combine(AttackSpeedStacks, AttackRangeStacks, VitalityStacks);
+		int hash = System.HashCode.Combine(AttackSpeedStacks, VitalityStacks);
 		foreach (var pair in EffectModifierStacks)
 		{
 			hash ^= System.HashCode.Combine(pair.Key, pair.Value);
@@ -86,9 +116,11 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 
 	public float EffectiveAttackInterval => EquippedWeapon == null ? 0f
 		: System.MathF.Max(0.1f, 1f / (EquippedWeapon.FireRate * ModifierCatalog.AttackRateMultiplier(ModifierStacks)));
-	public float EffectiveAttackRange => EquippedWeapon == null ? 0f
-		: EquippedWeapon.Range * ModifierCatalog.AttackRangeMultiplier(ModifierStacks);
+	public float EffectiveAttackRange => EquippedWeapon?.Range ?? 0f;
 	public float ExperienceCollectionRangeMultiplier => ModifierCatalog.ExperienceCollectionRangeMultiplier(ModifierStacks);
+
+	float ILootCollector.HealthPickupMultiplier => 1f + ModifierCatalog.Bonus(GameModifier.HealthPickupBonus, ModifierStacks);
+	float ILootCollector.ArmorPickupMultiplier => 1f + ModifierCatalog.Bonus(GameModifier.ArmorPickupBonus, ModifierStacks);
 
 	public bool IsDead => Health <= 0f;
 
@@ -112,31 +144,58 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 
 	/// <summary>Debug only: while true this player takes no damage.</summary>
 	[Sync(SyncFlags.FromHost)]
-	public bool GodMode { get; private set; }
+	public bool GodMode
+	{
+		get; internal set;
+	}
 
 	/// <summary>
 	/// Missing health that is not shown as blood. Set on revive so a revived player comes back clean, then
 	/// shrinks as they heal so blood only appears from damage taken after that.
 	/// </summary>
 	[Sync(SyncFlags.FromHost)]
-	public float BloodOffset { get; private set; }
+	public float BloodOffset
+	{
+		get; private set;
+	}
 
 	// A dead player shows no blood, so the UAV drone and the body on revive are clean.
 	public override float BloodAmount => IsDead ? 0f : System.MathF.Max(0f, base.BloodAmount - BloodOffset);
 
 	/// <summary>Host only: when this player died, used to raise the flare drop chance the longer they stay dead.</summary>
-	public float DeathTime { get; private set; }
+	public float DeathTime
+	{
+		get; private set;
+	}
 
-	[Sync(SyncFlags.FromHost)] private float NextAttackTime { get; set; }
-	[Sync] private Vector3 CursorRayOrigin { get; set; }
-	[Sync] private Vector3 CursorRayDirection { get; set; }
-	[Sync(SyncFlags.FromHost)] private float StunEndTime { get; set; }
+	[Sync(SyncFlags.FromHost)]
+	private float NextAttackTime
+	{
+		get; set;
+	}
+	[Sync]
+	private Vector3 CursorRayOrigin
+	{
+		get; set;
+	}
+	[Sync]
+	private Vector3 CursorRayDirection
+	{
+		get; set;
+	}
+	[Sync(SyncFlags.FromHost)]
+	private float StunEndTime
+	{
+		get; set;
+	}
 	public bool IsStunned => Time.Now < StunEndTime;
 
 	private static readonly Vector3 BaseCameraOffset = new Vector3(-500f, 0f, 800f);
 	private bool _missingCameraLogged;
 	private bool _wasDead;
 	private float _invulnerableUntil; // host clock, only the host checks it
+	private float _baseWalkSpeed;
+	private int _shotsSincePowerShot;
 
 	protected override void OnStart()
 	{
@@ -157,6 +216,7 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 		Controller.RunByDefault = false;
 		Controller.AltMoveButton = "";
 		Controller.RunSpeed = Controller.WalkSpeed;
+		_baseWalkSpeed = Controller.WalkSpeed;
 
 		if (Networking.IsHost)
 		{
@@ -187,8 +247,6 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 			return;
 		}
 
-		HandleDebugKeys();
-
 		if (Input.Pressed("Use"))
 		{
 			var pickup = GameLootPickup.FindNearestWeapon(this);
@@ -198,9 +256,9 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 			}
 		}
 
-		if (ShowAttackDebug && GameHUD.IsDebugEnabled(Scene))
+		if (ShowAttackDebug)
 		{
-			DrawAttackRange();
+			GameDebugTools.DrawAttackRange(this);
 		}
 
 		var camera = Scene.Camera;
@@ -284,6 +342,9 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 
 	protected override void OnFixedUpdate()
 	{
+		var moveSpeedBonus = ModifierCatalog.Bonus(GameModifier.MoveSpeed, ModifierStacks);
+		Controller.WalkSpeed = _baseWalkSpeed * (1f + moveSpeedBonus);
+		Controller.RunSpeed = Controller.WalkSpeed;
 		if (IsStunned || IsRoundOver)
 		{
 			StopMovement();
@@ -309,6 +370,12 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 		if (gameManager != null && gameManager.State != GameState.InProgress)
 		{
 			return;
+		}
+
+		var regeneration = ModifierCatalog.Bonus(GameModifier.HealthRegeneration, ModifierStacks);
+		if (!IsDead && Health < MaxHealth && regeneration > 0f && Time.Delta > 0f)
+		{
+			RestoreHealth(regeneration * Time.Delta);
 		}
 
 		if (!IsDead && EquippedWeapon != null && Time.Now >= NextAttackTime)
@@ -413,137 +480,54 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 		NextAttackTime = Time.Now + EffectiveAttackInterval;
 	}
 
-	// Debug shortcuts are only active while the debug overlay is on.
-	private void HandleDebugKeys()
-	{
-		if (!GameHUD.IsDebugEnabled(Scene))
-		{
-			return;
-		}
-
-		if (Input.Keyboard.Pressed("K"))
-		{
-			DebugKill();
-		}
-
-		if (Input.Keyboard.Pressed("G"))
-		{
-			DebugSpawnFlarePickup();
-		}
-
-		if (Input.Keyboard.Pressed("H"))
-		{
-			DebugToggleGodMode();
-		}
-
-		if (Input.Keyboard.Pressed("J"))
-		{
-			DebugSpawnArmorPickup();
-		}
-
-		if (Input.Keyboard.Pressed("L"))
-		{
-			DebugSpawnCrate();
-		}
-	}
-
 	[Rpc.Host(NetFlags.OwnerOnly)]
 	public void DebugKill()
 	{
-		if (IsDead)
-		{
-			return;
-		}
-
-		// Killing on purpose wins over god mode, so it is switched off first.
-		GodMode = false;
-		TakeDamage(Health, bypassArmor: true);
+		GameDebugTools.Kill(this);
 	}
 
 	[Rpc.Host(NetFlags.OwnerOnly)]
 	public void DebugToggleGodMode()
 	{
-		GodMode = !GodMode;
+		GameDebugTools.ToggleGodMode(this);
+	}
+
+	[Rpc.Host(NetFlags.OwnerOnly)]
+	public void DebugToggleAttackHitboxes()
+	{
+		GameDebugTools.ToggleAttackHitboxes(this);
 	}
 
 	[Rpc.Host(NetFlags.OwnerOnly)]
 	public void DebugSpawnFlarePickup()
 	{
-		var position = WorldPosition + Controller.EyeAngles.ToRotation().Forward * 80f;
-		var definition = GameLootCatalog.Get(LootKind.Flare);
-		GameLootPickup.Spawn(groundPosition: position, definition: definition);
+		GameDebugTools.SpawnFlarePickup(this);
 	}
 
 	[Rpc.Host(NetFlags.OwnerOnly)]
 	public void DebugSpawnArmorPickup()
 	{
-		if (TryGetDebugSpawnPosition(out var position))
-		{
-			var definition = GameLootCatalog.Get(LootKind.Armor);
-			GameLootPickup.Spawn(groundPosition: position, definition: definition);
-		}
+		GameDebugTools.SpawnArmorPickup(this);
 	}
 
 	[Rpc.Host(NetFlags.OwnerOnly)]
 	public void DebugSpawnCrate()
 	{
-		if (!TryGetDebugSpawnPosition(out var position))
-		{
-			return;
-		}
-
-		var spawner = Scene.GetAllComponents<GameCrateSpawner>().FirstOrDefault();
-		var rifle = spawner?.Rifle ?? ResourceLibrary.Get<GameWeaponDefinition>("weapons/rifle.weapon");
-		var shotgun = spawner?.Shotgun ?? ResourceLibrary.Get<GameWeaponDefinition>("weapons/shotgun.weapon");
-		if (rifle == null || shotgun == null)
-		{
-			Log.Error("Debug crates require rifle and shotgun weapon resources.");
-			return;
-		}
-
-		if (!rifle.Validate() || !shotgun.Validate())
-		{
-			return;
-		}
-
-		GameSupplyCrate.Spawn(position, rifle, shotgun);
+		GameDebugTools.SpawnCrate(this);
 	}
 
-	private bool TryGetDebugSpawnPosition(out Vector3 position)
+	[Rpc.Host(NetFlags.OwnerOnly)]
+	public void DebugGrantModifier(GameModifier modifier)
 	{
-		position = default;
-		if (IsDead || IsRoundOver || !GameHUD.IsDebugEnabled(Scene))
+		var gameManager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
+		if (!Active || IsDead || IsRoundOver
+			|| (gameManager != null && gameManager.State != GameState.InProgress))
 		{
-			return false;
+			Log.Warning("Rejected a debug modifier grant for an inactive player or ended round.");
+			return;
 		}
 
-		if (!Controller.IsValid())
-		{
-			Log.Error("Debug spawning requires a player controller.");
-			return false;
-		}
-
-		var candidate = WorldPosition + Rotation.FromYaw(Controller.EyeAngles.yaw).Forward * 120f;
-		var ground = Scene.Trace.FromTo(candidate + Vector3.Up * 64f, candidate - Vector3.Up * 256f)
-			.IgnoreGameObjectHierarchy(GameObject).IgnoreDynamic().Run();
-		if (!ground.Hit || ground.StartedSolid || ground.Normal.z < 0.9f
-			|| (ground.GameObject.IsValid() && ground.GameObject.GetComponentInParent<GameEntity>().IsValid()))
-		{
-			Log.Warning("Cannot debug-spawn here: no suitable ground in front of the player.");
-			return false;
-		}
-
-		var bounds = new BBox(new Vector3(-21f, -21f, 1f), new Vector3(21f, 21f, 46f));
-		var clearance = Scene.Trace.Box(bounds, ground.EndPosition, ground.EndPosition)
-			.IgnoreGameObjectHierarchy(GameObject).Run();
-		if (clearance.Hit || clearance.StartedSolid)
-		{
-			Log.Warning("Cannot debug-spawn here: the space in front of the player is blocked.");
-			return false;
-		}
-
-		position = ground.EndPosition;
-		return true;
+		GameDebugTools.GrantModifier(this, modifier);
 	}
 
 	protected override void OnHealthDepleted()
@@ -631,29 +615,38 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 			return;
 		}
 
-		for (var i = 0; i < EquippedWeapon.BulletsPerShot; i++)
+		var extraBullets = GameShotModifiers.ExtraBulletCount(ModifierStacks, () => Game.Random.Float());
+		var bulletCount = EquippedWeapon.BulletsPerShot + extraBullets;
+		var damageMultiplier = GameShotModifiers.DamageMultiplier(
+			stacks: ModifierStacks,
+			shotsSincePowerShot: ref _shotsSincePowerShot
+		);
+		for (var i = 0; i < bulletCount; i++)
 		{
-			var angle = EquippedWeapon.BulletsPerShot == 1 ? 0f
-				: -EquippedWeapon.SpreadDegrees * 0.5f + EquippedWeapon.SpreadDegrees * i / (EquippedWeapon.BulletsPerShot - 1);
+			var angle = bulletCount == 1 ? 0f
+				: -EquippedWeapon.SpreadDegrees * 0.5f + EquippedWeapon.SpreadDegrees * i / (bulletCount - 1);
 			var direction = Rotation.FromYaw(angle) * forward;
-			GameWeaponProjectile.Spawn(this, EquippedWeapon, origin, direction, EffectiveAttackRange);
+			GameWeaponProjectile.Spawn(
+				shooter: this,
+				weapon: EquippedWeapon,
+				position: origin,
+				direction: direction,
+				range: EffectiveAttackRange,
+				damageMultiplier: damageMultiplier
+			);
 		}
 
 		PlayFire((int)EquippedWeapon.HoldType);
 	}
 
-	private void DrawAttackRange()
+	[Rpc.Broadcast(NetFlags.HostOnly)]
+	internal void ShowSplashImpact(Vector3 position)
 	{
-		const int segments = 64;
-		var center = WorldPosition + Vector3.Up * 2f;
-		var previous = center + Vector3.Forward * EffectiveAttackRange;
-		for (var i = 1; i <= segments; i++)
-		{
-			var angle = i * (System.MathF.PI * 2f / segments);
-			var point = center + new Vector3(System.MathF.Cos(angle), System.MathF.Sin(angle), 0f) * EffectiveAttackRange;
-			DebugOverlay.Line(previous, point, Color.Yellow, 0f);
-			previous = point;
-		}
+		SplashVisual.Spawn(
+			scene: Scene,
+			center: position,
+			radius: GameShotModifiers.SplashRadius
+		);
 	}
 
 	public void AddExperience(int amount)
@@ -681,6 +674,15 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 
 	private void OnLevelUp()
 	{
+		if (Stats.IsValid())
+		{
+			Stats.RecordLevel(Level);
+		}
+		else
+		{
+			Log.Error("GamePlayer requires a GamePlayerStats component to record level history.");
+		}
+
 		QueueModifierChoice();
 	}
 
@@ -759,9 +761,6 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 		{
 			case GameModifier.AttackSpeed:
 				AttackSpeedStacks++;
-				break;
-			case GameModifier.AttackRange:
-				AttackRangeStacks++;
 				break;
 			case GameModifier.Vitality:
 				VitalityStacks++;

@@ -6,10 +6,10 @@ public enum GameState
 	Ended
 }
 
-public sealed class GameManager : Component
+public sealed class GameManager : Component, IGameEventWorld
 {
 	[Group("Game Settings")] [Property, Description("Seconds until the boss spawns. Defeating the boss ends the match.")] public int CountdownTime { get; set; } = 60;
-	[Group("Game Settings"), Description("Ends the game as soon as every player is dead, since nobody is left to fire a revive flare. Turn off while debugging revives.")] [Property] public bool ShouldEndWhenAllDead { get; set; } = false;
+	[Group("Game Settings"), Description("Ends the game as soon as every player is dead, since nobody is left to fire a revive flare. Turn off while debugging revives.")] [Property] public bool ShouldEndWhenAllDead { get; set; } = true;
 	[Sync(SyncFlags.FromHost)] public GameState State { get; set; } = GameState.InProgress;
 	[Sync(SyncFlags.FromHost)] public GameEnemy Boss { get; private set; }
 	[Sync(SyncFlags.FromHost)] public bool BossSpawned { get; private set; }
@@ -20,8 +20,13 @@ public sealed class GameManager : Component
 	[Sync(SyncFlags.FromHost)] public TimeSince RoundClock { get; private set; }
 	[Sync(SyncFlags.FromHost)] public bool TimelineReady { get; private set; }
 	[Sync(SyncFlags.FromHost)] public float BossEventSeconds { get; private set; }
+	[Sync(SyncFlags.FromHost)] public NetList<GameStatMoment> RoundMoments { get; private set; } = new();
+	[Sync(SyncFlags.FromHost)] public NetList<GameScheduledEvent> ScheduledEvents { get; private set; } = new();
 	[Sync(SyncFlags.FromHost)] private float RoundEndedAt { get; set; }
 	private bool _isChangingScene;
+	private GameEventSchedule _eventSchedule;
+	private IReadOnlyDictionary<GameEventKind, IGameEventAction> _eventActions;
+	private float _nextEventAttempt;
 
 	public float ElapsedSeconds => State == GameState.Ended ? RoundEndedAt : System.Math.Max(0f, RoundClock.Relative);
 	public int RemainingSeconds => System.Math.Max(0, (int)System.MathF.Ceiling(BossEventSeconds - ElapsedSeconds));
@@ -30,14 +35,28 @@ public sealed class GameManager : Component
 	{
 		get
 		{
+			var events = new List<GameTimelineEvent>();
 			if (TimelineReady)
 			{
-				yield return new GameTimelineEvent(
+				foreach (var scheduled in ScheduledEvents)
+				{
+					var definition = GameEventCatalog.Get(scheduled.Kind);
+					var timelineEvent = new GameTimelineEvent(
+						Seconds: scheduled.Seconds,
+						Icon: definition.Icon,
+						Label: definition.Label
+					);
+					events.Add(timelineEvent);
+				}
+
+				var bossEvent = new GameTimelineEvent(
 					Seconds: BossEventSeconds,
 					Icon: "star",
 					Label: "Boss spawn"
 				);
+				events.Add(bossEvent);
 			}
+			return events.OrderBy(timelineEvent => timelineEvent.Seconds);
 		}
 	}
 
@@ -47,9 +66,13 @@ public sealed class GameManager : Component
 	{
 		if (Networking.IsHost)
 		{
+			_eventSchedule = new GameEventSchedule();
+			_eventActions = GameEventActions.Create(GameObject);
 			RoundClock = 0f;
 			BossEventSeconds = System.Math.Max(0, CountdownTime);
 			TimelineReady = true;
+			RecordRoundMoment("Round started");
+			ScheduleEvents();
 		}
 	}
 
@@ -70,6 +93,66 @@ public sealed class GameManager : Component
 		{
 			SpawnBoss();
 		}
+
+		UpdateEvents();
+	}
+
+	private void ScheduleEvents()
+	{
+		var newlyScheduled = _eventSchedule.Advance(elapsedSeconds: ElapsedSeconds, random: () => Game.Random.Float());
+		foreach (var scheduled in newlyScheduled)
+		{
+			ScheduledEvents.Add(scheduled);
+		}
+	}
+
+	private void UpdateEvents()
+	{
+		ScheduleEvents();
+		if (ElapsedSeconds < _nextEventAttempt)
+		{
+			return;
+		}
+
+		for (var i = 0; i < ScheduledEvents.Count; i++)
+		{
+			var scheduled = ScheduledEvents[i];
+			if (scheduled.Occurred || ElapsedSeconds < scheduled.Seconds)
+			{
+				continue;
+			}
+
+			var definition = GameEventCatalog.Get(scheduled.Kind);
+			if (!definition.TryStart(this))
+			{
+				_nextEventAttempt = ElapsedSeconds + 1f;
+				continue;
+			}
+
+			ScheduledEvents[i] = scheduled with
+			{
+				Seconds = ElapsedSeconds,
+				Occurred = true
+			};
+			RecordRoundMoment($"{definition.Label} arrived");
+		}
+	}
+
+	public bool TryStartEvent(GameEventKind kind)
+	{
+		if (!Networking.IsHost || State != GameState.InProgress)
+		{
+			Log.Error("World events require the host and an active round.");
+			return false;
+		}
+
+		if (!_eventActions.TryGetValue(kind, out var action))
+		{
+			Log.Error($"No runtime action is registered for world event '{kind}'.");
+			return false;
+		}
+
+		return action.TryStart();
 	}
 
 	private void SpawnBoss()
@@ -95,6 +178,7 @@ public sealed class GameManager : Component
 		Boss = boss;
 		BossSpawned = true;
 		BossEventSeconds = ElapsedSeconds;
+		RecordRoundMoment("Boss spawned");
 	}
 
 	public void BossDefeated(GameEnemy enemy)
@@ -116,6 +200,7 @@ public sealed class GameManager : Component
 			return;
 		}
 
+		RecordRoundMoment("Boss defeated");
 		EndGame();
 	}
 
@@ -129,7 +214,24 @@ public sealed class GameManager : Component
 	{
 		RoundEndedAt = ElapsedSeconds;
 		State = GameState.Ended;
+		RecordRoundMoment("Round ended");
 		GamePlayerStats.EndRound(Scene);
+	}
+
+	/// <summary>Record actual event occurrences, not scheduled future events.</summary>
+	public void RecordRoundMoment(string label)
+	{
+		if (!Networking.IsHost || !TimelineReady || string.IsNullOrWhiteSpace(label))
+		{
+			Log.Error("Round moments require the host, an initialized clock, and a label.");
+			return;
+		}
+
+		RoundMoments.Add(new GameStatMoment(
+			Seconds: ElapsedSeconds,
+			Kind: "world",
+			Label: label
+		));
 	}
 
 	public void ReturnToLobby()
