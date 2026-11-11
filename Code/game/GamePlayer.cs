@@ -3,15 +3,11 @@ using Sandbox;
 public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 {
 	[Property, RequireComponent]
-	public PlayerController Controller
-	{
-		get; set;
-	}
-	[Property, RequireComponent]
 	public GamePlayerStats Stats
 	{
 		get; set;
 	}
+	[Property, Group("Movement"), Range(0f, 1000f)] public float MoveSpeed { get; set; } = 140f;
 	[Property, Range(0.25f, 4f)] public float Zoom { get; set; } = 1.5f;
 	[Property, Group("Spectate"), Range(0f, 2000f), Description("Height above the death position that the UAV flies at.")] public float UavAltitude { get; set; } = 600f;
 	[Property, Group("Spectate"), Range(100f, 3000f)] public float UavSpeed { get; set; } = 900f;
@@ -168,7 +164,6 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 		get; private set;
 	}
 
-	[Sync(SyncFlags.FromHost)]
 	private float NextAttackTime
 	{
 		get; set;
@@ -188,40 +183,37 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 	{
 		get; set;
 	}
+	[Sync] public Vector3 FacingDirection { get; private set; } = Vector3.Forward;
+	[Sync] public Vector3 MovementVelocity { get; private set; }
+	public float HitboxRadius => PlayerHitboxRadius;
 	public bool IsStunned => Time.Now < StunEndTime;
 
 	private static readonly Vector3 BaseCameraOffset = new Vector3(-500f, 0f, 800f);
+	private const float PlayerHitboxRadius = 18f;
+	private const float HitboxHeight = 72f;
 	private bool _missingCameraLogged;
 	private bool _wasDead;
 	private float _invulnerableUntil; // host clock, only the host checks it
-	private float _baseWalkSpeed;
 	private int _shotsSincePowerShot;
+	private ModelRenderer _renderer;
+	private GamePlayerAnimation _animation;
 
 	protected override void OnStart()
 	{
 		base.OnStart();
-		var playerRigidbody = Controller.Body;
-		if (!AddCollisionTag(playerRigidbody, PlayerCollisionTag))
-		{
-			Log.Error("Game player requires physics shapes to assign its collision tag.");
-		}
+		EnsureCapsuleHitbox(radius: PlayerHitboxRadius, height: HitboxHeight);
+		_renderer = GetComponentsInChildren<ModelRenderer>().FirstOrDefault();
+		_animation = GameObject.GetOrAddComponent<GamePlayerAnimation>();
+		_animation.Flags |= ComponentFlags.NotNetworked | ComponentFlags.NotSaved;
 
 		var heldWeapon = GameObject.GetOrAddComponent<GamePlayerHeldWeaponModel>();
 		heldWeapon.Flags |= ComponentFlags.NotNetworked | ComponentFlags.NotSaved;
 		var uavVisual = GameObject.GetOrAddComponent<GameUavVisual>();
 		uavVisual.Flags |= ComponentFlags.NotNetworked | ComponentFlags.NotSaved;
-		Controller.UseCameraControls = false;
-		Controller.UseLookControls = false;
-		Controller.UseInputControls = false;
-		Controller.RunByDefault = false;
-		Controller.AltMoveButton = "";
-		Controller.RunSpeed = Controller.WalkSpeed;
-		_baseWalkSpeed = Controller.WalkSpeed;
 
 		if (Networking.IsHost)
 		{
 			EquipWeapon(StartingWeapon ?? ResourceLibrary.Get<GameWeaponDefinition>("weapons/pistol.weapon"));
-			QueueModifierChoice();
 		}
 	}
 
@@ -290,18 +282,8 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 
 		if (TryGetAimDirection(aimOrigin, out var direction))
 		{
-			var bodyRotation = Rotation.LookAt(direction, Vector3.Up);
-			Controller.EyeAngles = bodyRotation.Angles();
-			// Aim the torso along the shot while keeping locomotion facing the cursor.
-			if (TryGetShotTransform(out _, out var shotDirection))
-			{
-				Controller.EyeAngles = Rotation.LookAt(shotDirection, Vector3.Up).Angles();
-			}
-
-			if (Controller.Renderer.IsValid())
-			{
-				Controller.Renderer.WorldRotation = bodyRotation;
-			}
+			FacingDirection = direction;
+			WorldRotation = Rotation.LookAt(direction, Vector3.Up);
 		}
 	}
 
@@ -342,18 +324,40 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 
 	protected override void OnFixedUpdate()
 	{
-		var moveSpeedBonus = ModifierCatalog.Bonus(GameModifier.MoveSpeed, ModifierStacks);
-		Controller.WalkSpeed = _baseWalkSpeed * (1f + moveSpeedBonus);
-		Controller.RunSpeed = Controller.WalkSpeed;
-		if (IsStunned || IsRoundOver)
+		if (!IsProxy)
 		{
-			StopMovement();
-		}
-		else if (!IsProxy && !IsDead)
-		{
-			var cameraRotation = Rotation.LookAt(-BaseCameraOffset, Vector3.Up);
-			var movementRotation = Rotation.FromYaw(cameraRotation.Angles().yaw);
-			Controller.WishVelocity = Controller.Mode.UpdateMove(movementRotation, Input.AnalogMove);
+			if (IsStunned || IsRoundOver || IsDead)
+			{
+				MovementVelocity = Vector3.Zero;
+			}
+			else
+			{
+				var camera = Scene.Camera;
+				if (!camera.IsValid())
+				{
+					MovementVelocity = Vector3.Zero;
+				}
+				else
+				{
+					var movementRotation = Rotation.FromYaw(camera.WorldRotation.Angles().yaw);
+					var moveInput = Input.AnalogMove.WithZ(0f);
+					var moveDirection = movementRotation * moveInput;
+					if (moveDirection.LengthSquared > 1f)
+					{
+						moveDirection = moveDirection.Normal;
+					}
+
+					var moveSpeedBonus = ModifierCatalog.Bonus(GameModifier.MoveSpeed, ModifierStacks);
+					var displacement = moveDirection * MoveSpeed * (1f + moveSpeedBonus) * Time.Delta;
+					var moved = MoveWithWorldCollision(
+						displacement: displacement,
+						radius: PlayerHitboxRadius,
+						collisionHeight: GameWeaponProjectile.CollisionHeight
+					);
+					WorldPosition += moved;
+					MovementVelocity = Time.Delta > 0f ? moved / Time.Delta : Vector3.Zero;
+				}
+			}
 		}
 
 		if (!Networking.IsHost)
@@ -404,12 +408,7 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 
 	private void StopMovement()
 	{
-		Controller.WishVelocity = Vector3.Zero;
-		if (Controller.Body.IsValid())
-		{
-			var velocity = Controller.Body.Velocity;
-			Controller.Body.Velocity = new Vector3(0f, 0f, velocity.z);
-		}
+		MovementVelocity = Vector3.Zero;
 	}
 	// Runs on every client so everyone hides the dead player's body and the owner takes off as a UAV.
 	private void UpdateDeadState()
@@ -421,15 +420,9 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 		}
 
 		_wasDead = isDead;
-		Controller.Enabled = !isDead;
-		if (Controller.Body.IsValid())
+		if (_renderer.IsValid())
 		{
-			Controller.Body.MotionEnabled = !isDead;
-		}
-
-		if (Controller.Renderer.IsValid())
-		{
-			Controller.Renderer.GameObject.Enabled = !isDead;
+			_renderer.GameObject.Enabled = !isDead;
 		}
 
 		if (isDead && !IsProxy)
@@ -560,10 +553,7 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 	private void TeleportTo(Vector3 position)
 	{
 		WorldPosition = position;
-		if (Controller.Body.IsValid())
-		{
-			Controller.Body.Velocity = Vector3.Zero;
-		}
+		MovementVelocity = Vector3.Zero;
 	}
 
 	[Rpc.Host(NetFlags.OwnerOnly)]
@@ -636,7 +626,13 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 			);
 		}
 
-		PlayFire((int)EquippedWeapon.HoldType);
+		PlayShootAnimation();
+	}
+
+	[Rpc.Broadcast(NetFlags.HostOnly)]
+	private void PlayShootAnimation()
+	{
+		_animation?.PlayShot();
 	}
 
 	[Rpc.Broadcast(NetFlags.HostOnly)]
@@ -647,6 +643,22 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 			center: position,
 			radius: GameShotModifiers.SplashRadius
 		);
+	}
+
+	[Rpc.Broadcast(NetFlags.HostOnly)]
+	internal void ShowBulletImpact(Vector3 position)
+	{
+		if (Application.IsDedicatedServer)
+		{
+			return;
+		}
+
+		var markerObject = Scene.CreateObject();
+		markerObject.Name = "Bullet Hit Marker";
+		markerObject.Flags |= GameObjectFlags.NotNetworked | GameObjectFlags.NotSaved;
+		markerObject.WorldPosition = position;
+		markerObject.AddComponent<ScreenPanel>();
+		markerObject.AddComponent<GameHitMarker>();
 	}
 
 	public void AddExperience(int amount)
@@ -781,36 +793,6 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 		IncreaseMaxHealth(amount);
 	}
 
-	[Rpc.Broadcast(NetFlags.HostOnly)]
-	private void PlayFire(int holdType)
-	{
-		if (!Controller.Renderer.IsValid())
-		{
-			Log.Error("GamePlayer requires an animated renderer to fire.");
-			return;
-		}
-
-		Controller.Renderer.Set("holdtype", holdType);
-		Controller.Renderer.Set("b_attack", true);
-	}
-
-	protected override void OnPreRender()
-	{
-		if (Controller.Renderer.IsValid())
-		{
-			if (TryGetShotTransform(out var shotOrigin, out _)
-				&& TryGetAimDirection(WorldPosition.WithZ(shotOrigin.z), out var bodyDirection))
-			{
-				Controller.Renderer.WorldRotation = Rotation.LookAt(bodyDirection, Vector3.Up);
-			}
-
-			if (EquippedWeapon != null)
-			{
-				Controller.Renderer.Set("holdtype", (int)EquippedWeapon.HoldType);
-			}
-		}
-	}
-
 	protected override void OnDisabled()
 	{
 		base.OnDisabled();
@@ -819,9 +801,9 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 			Mouse.CursorType = "default";
 		}
 
-		if (!IsProxy && Controller.IsValid())
+		if (!IsProxy)
 		{
-			Controller.WishVelocity = Vector3.Zero;
+			StopMovement();
 		}
 	}
 }

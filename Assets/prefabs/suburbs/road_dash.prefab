@@ -1,0 +1,61 @@
+{
+  "RootObject": {
+    "__guid": "e79f5246-d957-47e2-b267-dc68bfd6d80a",
+    "__version": 2,
+    "Flags": 0,
+    "Name": "road_dash",
+    "Position": "0,0,0",
+    "Rotation": "0,0,0,1",
+    "Scale": "1,1,1",
+    "Tags": "",
+    "Enabled": true,
+    "NetworkMode": 0,
+    "NetworkFlags": 0,
+    "NetworkOrphaned": 0,
+    "NetworkTransmit": true,
+    "OwnerTransfer": 1,
+    "Components": [
+      {
+        "__type": "Sandbox.ModelRenderer",
+        "__guid": "530344eb-e38c-4994-8f5e-03031861e5e1",
+        "__enabled": true,
+        "Flags": 0,
+        "BodyGroups": 18446744073709551615,
+        "CreateAttachments": false,
+        "LodOverride": null,
+        "MaterialGroup": null,
+        "MaterialOverride": {
+          "Id": "eaa543a0-3df1-48b8-9cfd-1a27c5fc3dc7",
+          "Path": "materials/default.vmat"
+        },
+        "Materials": null,
+        "Model": {
+          "Id": "8a84e5a0-01f8-0000-f0db-b088f8010000",
+          "Path": "models/dev/box.vmdl"
+        },
+        "OnComponentDestroy": null,
+        "OnComponentDisabled": null,
+        "OnComponentEnabled": null,
+        "OnComponentFixedUpdate": null,
+        "OnComponentStart": null,
+        "OnComponentUpdate": null,
+        "RenderOptions": {
+          "GameLayer": true,
+          "OverlayLayer": false,
+          "BloomLayer": false,
+          "AfterUILayer": false
+        },
+        "RenderType": "Off",
+        "Tint": "0.92941,0.89804,0.79608,1"
+      }
+    ],
+    "Children": []
+  },
+  "ResourceVersion": 2,
+  "ShowInMenu": false,
+  "MenuPath": null,
+  "MenuIcon": null,
+  "DontBreakAsTemplate": false,
+  "__references": [],
+  "__version": 2
+}

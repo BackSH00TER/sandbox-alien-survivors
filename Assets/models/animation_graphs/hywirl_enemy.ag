@@ -1,0 +1,209 @@
+{
+  "Version": 1,
+  "nodes": [
+    {
+      "_class": "FloatParameterNode",
+      "ParameterIdentifier": "4cd47145-ed57-4f2b-9a2e-c0024a2e4293",
+      "ParameterName": "walk_phase",
+      "Identifier": "6644da19-57c7-4471-8dbd-c3e81f77fc3f",
+      "Position": "0,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "FloatParameterNode",
+      "ParameterIdentifier": "9d4da3dc-faeb-4211-ac9f-55535d63a09c",
+      "ParameterName": "melee_phase",
+      "Identifier": "8fd0f60d-038e-4f10-8674-aa2546b2e824",
+      "Position": "240,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "FloatParameterNode",
+      "ParameterIdentifier": "a3fe1f26-e682-4d87-b261-168bbb0b5385",
+      "ParameterName": "hit_phase",
+      "Identifier": "7e62027a-1c81-461a-b91b-277f09682389",
+      "Position": "480,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "FloatParameterNode",
+      "ParameterIdentifier": "690cd27e-df06-4e94-bb9a-0c00c611cfea",
+      "ParameterName": "melee_weight",
+      "Identifier": "4d183892-e4f5-434d-becb-2e6a29da2962",
+      "Position": "720,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "FloatParameterNode",
+      "ParameterIdentifier": "e6b8c3dd-d706-4df9-b43d-29f9444185eb",
+      "ParameterName": "hit_weight",
+      "Identifier": "a111af6b-0974-4c48-a23c-6524d2921968",
+      "Position": "960,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "TimeControlledAnimationClipNode",
+      "Time": {
+        "Identifier": "6644da19-57c7-4471-8dbd-c3e81f77fc3f",
+        "Output": "Value"
+      },
+      "SampleRootMotion": false,
+      "GraphEvents": [],
+      "DefaultVariationData": {
+        "AnimationName": "models/hywirl_animations/walk.anim"
+      },
+      "Overrides": [],
+      "Identifier": "bb980bd9-5b8f-4964-af73-eea491115fdc",
+      "Position": "1200,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "TimeControlledAnimationClipNode",
+      "Time": {
+        "Identifier": "8fd0f60d-038e-4f10-8674-aa2546b2e824",
+        "Output": "Value"
+      },
+      "SampleRootMotion": false,
+      "GraphEvents": [],
+      "DefaultVariationData": {
+        "AnimationName": "models/hywirl_animations/melee.anim"
+      },
+      "Overrides": [],
+      "Identifier": "3ec80439-fbcd-4016-8dc0-8aa78120d4de",
+      "Position": "1440,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "TimeControlledAnimationClipNode",
+      "Time": {
+        "Identifier": "7e62027a-1c81-461a-b91b-277f09682389",
+        "Output": "Value"
+      },
+      "SampleRootMotion": false,
+      "GraphEvents": [],
+      "DefaultVariationData": {
+        "AnimationName": "models/hywirl_animations/hit.anim"
+      },
+      "Overrides": [],
+      "Identifier": "1198fedf-095e-45fa-97ef-b523d38dc403",
+      "Position": "1680,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "LocalLayerNode",
+      "Input": {
+        "Identifier": "3ec80439-fbcd-4016-8dc0-8aa78120d4de",
+        "Output": "Result"
+      },
+      "Weight": {
+        "Identifier": "4d183892-e4f5-434d-becb-2e6a29da2962",
+        "Output": "Value"
+      },
+      "BlendMode": "Overlay",
+      "IsSynchronized": false,
+      "IgnoreEvents": true,
+      "Identifier": "25d36e17-7ab4-4a2b-951f-88366d7df7bf",
+      "Position": "1920,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "LocalLayerNode",
+      "Input": {
+        "Identifier": "1198fedf-095e-45fa-97ef-b523d38dc403",
+        "Output": "Result"
+      },
+      "Weight": {
+        "Identifier": "a111af6b-0974-4c48-a23c-6524d2921968",
+        "Output": "Value"
+      },
+      "BlendMode": "Overlay",
+      "IsSynchronized": false,
+      "IgnoreEvents": true,
+      "Identifier": "6900d9f1-5cfd-403a-9498-bdb31135a4eb",
+      "Position": "2160,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "LayerBlendNode",
+      "Base": {
+        "Identifier": "bb980bd9-5b8f-4964-af73-eea491115fdc",
+        "Output": "Result"
+      },
+      "Layers": [
+        {
+          "Identifier": "25d36e17-7ab4-4a2b-951f-88366d7df7bf",
+          "Output": "Layer"
+        },
+        {
+          "Identifier": "6900d9f1-5cfd-403a-9498-bdb31135a4eb",
+          "Output": "Layer"
+        }
+      ],
+      "OnlySampleBaseRootMotion": true,
+      "Identifier": "49f32e68-6ca5-4e8d-a836-e7c5d01ed16f",
+      "Position": "2400,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "PoseResultNode",
+      "Pose": {
+        "Identifier": "49f32e68-6ca5-4e8d-a836-e7c5d01ed16f",
+        "Output": "Result"
+      },
+      "Identifier": "b12792ce-1b7a-4003-88e4-a2bb3fcedc25",
+      "Position": "2640,0",
+      "HandleOffsets": {}
+    }
+  ],
+  "Model": "models/hywirl.vmdl",
+  "Skeleton": "models/hywirl.skel",
+  "parameters": [
+    {
+      "Identifier": "4cd47145-ed57-4f2b-9a2e-c0024a2e4293",
+      "Type": "Float",
+      "Name": "walk_phase",
+      "RuntimeDefaultFloat": 0,
+      "DefaultFloat": 0,
+      "Min": -1,
+      "Max": 1
+    },
+    {
+      "Identifier": "9d4da3dc-faeb-4211-ac9f-55535d63a09c",
+      "Type": "Float",
+      "Name": "melee_phase",
+      "RuntimeDefaultFloat": 0,
+      "DefaultFloat": 0,
+      "Min": -1,
+      "Max": 1
+    },
+    {
+      "Identifier": "a3fe1f26-e682-4d87-b261-168bbb0b5385",
+      "Type": "Float",
+      "Name": "hit_phase",
+      "RuntimeDefaultFloat": 0,
+      "DefaultFloat": 0,
+      "Min": -1,
+      "Max": 1
+    },
+    {
+      "Identifier": "690cd27e-df06-4e94-bb9a-0c00c611cfea",
+      "Type": "Float",
+      "Name": "melee_weight",
+      "RuntimeDefaultFloat": 0,
+      "DefaultFloat": 0,
+      "Min": -1,
+      "Max": 1
+    },
+    {
+      "Identifier": "e6b8c3dd-d706-4df9-b43d-29f9444185eb",
+      "Type": "Float",
+      "Name": "hit_weight",
+      "RuntimeDefaultFloat": 0,
+      "DefaultFloat": 0,
+      "Min": -1,
+      "Max": 1
+    }
+  ],
+  "virtualParameters": [],
+  "variations": []
+}

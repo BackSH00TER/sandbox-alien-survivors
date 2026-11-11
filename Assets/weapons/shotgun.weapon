@@ -8,7 +8,10 @@
   "ProjectileSpeed": 400,
   "ProjectileRadius": 2,
   "HoldType": "Shotgun",
-  "WorldModel": null,
+  "ModelPrefab": {
+    "Id": "6d027b4c-3256-4c93-a2b4-d65e047d5743",
+    "Path": "prefabs/weapons/shotgun.prefab"
+  },
   "__references": [],
   "__version": 0
 }

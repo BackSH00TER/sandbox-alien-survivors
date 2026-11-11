@@ -30,7 +30,7 @@ var tests = new (string Name, Action Run)[]
 	("loot callbacks apply effects and enforce eligibility", LootCatalogTests.Collection),
 	("loot rarity buckets preserve exact probabilities", LootCatalogTests.Drops),
 	("weapon crates drop only weapons with valid boundaries", LootCatalogTests.WeaponDrops),
-	("loot catalog preserves prototype visuals", LootCatalogTests.Visuals),
+	("loot catalog preserves consumable visuals and defers weapons to prefabs", LootCatalogTests.Visuals),
 	("invalid loot rolls and kinds are rejected", LootCatalogTests.Invalid),
 	("enemy aggro switches only after the cooldown", EnemyAggroTests.Cooldown),
 	("enemy aggro handles unavailable targets", EnemyAggroTests.Unavailable),

@@ -2,19 +2,19 @@ using Sandbox;
 
 public sealed class GameEnemySpawner : Component
 {
-	[Group("Enemy Spawning")] [Property] public GameObject EnemyPrefab { get; set; }
+	[Group("Enemy Spawning")][Property] public GameObject EnemyPrefab { get; set; }
 
-	[Group("Enemy Spawning")] [Property, Range(0.1f, 60f)] public float SpawnInterval { get; set; } = 3f;
+	[Group("Enemy Spawning")][Property, Range(0.1f, 60f)] public float SpawnInterval { get; set; } = 3f;
 
-	[Group("Enemy Spawning")] [Property, Range(0.1f, 60f), Description("Spawn interval reached when the ramp completes.")] public float MinimumSpawnInterval { get; set; } = 0.6f;
+	[Group("Enemy Spawning")][Property, Range(0.1f, 60f), Description("Spawn interval reached when the ramp completes.")] public float MinimumSpawnInterval { get; set; } = 0.6f;
 
-	[Group("Enemy Spawning")] [Property, Range(1f, 3600f), Description("Seconds of game time over which the spawn interval decreases from SpawnInterval to MinimumSpawnInterval.")] public float SpawnRampDuration { get; set; } = 60f;
+	[Group("Enemy Spawning")][Property, Range(1f, 3600f), Description("Seconds of game time over which the spawn interval decreases from SpawnInterval to MinimumSpawnInterval.")] public float SpawnRampDuration { get; set; } = 60f;
 
-	[Group("Enemy Spawning")] [Property, Range(0f, 1000f)] public float SpawnRadius { get; set; } = 400f;
+	[Group("Enemy Spawning")][Property, Range(0f, 1000f)] public float SpawnRadius { get; set; } = 400f;
 
-	[Group("Enemy Spawning")] [Property, Range(0f, 100f), Description("Percentage of spawns that explode after a short death fuse.")] public float ExplodingEnemyChance { get; set; } = 5f;
+	[Group("Enemy Spawning")][Property, Range(0f, 100f), Description("Percentage of spawns that explode after a short death fuse.")] public float ExplodingEnemyChance { get; set; } = 5f;
 
-	[Group("Enemy Spawning")] [Property, Range(0f, 100f), Description("Percentage of spawns that shoot projectiles. Exploders take priority if the total exceeds 100%.")] public float RangedEnemyChance { get; set; } = 5f;
+	[Group("Enemy Spawning")][Property, Range(0f, 100f), Description("Percentage of spawns that shoot projectiles. Exploders take priority if the total exceeds 100%.")] public float RangedEnemyChance { get; set; } = 5f;
 
 	private readonly System.Random _random = new();
 	private float _spawnTimer;
@@ -105,9 +105,8 @@ public sealed class GameEnemySpawner : Component
 
 		if (isBoss)
 		{
-			var ground = Scene.Trace.FromTo(spawnPosition + Vector3.Up * 64f,
-				spawnPosition - Vector3.Up * 2000f).Run();
-			if (!ground.Hit)
+			var ground = GameEntity.FindSpawnGround(Scene, spawnPosition);
+			if (!ground.Hit || ground.StartedSolid)
 			{
 				Log.Error("Cannot spawn boss without ground beneath its spawn position.");
 				return null;

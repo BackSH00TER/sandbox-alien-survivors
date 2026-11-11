@@ -56,7 +56,7 @@ internal static class GameDebugTools
 
 	public static void SpawnFlarePickup(GamePlayer player)
 	{
-		var position = player.WorldPosition + player.Controller.EyeAngles.ToRotation().Forward * 80f;
+		var position = player.WorldPosition + player.FacingDirection * 80f;
 		var definition = GameLootCatalog.Get(LootKind.Flare);
 		GameLootPickup.Spawn(
 			groundPosition: position,
@@ -285,14 +285,7 @@ internal static class GameDebugTools
 			return false;
 		}
 
-		if (!player.Controller.IsValid())
-		{
-			Log.Error("Debug spawning requires a player controller.");
-			return false;
-		}
-
-		var yawRotation = Rotation.FromYaw(player.Controller.EyeAngles.yaw);
-		var candidate = player.WorldPosition + yawRotation.Forward * 120f;
+		var candidate = player.WorldPosition + player.FacingDirection * 120f;
 		var ground = player.Scene.Trace
 			.FromTo(candidate + Vector3.Up * 64f, candidate - Vector3.Up * 256f)
 			.IgnoreGameObjectHierarchy(player.GameObject)

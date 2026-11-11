@@ -78,12 +78,100 @@ public abstract class GameEntity : Component
 
 	protected override void OnStart()
 	{
-		var blood = GameObject.GetOrAddComponent<GameBloodiedModel>();
-		blood.Flags |= ComponentFlags.NotNetworked | ComponentFlags.NotSaved;
+		if (!Application.IsDedicatedServer)
+		{
+			var blood = GameObject.GetOrAddComponent<GameBloodiedModel>();
+			blood.Flags |= ComponentFlags.NotNetworked | ComponentFlags.NotSaved;
+		}
 		if (Networking.IsHost)
 		{
 			Health = MaxHealth;
 		}
+	}
+
+	internal static SceneTraceResult FindSpawnGround(Scene scene, Vector3 position)
+	{
+		var trace = scene.Trace
+			.FromTo(position + Vector3.Up * 64f, position - Vector3.Up * 2000f)
+			.WithoutTags(EnemyRagdollCollisionTag);
+		foreach (var entity in scene.GetAllComponents<GameEntity>())
+		{
+			if (entity is GamePlayer or GameEnemy)
+			{
+				trace = trace.IgnoreGameObjectHierarchy(entity.GameObject);
+			}
+		}
+
+		return trace.Run();
+	}
+
+	protected void EnsureCapsuleHitbox(float radius, float height)
+	{
+		var collider = GetComponent<CapsuleCollider>();
+		if (!collider.IsValid())
+		{
+			collider = GameObject.AddComponent<CapsuleCollider>();
+		}
+
+		collider.Radius = radius;
+		collider.Start = Vector3.Up * radius;
+		collider.End = Vector3.Up * System.MathF.Max(radius, height - radius);
+	}
+
+	protected Vector3 MoveWithWorldCollision(Vector3 displacement, float radius, float collisionHeight)
+	{
+		if (displacement.LengthSquared <= 0.001f)
+		{
+			return Vector3.Zero;
+		}
+
+		var start = WorldPosition + Vector3.Up * collisionHeight;
+		var end = start + displacement;
+		var trace = CreateMovementTrace(radius, start, end).Run();
+		if (!trace.Hit && !trace.StartedSolid)
+		{
+			return displacement;
+		}
+
+		if (trace.StartedSolid)
+		{
+			return Vector3.Zero;
+		}
+
+		var moved = trace.EndPosition - start;
+		var remaining = displacement - moved;
+		var slide = remaining - trace.Normal * System.MathF.Min(0f, remaining.Dot(trace.Normal));
+		if (slide.LengthSquared <= 0.001f)
+		{
+			return moved;
+		}
+
+		var slideTrace = CreateMovementTrace(
+			radius: radius,
+			start: trace.EndPosition,
+			end: trace.EndPosition + slide
+		).Run();
+		return moved + (slideTrace.Hit ? slideTrace.EndPosition - trace.EndPosition : slide);
+	}
+
+	private SceneTrace CreateMovementTrace(float radius, Vector3 start, Vector3 end)
+	{
+		var trace = Scene.Trace.Sphere(
+			radius: radius,
+			from: start,
+			to: end
+		).IgnoreGameObjectHierarchy(GameObject);
+		foreach (var player in Scene.GetAllComponents<GamePlayer>())
+		{
+			trace = trace.IgnoreGameObjectHierarchy(player.GameObject);
+		}
+
+		foreach (var enemy in Scene.GetAllComponents<GameEnemy>())
+		{
+			trace = trace.IgnoreGameObjectHierarchy(enemy.GameObject);
+		}
+
+		return trace;
 	}
 
 	internal static bool AddCollisionTag(Rigidbody rigidbody, string tag)
@@ -174,21 +262,46 @@ public abstract class GameEntity : Component
 		OnDamaged(hitDirection);
 		if (wasKill)
 		{
+			if (this is GameEnemy)
+			{
+				ShowDeathBlood(hitDirection);
+			}
 			ClearDamageEffects();
 			OnHealthDepleted();
 		}
 	}
 
 	[Rpc.Broadcast(NetFlags.HostOnly)]
+	private void ShowDeathBlood(Vector3 hitDirection)
+	{
+		var direction = hitDirection.LengthSquared > 0.001f ? hitDirection.Normal : Vector3.Forward;
+		var position = WorldPosition + Vector3.Up * GameWeaponProjectile.CollisionHeight;
+		BloodImpactVisual.Spawn(
+			scene: Scene,
+			position: position,
+			direction: direction
+		);
+	}
+
+	[Rpc.Broadcast(NetFlags.HostOnly)]
 	private void ShowDamageNumber(float damage)
 	{
+		if (Application.IsDedicatedServer)
+		{
+			return;
+		}
+
 		var damageNumberObject = Scene.CreateObject();
 		damageNumberObject.Name = "Damage Number";
 		damageNumberObject.Flags |= GameObjectFlags.NotNetworked | GameObjectFlags.NotSaved;
-		damageNumberObject.WorldPosition = WorldPosition + Vector3.Up * 72f;
+		var isPlayerDamage = this is GamePlayer;
+		var popupHeight = isPlayerDamage ? 120f : 72f;
+		damageNumberObject.WorldPosition = WorldPosition + Vector3.Up * popupHeight;
 
 		damageNumberObject.Components.Create<ScreenPanel>();
-		damageNumberObject.Components.Create<GameDamageNumber>().Damage = damage;
+		var damageNumber = damageNumberObject.Components.Create<GameDamageNumber>();
+		damageNumber.Damage = damage;
+		damageNumber.IsPlayerDamage = isPlayerDamage;
 	}
 
 	protected void ApplyEnemyDamageEffect(
@@ -557,8 +670,9 @@ public abstract class GameEntity : Component
 	{
 	}
 
-	protected void Punch<T>(PlayerController controller, float range, float damage) where T : GameEntity
+	protected void Punch<T>(Vector3 forward, float range, float damage) where T : GameEntity
 	{
+		forward = forward.WithZ(0f).Normal;
 		T target = null;
 		var closestDistanceSquared = range * range;
 		foreach (var candidate in Scene.GetAllComponents<T>())
@@ -571,7 +685,7 @@ public abstract class GameEntity : Component
 			var offset = candidate.WorldPosition - WorldPosition;
 			var direction = new Vector3(offset.x, offset.y, 0f);
 			if (offset.LengthSquared > closestDistanceSquared
-				|| (direction.LengthSquared > 0.001f && direction.Normal.Dot(controller.EyeAngles.ToRotation().Forward) < PunchFacingThreshold))
+				|| (direction.LengthSquared > 0.001f && direction.Normal.Dot(forward) < PunchFacingThreshold))
 			{
 				continue;
 			}
@@ -591,7 +705,7 @@ public abstract class GameEntity : Component
 
 		if (ShowAttackHitboxes)
 		{
-			DrawPunchHitbox(WorldPosition, controller.EyeAngles.ToRotation().Forward, range,
+			DrawPunchHitbox(WorldPosition, forward, range,
 				target != null, target?.WorldPosition ?? WorldPosition);
 		}
 
@@ -622,13 +736,21 @@ public abstract class GameEntity : Component
 	[Rpc.Broadcast(NetFlags.HostOnly)]
 	private void FlashHit()
 	{
-		_flashMaterial ??= Material.Create("entity_hit_flash", "shaders/hit_flash.shader");
+		if (Application.IsDedicatedServer)
+		{
+			return;
+		}
+
+		var isPlayer = this is GamePlayer;
+		var materialName = isPlayer ? "player_hit_flash" : "entity_hit_flash";
+		_flashMaterial ??= Material.Create(materialName, "shaders/hit_flash.shader");
 		_flashEndTime = Time.Now + HitFlashDuration;
 		ApplyHitFlash();
 	}
 
 	private void ApplyHitFlash()
 	{
+		var flashColor = this is GamePlayer ? Color.Red : Color.White;
 		foreach (var renderer in GetComponentsInChildren<ModelRenderer>())
 		{
 			if (!_originalMaterials.ContainsKey(renderer))
@@ -637,6 +759,7 @@ public abstract class GameEntity : Component
 			}
 
 			renderer.MaterialOverride = _flashMaterial;
+			renderer.Attributes.Set("FlashColor", flashColor);
 		}
 	}
 

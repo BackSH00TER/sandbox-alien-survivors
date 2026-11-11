@@ -1,5 +1,18 @@
 using Sandbox;
 
+public enum GameWeaponHoldType
+{
+	None = 0,
+	Pistol = 1,
+	Rifle = 2,
+	Shotgun = 3,
+	HoldItem = 4,
+	Punch = 5,
+	Swing = 6,
+	RPG = 7,
+	Physgun = 8
+}
+
 /// <summary>Base weapon stats; player modifiers are applied without changing the shared resource.</summary>
 [AssetType(Name = "Weapon", Extension = "weapon", Category = "weapons")]
 public sealed partial class GameWeaponDefinition : GameResource
@@ -12,9 +25,8 @@ public sealed partial class GameWeaponDefinition : GameResource
 	[Property, Range(1f, 10000f)] public float Range { get; set; } = 600f;
 	[Property, Range(1f, 10000f)] public float ProjectileSpeed { get; set; } = 450f;
 	[Property, Range(0.1f, 16f)] public float ProjectileRadius { get; set; } = 2f;
-	[Property] public Sandbox.Citizen.CitizenAnimationHelper.HoldTypes HoldType { get; set; }
-		= Sandbox.Citizen.CitizenAnimationHelper.HoldTypes.Pistol;
-	[Property, Description("Optional model aligned to the character's hold_R attachment, with a muzzle attachment for bullet and laser origin. Aim direction is independent of model animation. Leave empty for a prototype model matching the hold type.")] public Model WorldModel { get; set; }
+	[Property, Description("Character weapon hold style; independent of the weapon visual.")] public GameWeaponHoldType HoldType { get; set; } = GameWeaponHoldType.Pistol;
+	[Property, Description("Weapon visual prefab with its grip at the root and a GameWeaponModel muzzle marker. Used for held weapons and pickups.")] public PrefabFile ModelPrefab { get; set; }
 
 	public bool Validate()
 	{
@@ -28,6 +40,12 @@ public sealed partial class GameWeaponDefinition : GameResource
 			|| !float.IsFinite(ProjectileRadius) || ProjectileRadius <= 0f)
 		{
 			Log.Error($"Weapon '{ResourcePath}' has invalid firing stats.");
+			return false;
+		}
+
+		if (ModelPrefab == null)
+		{
+			Log.Error($"Weapon '{ResourcePath}' requires a model prefab.");
 			return false;
 		}
 

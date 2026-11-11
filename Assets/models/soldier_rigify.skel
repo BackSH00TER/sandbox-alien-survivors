@@ -1,0 +1,190 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:generic:version{7412167c-06e9-4698-aff2-e63eb59037e7} -->
+{
+	_class = "CSkeletonDocument"
+	m_sourceFilename = "models/soldier_rigify.fbx"
+	m_flGlobalScale = 1
+	m_rootBoneName = ""
+	m_previewModel = 
+	{
+		Id = "17d87819-186c-42d6-b6ff-0af2c1a554f2"
+		Path = "models/soldier_rigify.vmdl"
+	}
+	m_additionalSourceFilenames = [  ]
+	m_boneMaskSetDefinitions = 
+	[
+		{
+			m_ID = "lower_body"
+			m_primaryWeightList = 
+			{
+				m_boneIDs = 
+				[
+					"root",
+					"DEF_spine",
+					"DEF_spine_001",
+					"DEF_spine_002",
+					"DEF_spine_003",
+					"DEF_spine_004",
+					"DEF_spine_005",
+					"DEF_spine_006",
+					"DEF_pelvis_L",
+					"DEF_pelvis_R",
+					"DEF_thigh_L",
+					"DEF_thigh_L_001",
+					"DEF_shin_L",
+					"DEF_shin_L_001",
+					"DEF_foot_L",
+					"DEF_toe_L",
+					"DEF_thigh_R",
+					"DEF_thigh_R_001",
+					"DEF_shin_R",
+					"DEF_shin_R_001",
+					"DEF_foot_R",
+					"DEF_toe_R",
+					"DEF_f_index_01_L",
+					"DEF_f_index_02_L",
+					"DEF_f_index_03_L",
+					"DEF_f_middle_01_L",
+					"DEF_f_middle_02_L",
+					"DEF_f_middle_03_L",
+					"DEF_f_pinky_01_L",
+					"DEF_f_pinky_02_L",
+					"DEF_f_pinky_03_L",
+					"DEF_thumb_01_L",
+					"DEF_thumb_02_L",
+					"DEF_thumb_03_L",
+					"DEF_shoulder_L",
+					"DEF_upper_arm_L",
+					"DEF_upper_arm_L_001",
+					"DEF_forearm_L",
+					"DEF_forearm_L_001",
+					"DEF_hand_L",
+					"DEF_f_index_01_R",
+					"DEF_f_index_02_R",
+					"DEF_f_index_03_R",
+					"DEF_f_middle_01_R",
+					"DEF_f_middle_02_R",
+					"DEF_f_middle_03_R",
+					"DEF_f_pinky_01_R",
+					"DEF_f_pinky_02_R",
+					"DEF_f_pinky_03_R",
+					"DEF_thumb_01_R",
+					"DEF_thumb_02_R",
+					"DEF_thumb_03_R",
+					"DEF_shoulder_R",
+					"DEF_upper_arm_R",
+					"DEF_upper_arm_R_001",
+					"DEF_forearm_R",
+					"DEF_forearm_R_001",
+					"DEF_hand_R",
+				]
+				m_weights = 
+				[
+					0, 0, 0, 0,
+					0, 0, 0, 0,
+					1, 1, 1, 1,
+					1, 1, 1, 1,
+					1, 1, 1, 1,
+					1, 1, 0, 0,
+					0, 0, 0, 0,
+					0, 0, 0, 0,
+					0, 0, 0, 0,
+					0, 0, 0, 0,
+					0, 0, 0, 0,
+					0, 0, 0, 0,
+					0, 0, 0, 0,
+					0, 0, 0, 0,
+					0, 0,
+				]
+				m_defaultFloatChannelWeight = 1
+			}
+		},
+		{
+			m_ID = "upper_body"
+			m_primaryWeightList = 
+			{
+				m_boneIDs = 
+				[
+					"root",
+					"DEF_spine",
+					"DEF_spine_001",
+					"DEF_spine_002",
+					"DEF_spine_003",
+					"DEF_spine_004",
+					"DEF_spine_005",
+					"DEF_spine_006",
+					"DEF_pelvis_L",
+					"DEF_pelvis_R",
+					"DEF_thigh_L",
+					"DEF_thigh_L_001",
+					"DEF_shin_L",
+					"DEF_shin_L_001",
+					"DEF_foot_L",
+					"DEF_toe_L",
+					"DEF_thigh_R",
+					"DEF_thigh_R_001",
+					"DEF_shin_R",
+					"DEF_shin_R_001",
+					"DEF_foot_R",
+					"DEF_toe_R",
+					"DEF_f_index_01_L",
+					"DEF_f_index_02_L",
+					"DEF_f_index_03_L",
+					"DEF_f_middle_01_L",
+					"DEF_f_middle_02_L",
+					"DEF_f_middle_03_L",
+					"DEF_f_pinky_01_L",
+					"DEF_f_pinky_02_L",
+					"DEF_f_pinky_03_L",
+					"DEF_thumb_01_L",
+					"DEF_thumb_02_L",
+					"DEF_thumb_03_L",
+					"DEF_shoulder_L",
+					"DEF_upper_arm_L",
+					"DEF_upper_arm_L_001",
+					"DEF_forearm_L",
+					"DEF_forearm_L_001",
+					"DEF_hand_L",
+					"DEF_f_index_01_R",
+					"DEF_f_index_02_R",
+					"DEF_f_index_03_R",
+					"DEF_f_middle_01_R",
+					"DEF_f_middle_02_R",
+					"DEF_f_middle_03_R",
+					"DEF_f_pinky_01_R",
+					"DEF_f_pinky_02_R",
+					"DEF_f_pinky_03_R",
+					"DEF_thumb_01_R",
+					"DEF_thumb_02_R",
+					"DEF_thumb_03_R",
+					"DEF_shoulder_R",
+					"DEF_upper_arm_R",
+					"DEF_upper_arm_R_001",
+					"DEF_forearm_R",
+					"DEF_forearm_R_001",
+					"DEF_hand_R",
+				]
+				m_weights = 
+				[
+					0, 0, 1, 1,
+					1, 1, 1, 1,
+					0, 0, 0, 0,
+					0, 0, 0, 0,
+					0, 0, 0, 0,
+					0, 0, 1, 1,
+					1, 1, 1, 1,
+					1, 1, 1, 1,
+					1, 1, 1, 1,
+					1, 1, 1, 1,
+					1, 1, 1, 1,
+					1, 1, 1, 1,
+					1, 1, 1, 1,
+					1, 1, 1, 1,
+					1, 1,
+				]
+				m_defaultFloatChannelWeight = 1
+			}
+		},
+	]
+	m_highLODBones = [  ]
+	m_floatChannelSets = [  ]
+}

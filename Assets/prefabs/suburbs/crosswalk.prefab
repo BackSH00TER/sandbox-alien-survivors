@@ -1,0 +1,392 @@
+{
+  "RootObject": {
+    "__guid": "8e93380e-e218-4fa8-92b1-1ab502a31100",
+    "__version": 2,
+    "Flags": 0,
+    "Name": "crosswalk",
+    "Position": "0,0,0",
+    "Rotation": "0,0,0,1",
+    "Scale": "1,1,1",
+    "Tags": "",
+    "Enabled": true,
+    "NetworkMode": 0,
+    "NetworkFlags": 0,
+    "NetworkOrphaned": 0,
+    "NetworkTransmit": true,
+    "OwnerTransfer": 1,
+    "Components": [],
+    "Children": [
+      {
+        "__guid": "e7e41366-85ad-40c3-ab8b-0e2e3e35988c",
+        "__version": 2,
+        "Flags": 0,
+        "Name": "Crosswalk Stripe",
+        "Position": "0,-102,0.699999988",
+        "Rotation": "0,0,0,1",
+        "Scale": "0.959999979,0.360000014,0.00200000009",
+        "Tags": "",
+        "Enabled": true,
+        "NetworkMode": 0,
+        "NetworkFlags": 0,
+        "NetworkOrphaned": 0,
+        "NetworkTransmit": true,
+        "OwnerTransfer": 1,
+        "Components": [
+          {
+            "__type": "Sandbox.ModelRenderer",
+            "__guid": "6ac1f03e-430a-4a2c-bba1-9c878d8acd5d",
+            "__enabled": true,
+            "Flags": 0,
+            "BodyGroups": 18446744073709551615,
+            "CreateAttachments": false,
+            "LodOverride": null,
+            "MaterialGroup": null,
+            "MaterialOverride": {
+              "Id": "eaa543a0-3df1-48b8-9cfd-1a27c5fc3dc7",
+              "Path": "materials/default.vmat"
+            },
+            "Materials": null,
+            "Model": {
+              "Id": "8a84e5a0-01f8-0000-f0db-b088f8010000",
+              "Path": "models/dev/box.vmdl"
+            },
+            "OnComponentDestroy": null,
+            "OnComponentDisabled": null,
+            "OnComponentEnabled": null,
+            "OnComponentFixedUpdate": null,
+            "OnComponentStart": null,
+            "OnComponentUpdate": null,
+            "RenderOptions": {
+              "GameLayer": true,
+              "OverlayLayer": false,
+              "BloomLayer": false,
+              "AfterUILayer": false
+            },
+            "RenderType": "Off",
+            "Tint": "0.92941,0.89804,0.79608,1"
+          }
+        ],
+        "Children": []
+      },
+      {
+        "__guid": "f14b469c-eef2-41c4-bb11-0be6aa2cda46",
+        "__version": 2,
+        "Flags": 0,
+        "Name": "Crosswalk Stripe",
+        "Position": "0,-68,0.699999988",
+        "Rotation": "0,0,0,1",
+        "Scale": "0.959999979,0.360000014,0.00200000009",
+        "Tags": "",
+        "Enabled": true,
+        "NetworkMode": 0,
+        "NetworkFlags": 0,
+        "NetworkOrphaned": 0,
+        "NetworkTransmit": true,
+        "OwnerTransfer": 1,
+        "Components": [
+          {
+            "__type": "Sandbox.ModelRenderer",
+            "__guid": "3918a110-9bd5-4486-b831-eb5f3078595e",
+            "__enabled": true,
+            "Flags": 0,
+            "BodyGroups": 18446744073709551615,
+            "CreateAttachments": false,
+            "LodOverride": null,
+            "MaterialGroup": null,
+            "MaterialOverride": {
+              "Id": "eaa543a0-3df1-48b8-9cfd-1a27c5fc3dc7",
+              "Path": "materials/default.vmat"
+            },
+            "Materials": null,
+            "Model": {
+              "Id": "8a84e5a0-01f8-0000-f0db-b088f8010000",
+              "Path": "models/dev/box.vmdl"
+            },
+            "OnComponentDestroy": null,
+            "OnComponentDisabled": null,
+            "OnComponentEnabled": null,
+            "OnComponentFixedUpdate": null,
+            "OnComponentStart": null,
+            "OnComponentUpdate": null,
+            "RenderOptions": {
+              "GameLayer": true,
+              "OverlayLayer": false,
+              "BloomLayer": false,
+              "AfterUILayer": false
+            },
+            "RenderType": "Off",
+            "Tint": "0.92941,0.89804,0.79608,1"
+          }
+        ],
+        "Children": []
+      },
+      {
+        "__guid": "2bd307a9-6256-48d7-b1bb-b3bbcf14ca06",
+        "__version": 2,
+        "Flags": 0,
+        "Name": "Crosswalk Stripe",
+        "Position": "0,-34,0.699999988",
+        "Rotation": "0,0,0,1",
+        "Scale": "0.959999979,0.360000014,0.00200000009",
+        "Tags": "",
+        "Enabled": true,
+        "NetworkMode": 0,
+        "NetworkFlags": 0,
+        "NetworkOrphaned": 0,
+        "NetworkTransmit": true,
+        "OwnerTransfer": 1,
+        "Components": [
+          {
+            "__type": "Sandbox.ModelRenderer",
+            "__guid": "519358a7-91b0-4f48-953b-625a51422447",
+            "__enabled": true,
+            "Flags": 0,
+            "BodyGroups": 18446744073709551615,
+            "CreateAttachments": false,
+            "LodOverride": null,
+            "MaterialGroup": null,
+            "MaterialOverride": {
+              "Id": "eaa543a0-3df1-48b8-9cfd-1a27c5fc3dc7",
+              "Path": "materials/default.vmat"
+            },
+            "Materials": null,
+            "Model": {
+              "Id": "8a84e5a0-01f8-0000-f0db-b088f8010000",
+              "Path": "models/dev/box.vmdl"
+            },
+            "OnComponentDestroy": null,
+            "OnComponentDisabled": null,
+            "OnComponentEnabled": null,
+            "OnComponentFixedUpdate": null,
+            "OnComponentStart": null,
+            "OnComponentUpdate": null,
+            "RenderOptions": {
+              "GameLayer": true,
+              "OverlayLayer": false,
+              "BloomLayer": false,
+              "AfterUILayer": false
+            },
+            "RenderType": "Off",
+            "Tint": "0.92941,0.89804,0.79608,1"
+          }
+        ],
+        "Children": []
+      },
+      {
+        "__guid": "d97a4ab6-e5dc-4f4f-bf91-106640441b3a",
+        "__version": 2,
+        "Flags": 0,
+        "Name": "Crosswalk Stripe",
+        "Position": "0,0,0.699999988",
+        "Rotation": "0,0,0,1",
+        "Scale": "0.959999979,0.360000014,0.00200000009",
+        "Tags": "",
+        "Enabled": true,
+        "NetworkMode": 0,
+        "NetworkFlags": 0,
+        "NetworkOrphaned": 0,
+        "NetworkTransmit": true,
+        "OwnerTransfer": 1,
+        "Components": [
+          {
+            "__type": "Sandbox.ModelRenderer",
+            "__guid": "35c701c4-e645-4bf3-8b32-fabef9c41da8",
+            "__enabled": true,
+            "Flags": 0,
+            "BodyGroups": 18446744073709551615,
+            "CreateAttachments": false,
+            "LodOverride": null,
+            "MaterialGroup": null,
+            "MaterialOverride": {
+              "Id": "eaa543a0-3df1-48b8-9cfd-1a27c5fc3dc7",
+              "Path": "materials/default.vmat"
+            },
+            "Materials": null,
+            "Model": {
+              "Id": "8a84e5a0-01f8-0000-f0db-b088f8010000",
+              "Path": "models/dev/box.vmdl"
+            },
+            "OnComponentDestroy": null,
+            "OnComponentDisabled": null,
+            "OnComponentEnabled": null,
+            "OnComponentFixedUpdate": null,
+            "OnComponentStart": null,
+            "OnComponentUpdate": null,
+            "RenderOptions": {
+              "GameLayer": true,
+              "OverlayLayer": false,
+              "BloomLayer": false,
+              "AfterUILayer": false
+            },
+            "RenderType": "Off",
+            "Tint": "0.92941,0.89804,0.79608,1"
+          }
+        ],
+        "Children": []
+      },
+      {
+        "__guid": "50a3df36-d704-480d-b12d-2b59819a1090",
+        "__version": 2,
+        "Flags": 0,
+        "Name": "Crosswalk Stripe",
+        "Position": "0,34,0.699999988",
+        "Rotation": "0,0,0,1",
+        "Scale": "0.959999979,0.360000014,0.00200000009",
+        "Tags": "",
+        "Enabled": true,
+        "NetworkMode": 0,
+        "NetworkFlags": 0,
+        "NetworkOrphaned": 0,
+        "NetworkTransmit": true,
+        "OwnerTransfer": 1,
+        "Components": [
+          {
+            "__type": "Sandbox.ModelRenderer",
+            "__guid": "1243187b-6eef-4f48-8575-975994cf1972",
+            "__enabled": true,
+            "Flags": 0,
+            "BodyGroups": 18446744073709551615,
+            "CreateAttachments": false,
+            "LodOverride": null,
+            "MaterialGroup": null,
+            "MaterialOverride": {
+              "Id": "eaa543a0-3df1-48b8-9cfd-1a27c5fc3dc7",
+              "Path": "materials/default.vmat"
+            },
+            "Materials": null,
+            "Model": {
+              "Id": "8a84e5a0-01f8-0000-f0db-b088f8010000",
+              "Path": "models/dev/box.vmdl"
+            },
+            "OnComponentDestroy": null,
+            "OnComponentDisabled": null,
+            "OnComponentEnabled": null,
+            "OnComponentFixedUpdate": null,
+            "OnComponentStart": null,
+            "OnComponentUpdate": null,
+            "RenderOptions": {
+              "GameLayer": true,
+              "OverlayLayer": false,
+              "BloomLayer": false,
+              "AfterUILayer": false
+            },
+            "RenderType": "Off",
+            "Tint": "0.92941,0.89804,0.79608,1"
+          }
+        ],
+        "Children": []
+      },
+      {
+        "__guid": "b1ee21fc-a598-426e-8948-8950b5f1b84f",
+        "__version": 2,
+        "Flags": 0,
+        "Name": "Crosswalk Stripe",
+        "Position": "0,68,0.699999988",
+        "Rotation": "0,0,0,1",
+        "Scale": "0.959999979,0.360000014,0.00200000009",
+        "Tags": "",
+        "Enabled": true,
+        "NetworkMode": 0,
+        "NetworkFlags": 0,
+        "NetworkOrphaned": 0,
+        "NetworkTransmit": true,
+        "OwnerTransfer": 1,
+        "Components": [
+          {
+            "__type": "Sandbox.ModelRenderer",
+            "__guid": "f601243d-4df7-48ad-a081-7f9ebaaf3429",
+            "__enabled": true,
+            "Flags": 0,
+            "BodyGroups": 18446744073709551615,
+            "CreateAttachments": false,
+            "LodOverride": null,
+            "MaterialGroup": null,
+            "MaterialOverride": {
+              "Id": "eaa543a0-3df1-48b8-9cfd-1a27c5fc3dc7",
+              "Path": "materials/default.vmat"
+            },
+            "Materials": null,
+            "Model": {
+              "Id": "8a84e5a0-01f8-0000-f0db-b088f8010000",
+              "Path": "models/dev/box.vmdl"
+            },
+            "OnComponentDestroy": null,
+            "OnComponentDisabled": null,
+            "OnComponentEnabled": null,
+            "OnComponentFixedUpdate": null,
+            "OnComponentStart": null,
+            "OnComponentUpdate": null,
+            "RenderOptions": {
+              "GameLayer": true,
+              "OverlayLayer": false,
+              "BloomLayer": false,
+              "AfterUILayer": false
+            },
+            "RenderType": "Off",
+            "Tint": "0.92941,0.89804,0.79608,1"
+          }
+        ],
+        "Children": []
+      },
+      {
+        "__guid": "8c79ab77-41da-4d19-8b21-3896bd42e279",
+        "__version": 2,
+        "Flags": 0,
+        "Name": "Crosswalk Stripe",
+        "Position": "0,102,0.699999988",
+        "Rotation": "0,0,0,1",
+        "Scale": "0.959999979,0.360000014,0.00200000009",
+        "Tags": "",
+        "Enabled": true,
+        "NetworkMode": 0,
+        "NetworkFlags": 0,
+        "NetworkOrphaned": 0,
+        "NetworkTransmit": true,
+        "OwnerTransfer": 1,
+        "Components": [
+          {
+            "__type": "Sandbox.ModelRenderer",
+            "__guid": "7b7a7bf4-4b27-419f-818e-e328aa5281db",
+            "__enabled": true,
+            "Flags": 0,
+            "BodyGroups": 18446744073709551615,
+            "CreateAttachments": false,
+            "LodOverride": null,
+            "MaterialGroup": null,
+            "MaterialOverride": {
+              "Id": "eaa543a0-3df1-48b8-9cfd-1a27c5fc3dc7",
+              "Path": "materials/default.vmat"
+            },
+            "Materials": null,
+            "Model": {
+              "Id": "8a84e5a0-01f8-0000-f0db-b088f8010000",
+              "Path": "models/dev/box.vmdl"
+            },
+            "OnComponentDestroy": null,
+            "OnComponentDisabled": null,
+            "OnComponentEnabled": null,
+            "OnComponentFixedUpdate": null,
+            "OnComponentStart": null,
+            "OnComponentUpdate": null,
+            "RenderOptions": {
+              "GameLayer": true,
+              "OverlayLayer": false,
+              "BloomLayer": false,
+              "AfterUILayer": false
+            },
+            "RenderType": "Off",
+            "Tint": "0.92941,0.89804,0.79608,1"
+          }
+        ],
+        "Children": []
+      }
+    ]
+  },
+  "ResourceVersion": 2,
+  "ShowInMenu": false,
+  "MenuPath": null,
+  "MenuIcon": null,
+  "DontBreakAsTemplate": false,
+  "__references": [],
+  "__version": 2
+}

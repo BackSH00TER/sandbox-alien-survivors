@@ -1,0 +1,54 @@
+{
+  "Version": 1,
+  "nodes": [
+    {
+      "_class": "FloatParameterNode",
+      "ParameterIdentifier": "18fee7ba-887f-497a-bc1a-e6b92f36d04d",
+      "ParameterName": "idle_phase",
+      "Identifier": "81425d32-fbc2-4aab-a4fe-9288882fdba9",
+      "Position": "0,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "TimeControlledAnimationClipNode",
+      "Time": {
+        "Identifier": "81425d32-fbc2-4aab-a4fe-9288882fdba9",
+        "Output": "Value"
+      },
+      "SampleRootMotion": false,
+      "GraphEvents": [],
+      "DefaultVariationData": {
+        "AnimationName": "models/soldier_animations/idle.anim"
+      },
+      "Overrides": [],
+      "Identifier": "0abf0e6b-54f4-442f-ae4b-fcd194bfb2e2",
+      "Position": "240,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "PoseResultNode",
+      "Pose": {
+        "Identifier": "0abf0e6b-54f4-442f-ae4b-fcd194bfb2e2",
+        "Output": "Result"
+      },
+      "Identifier": "dce960e7-0911-43a7-893d-6c1f320ecf40",
+      "Position": "480,0",
+      "HandleOffsets": {}
+    }
+  ],
+  "Model": "models/soldier_rigify.vmdl",
+  "Skeleton": "models/soldier_rigify.skel",
+  "parameters": [
+    {
+      "Identifier": "18fee7ba-887f-497a-bc1a-e6b92f36d04d",
+      "Type": "Float",
+      "Name": "idle_phase",
+      "RuntimeDefaultFloat": 0,
+      "DefaultFloat": 0,
+      "Min": -1,
+      "Max": 1
+    }
+  ],
+  "virtualParameters": [],
+  "variations": []
+}

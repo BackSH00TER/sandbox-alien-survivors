@@ -89,7 +89,7 @@ public sealed class GameEnemyBoss : Component
 	}
 
 	/// <summary>Predicts the target's position at impact, then locks the warning so changing direction avoids it.</summary>
-	public bool TryStunAttack(PlayerController target)
+	public bool TryStunAttack(GamePlayer target)
 	{
 		if (!Networking.IsHost || IsProxy)
 		{
@@ -128,14 +128,7 @@ public sealed class GameEnemyBoss : Component
 			return false;
 		}
 
-		if (!target.Body.IsValid())
-		{
-			Log.Error("Boss stun prediction requires the target's controller body.");
-			return false;
-		}
-
-		var velocity = target.Body.Velocity;
-		var horizontalVelocity = new Vector3(velocity.x, velocity.y, 0f);
+		var horizontalVelocity = target.MovementVelocity.WithZ(0f);
 		StunCenter = target.WorldPosition + horizontalVelocity * StunChargeTime;
 		ChargeEndTime = Time.Now + StunChargeTime;
 		IsChargingStun = true;
@@ -156,7 +149,6 @@ public sealed class GameEnemyBoss : Component
 		enemy.PunchRange = PunchRange;
 		enemy.PunchHitRange = PunchHitRange;
 		enemy.HitStaggerDuration = 0f;
-		enemy.HitReactionStrength = 0.15f;
 		enemy.ExperienceDrop = 0;
 		GameObject.WorldScale *= Size;
 	}

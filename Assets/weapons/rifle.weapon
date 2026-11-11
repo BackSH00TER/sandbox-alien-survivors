@@ -8,7 +8,10 @@
   "ProjectileSpeed": 650,
   "ProjectileRadius": 2,
   "HoldType": "Rifle",
-  "WorldModel": null,
+  "ModelPrefab": {
+    "Id": "1909e2ff-a960-4878-bc58-950cbe5e399c",
+    "Path": "prefabs/weapons/rifle.prefab"
+  },
   "__references": [],
   "__version": 0
 }

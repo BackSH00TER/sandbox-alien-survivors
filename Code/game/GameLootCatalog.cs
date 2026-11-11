@@ -66,124 +66,136 @@ public sealed class LootDefinition
 	public Func<ILootCollector, int, bool> Collect { get; init; }
 	public string WeaponResourcePath { get; init; }
 	public LootWeaponSlot WeaponSlot { get; init; }
-	public IReadOnlyList<LootVisualPart> VisualParts { get; init; }
+	public IReadOnlyList<LootVisualPart> VisualParts { get; init; } = Array.Empty<LootVisualPart>();
 }
 
 /// <summary>Shared loot data. After the contextual flare roll, choose a rarity bucket and then an equally likely item within it.</summary>
 public static class GameLootCatalog
 {
-	public static IReadOnlyList<RarityBucket> Rarities { get; } = Array.AsReadOnly(new[]
-	{
-		new RarityBucket(id: GameRarity.Common, chance: 0.9f),
-		new RarityBucket(id: GameRarity.Uncommon, chance: 0f),
-		new RarityBucket(id: GameRarity.Rare, chance: 0.1f),
-		new RarityBucket(id: GameRarity.Epic, chance: 0f),
-		new RarityBucket(id: GameRarity.Legendary, chance: 0f)
-	});
+	private static IReadOnlyList<RarityBucket> _rarities = Array.Empty<RarityBucket>();
+	private static IReadOnlyList<LootDefinition> _all = Array.Empty<LootDefinition>();
+	private static IReadOnlyDictionary<LootKind, LootDefinition> _byId = new Dictionary<LootKind, LootDefinition>();
+	private static IReadOnlyDictionary<GameRarity, LootDefinition[]> _rarityDrops = new Dictionary<GameRarity, LootDefinition[]>();
+	private static LootDefinition[] _weaponDrops = Array.Empty<LootDefinition>();
 
-	public static IReadOnlyList<LootDefinition> All { get; } = Array.AsReadOnly(new[]
-	{
-		new LootDefinition
-		{
-			Id = LootKind.Health,
-			Name = "Health +50",
-			Effect = LootEffect.Health,
-			Amount = 50,
-			CanBeMagnetAttracted = true,
-			Rarity = GameRarity.Common,
-			CanCollect = (collector, amount) => collector.Health < collector.MaxHealth,
-			Collect = (collector, amount) =>
-			{
-				var healing = amount * collector.HealthPickupMultiplier;
-				return collector.RestoreHealth(healing);
-			},
-			VisualParts = HealthParts()
-		},
-		new LootDefinition
-		{
-			Id = LootKind.Rifle,
-			Name = "Rifle",
-			Effect = LootEffect.Weapon,
-			CanBeMagnetAttracted = false,
-			Rarity = GameRarity.Common,
-			WeaponResourcePath = "weapons/rifle.weapon",
-			WeaponSlot = LootWeaponSlot.Rifle,
-			VisualParts = RifleParts()
-		},
-		new LootDefinition
-		{
-			Id = LootKind.Shotgun,
-			Name = "Shotgun",
-			Effect = LootEffect.Weapon,
-			CanBeMagnetAttracted = false,
-			Rarity = GameRarity.Common,
-			WeaponResourcePath = "weapons/shotgun.weapon",
-			WeaponSlot = LootWeaponSlot.Shotgun,
-			VisualParts = ShotgunParts()
-		},
-		new LootDefinition
-		{
-			Id = LootKind.Flare,
-			Name = "Flare Gun",
-			Effect = LootEffect.ReviveFlare,
-			CanBeMagnetAttracted = true,
-			CanCollect = (collector, amount) => collector.HasDeadTeammate,
-			Collect = (collector, amount) => collector.FireReviveFlare(),
-			VisualParts = FlareParts()
-		},
-		new LootDefinition
-		{
-			Id = LootKind.Armor,
-			Name = "Armor +5",
-			Effect = LootEffect.Armor,
-			Amount = 5,
-			CanBeMagnetAttracted = true,
-			Rarity = GameRarity.Rare,
-			CanCollect = (collector, amount) =>
-			{
-				var armor = ArmorPickupAmount(collector, amount);
-				return armor <= int.MaxValue - collector.Armor;
-			},
-			Collect = (collector, amount) =>
-			{
-				var armor = ArmorPickupAmount(collector, amount);
-				if (armor > int.MaxValue - collector.Armor)
-				{
-					return false;
-				}
-				return collector.AddArmor((int)armor);
-			},
-			VisualParts = ArmorParts()
-		},
-		new LootDefinition
-		{
-			Id = LootKind.RerollDice,
-			Name = "Reroll Dice +1",
-			Effect = LootEffect.RerollDice,
-			Amount = 1,
-			CanBeMagnetAttracted = true,
-			Rarity = GameRarity.Common,
-			CanCollect = (collector, amount) => !collector.IsRoundOver && collector.RerollDice <= int.MaxValue - amount,
-			Collect = (collector, amount) => collector.AddRerollDice(amount),
-			VisualParts = DiceParts()
-		}
-	});
-
-	private static readonly IReadOnlyDictionary<LootKind, LootDefinition> ById = All.ToDictionary(item => item.Id);
-	private static readonly IReadOnlyDictionary<GameRarity, LootDefinition[]> RarityDrops = Rarities.ToDictionary(
-		keySelector: rarity => rarity.Id,
-		elementSelector: rarity => All.Where(item => item.Rarity == rarity.Id && item.Effect != LootEffect.Weapon).ToArray()
-	);
-	private static readonly LootDefinition[] WeaponDrops = All.Where(item => item.Effect == LootEffect.Weapon).ToArray();
+	public static IReadOnlyList<RarityBucket> Rarities => _rarities;
+	public static IReadOnlyList<LootDefinition> All => _all;
 
 	static GameLootCatalog()
 	{
-		foreach (var item in All)
+		Rebuild();
+	}
+
+	// Hotload can preserve catalog instances built by an older assembly.
+	internal static void Rebuild()
+	{
+		var rarities = Array.AsReadOnly(new[]
+		{
+			new RarityBucket(id: GameRarity.Common, chance: 0.9f),
+			new RarityBucket(id: GameRarity.Uncommon, chance: 0f),
+			new RarityBucket(id: GameRarity.Rare, chance: 0.1f),
+			new RarityBucket(id: GameRarity.Epic, chance: 0f),
+			new RarityBucket(id: GameRarity.Legendary, chance: 0f)
+		});
+		var all = Array.AsReadOnly(new[]
+		{
+			new LootDefinition
+			{
+				Id = LootKind.Health,
+				Name = "Health +50",
+				Effect = LootEffect.Health,
+				Amount = 50,
+				CanBeMagnetAttracted = true,
+				Rarity = GameRarity.Common,
+				CanCollect = (collector, amount) => collector.Health < collector.MaxHealth,
+				Collect = (collector, amount) =>
+				{
+					var healing = amount * collector.HealthPickupMultiplier;
+					return collector.RestoreHealth(healing);
+				},
+				VisualParts = HealthParts()
+			},
+			new LootDefinition
+			{
+				Id = LootKind.Rifle,
+				Name = "Rifle",
+				Effect = LootEffect.Weapon,
+				CanBeMagnetAttracted = false,
+				Rarity = GameRarity.Common,
+				WeaponResourcePath = "weapons/rifle.weapon",
+				WeaponSlot = LootWeaponSlot.Rifle
+			},
+			new LootDefinition
+			{
+				Id = LootKind.Shotgun,
+				Name = "Shotgun",
+				Effect = LootEffect.Weapon,
+				CanBeMagnetAttracted = false,
+				Rarity = GameRarity.Common,
+				WeaponResourcePath = "weapons/shotgun.weapon",
+				WeaponSlot = LootWeaponSlot.Shotgun
+			},
+			new LootDefinition
+			{
+				Id = LootKind.Flare,
+				Name = "Flare Gun",
+				Effect = LootEffect.ReviveFlare,
+				CanBeMagnetAttracted = true,
+				CanCollect = (collector, amount) => collector.HasDeadTeammate,
+				Collect = (collector, amount) => collector.FireReviveFlare(),
+				VisualParts = FlareParts()
+			},
+			new LootDefinition
+			{
+				Id = LootKind.Armor,
+				Name = "Armor +5",
+				Effect = LootEffect.Armor,
+				Amount = 5,
+				CanBeMagnetAttracted = true,
+				Rarity = GameRarity.Rare,
+				CanCollect = (collector, amount) =>
+				{
+					var armor = ArmorPickupAmount(collector, amount);
+					return armor <= int.MaxValue - collector.Armor;
+				},
+				Collect = (collector, amount) =>
+				{
+					var armor = ArmorPickupAmount(collector, amount);
+					if (armor > int.MaxValue - collector.Armor)
+					{
+						return false;
+					}
+					return collector.AddArmor((int)armor);
+				},
+				VisualParts = ArmorParts()
+			},
+			new LootDefinition
+			{
+				Id = LootKind.RerollDice,
+				Name = "Reroll Dice +1",
+				Effect = LootEffect.RerollDice,
+				Amount = 1,
+				CanBeMagnetAttracted = true,
+				Rarity = GameRarity.Common,
+				CanCollect = (collector, amount) => !collector.IsRoundOver && collector.RerollDice <= int.MaxValue - amount,
+				Collect = (collector, amount) => collector.AddRerollDice(amount),
+				VisualParts = DiceParts()
+			}
+		});
+
+		var byId = all.ToDictionary(item => item.Id);
+		var rarityDrops = rarities.ToDictionary(
+			keySelector: rarity => rarity.Id,
+			elementSelector: rarity => all.Where(item => item.Rarity == rarity.Id && item.Effect != LootEffect.Weapon).ToArray()
+		);
+		var weaponDrops = all.Where(item => item.Effect == LootEffect.Weapon).ToArray();
+
+		foreach (var item in all)
 		{
 			if (string.IsNullOrWhiteSpace(item.Name) || !Enum.IsDefined(item.Effect)
-				|| item.VisualParts == null || item.VisualParts.Count == 0)
+				|| item.VisualParts == null || (item.Effect != LootEffect.Weapon && item.VisualParts.Count == 0))
 			{
-				throw new InvalidOperationException($"Loot '{item.Id}' needs a name, valid effect and visual parts.");
+				throw new InvalidOperationException($"Loot '{item.Id}' needs a name, valid effect and visual parts for non-weapon loot.");
 			}
 			if (item.Effect is LootEffect.Health or LootEffect.Armor or LootEffect.RerollDice && item.Amount <= 0)
 			{
@@ -197,7 +209,7 @@ public static class GameLootCatalog
 			{
 				throw new InvalidOperationException($"Loot '{item.Id}' needs eligibility and collection callbacks.");
 			}
-			if (item.Id != LootKind.Flare && (!item.Rarity.HasValue || !RarityDrops.ContainsKey(item.Rarity.Value)))
+			if (item.Id != LootKind.Flare && (!item.Rarity.HasValue || !rarityDrops.ContainsKey(item.Rarity.Value)))
 			{
 				throw new InvalidOperationException($"Loot '{item.Id}' needs a configured rarity bucket.");
 			}
@@ -206,23 +218,29 @@ public static class GameLootCatalog
 				throw new InvalidOperationException($"Contextual flare loot '{item.Id}' must not also belong to a rarity bucket.");
 			}
 		}
-		foreach (var rarity in Rarities)
+		foreach (var rarity in rarities)
 		{
-			if (rarity.Chance > 0f && RarityDrops[rarity.Id].Length == 0)
+			if (rarity.Chance > 0f && rarityDrops[rarity.Id].Length == 0)
 			{
 				throw new InvalidOperationException($"Enabled rarity '{rarity.Id}' needs at least one loot item.");
 			}
 		}
-		var totalChance = Rarities.Sum(rarity => rarity.Chance);
+		var totalChance = rarities.Sum(rarity => rarity.Chance);
 		if (MathF.Abs(totalChance - 1f) > 0.0001f)
 		{
 			throw new InvalidOperationException("Loot rarity chances must total 100%.");
 		}
+
+		_rarities = rarities;
+		_all = all;
+		_byId = byId;
+		_rarityDrops = rarityDrops;
+		_weaponDrops = weaponDrops;
 	}
 
 	public static LootDefinition Get(LootKind kind)
 	{
-		if (!ById.TryGetValue(kind, out var definition))
+		if (!_byId.TryGetValue(kind, out var definition))
 		{
 			throw new ArgumentOutOfRangeException(nameof(kind), "Loot kind must have a catalog definition.");
 		}
@@ -248,8 +266,8 @@ public static class GameLootCatalog
 		}
 
 		return RarityDraw.Pick(
-			buckets: Rarities,
-			getCandidates: rarity => RarityDrops[rarity],
+			buckets: _rarities,
+			getCandidates: rarity => _rarityDrops[rarity],
 			random: () => NextRoll(random)
 		);
 	}
@@ -257,8 +275,8 @@ public static class GameLootCatalog
 	public static LootDefinition RollWeapon(Func<float> random)
 	{
 		var roll = NextRoll(random);
-		var index = Math.Min((int)(roll * WeaponDrops.Length), WeaponDrops.Length - 1);
-		return WeaponDrops[index];
+		var index = Math.Min((int)(roll * _weaponDrops.Length), _weaponDrops.Length - 1);
+		return _weaponDrops[index];
 	}
 
 	private static float NextRoll(Func<float> random)
@@ -312,87 +330,6 @@ public static class GameLootCatalog
 					z: 2f
 				),
 				Tint = Color.White
-			}
-		});
-	}
-
-	private static IReadOnlyList<LootVisualPart> RifleParts()
-	{
-		return WeaponParts(
-			red: 0.25f,
-			green: 0.65f,
-			blue: 1f
-		);
-	}
-
-	private static IReadOnlyList<LootVisualPart> ShotgunParts()
-	{
-		return WeaponParts(
-			red: 1f,
-			green: 0.65f,
-			blue: 0.15f
-		);
-	}
-
-	private static IReadOnlyList<LootVisualPart> WeaponParts(
-		float red,
-		float green,
-		float blue
-	)
-	{
-		var tint = new Color(
-			r: red,
-			g: green,
-			b: blue
-		);
-		return Array.AsReadOnly(new[]
-		{
-			new LootVisualPart
-			{
-				Name = "Receiver",
-				Size = new Vector3(
-					x: 26f,
-					y: 5f,
-					z: 6f
-				),
-				Tint = tint
-			},
-			new LootVisualPart
-			{
-				Name = "Barrel",
-				Position = Vector3.Forward * 20f,
-				Size = new Vector3(
-					x: 16f,
-					y: 3f,
-					z: 3f
-				),
-				Tint = new Color(
-					r: 0.2f,
-					g: 0.23f,
-					b: 0.26f
-				)
-			},
-			new LootVisualPart
-			{
-				Name = "Stock",
-				Position = Vector3.Backward * 18f + Vector3.Down * 2f,
-				Size = new Vector3(
-					x: 12f,
-					y: 6f,
-					z: 9f
-				),
-				Tint = tint
-			},
-			new LootVisualPart
-			{
-				Name = "Grip",
-				Position = Vector3.Backward * 4f + Vector3.Down * 7f,
-				Size = new Vector3(
-					x: 5f,
-					y: 4f,
-					z: 10f
-				),
-				Tint = tint
 			}
 		});
 	}

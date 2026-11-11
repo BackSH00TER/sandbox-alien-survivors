@@ -1,0 +1,51 @@
+<!-- kv3 encoding:text:version{e21c7f3c-8a33-41c5-9977-a76d3a32aa0d} format:modeldoc30:version{8c2d7a91-9c42-4bf0-883a-5a3b1762d4f1} -->
+{
+	rootNode =
+	{
+		_class = "RootNode"
+		children =
+		[
+			{
+				_class = "BoneMarkupList"
+				children = [ ]
+				bone_cull_type = "None"
+			},
+			{
+				_class = "MaterialGroupList"
+				children =
+				[
+					{
+						_class = "DefaultMaterialGroup"
+						remaps = [ ]
+						use_global_default = true
+						global_default_material = "materials/quaternius_monsters_atlas.vmat"
+					},
+				]
+			},
+			{
+				_class = "AnimationList"
+				children =
+				[
+					{ _class = "AnimFile" name = "walk" source_filename = "models/hywirl.fbx" take = 1 looping = true import_scale = 0.2 },
+					{ _class = "AnimFile" name = "melee" source_filename = "models/hywirl.fbx" take = 6 looping = false import_scale = 0.2 },
+					{ _class = "AnimFile" name = "hit" source_filename = "models/hywirl.fbx" take = 4 looping = false import_scale = 0.2 },
+				]
+			},
+			{
+				_class = "RenderMeshList"
+				children =
+				[
+					{
+						_class = "RenderMeshFile"
+						filename = "models/hywirl.fbx"
+						import_translation = [ 0.0, 0.0, 0.0 ]
+						import_rotation = [ 0.0, 0.0, 0.0 ]
+						import_scale = 0.2
+						import_filter = { exclude_by_default = true exception_list = [ "Hywirl" ] }
+					},
+				]
+			},
+		]
+		skeleton_name = "models/hywirl.skel"
+	}
+}

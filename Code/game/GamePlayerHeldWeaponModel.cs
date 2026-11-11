@@ -3,17 +3,17 @@ using Sandbox;
 public sealed class GamePlayerHeldWeaponModel : Component
 {
 	private GamePlayer _player;
+	private SkinnedModelRenderer _bodyRenderer;
+	private bool _missingHandLogged;
 	private GameWeaponDefinition _weapon;
 	private GameObject _model;
-	private ModelRenderer _authoredRenderer;
-	private Vector3 _muzzleOffset;
-	private bool _missingAttachmentLogged;
-	private bool _missingMuzzleLogged;
+	private GameWeaponModel _weaponModel;
 	private LineRenderer _laser;
 
 	protected override void OnStart()
 	{
 		_player = GetComponent<GamePlayer>();
+		_bodyRenderer = GetComponentsInChildren<SkinnedModelRenderer>().FirstOrDefault();
 	}
 
 	protected override void OnPreRender()
@@ -51,7 +51,7 @@ public sealed class GamePlayerHeldWeaponModel : Component
 
 	private bool UpdateModel()
 	{
-		if (!_player.IsValid() || !_player.Controller.Renderer.IsValid())
+		if (!_player.IsValid())
 		{
 			return false;
 		}
@@ -64,8 +64,7 @@ public sealed class GamePlayerHeldWeaponModel : Component
 				_model.Destroy();
 			}
 
-			_authoredRenderer = null;
-			_missingMuzzleLogged = false;
+			_weaponModel = null;
 			if (_weapon != null)
 			{
 				CreateModel();
@@ -83,166 +82,37 @@ public sealed class GamePlayerHeldWeaponModel : Component
 			return false;
 		}
 
-		var hand = _player.Controller.Renderer.GetAttachment("hold_R");
-		if (hand is not { } transform)
+		var forward = _player.FacingDirection.WithZ(0f);
+		if (forward.LengthSquared <= 0.001f)
 		{
-			if (!_missingAttachmentLogged)
+			forward = Vector3.Forward;
+		}
+
+		var facing = Rotation.LookAt(forward, Vector3.Up);
+		if (!_weaponModel.TryAttachToHand(body: _bodyRenderer, facing: facing))
+		{
+			_model.WorldPosition = _player.WorldPosition
+				+ Vector3.Up * GameWeaponProjectile.CollisionHeight
+				+ forward.Normal * 12f;
+			_model.WorldRotation = facing;
+			if (!_missingHandLogged)
 			{
-				Log.Error("Held weapons require the character's hold_R attachment.");
-				_missingAttachmentLogged = true;
+				Log.Error("Player weapon could not find the animated DEF_hand_R bone; using the fixed weapon position.");
+				_missingHandLogged = true;
 			}
-			_model.Enabled = false;
-			return false;
 		}
 
 		_model.Enabled = true;
-		_model.WorldTransform = transform;
-		_missingAttachmentLogged = false;
 		return true;
 	}
 
 	private void CreateModel()
 	{
-		_model = new GameObject(GameObject, true, "Held Weapon");
-		_model.Flags |= GameObjectFlags.NotNetworked | GameObjectFlags.NotSaved;
-		if (_weapon.WorldModel != null)
+		_weaponModel = GameWeaponModel.Create(weapon: _weapon, parent: GameObject);
+		if (_weaponModel.IsValid())
 		{
-			_authoredRenderer = _model.AddComponent<ModelRenderer>();
-			_authoredRenderer.Model = _weapon.WorldModel;
-			return;
+			_model = _weaponModel.GameObject;
 		}
-
-		if (_weapon.HoldType == Sandbox.Citizen.CitizenAnimationHelper.HoldTypes.Shotgun)
-		{
-			var metal = new Color(
-				0.18f,
-				0.2f,
-				0.23f
-			);
-			var wood = new Color(
-				0.35f,
-				0.2f,
-				0.1f
-			);
-			var receiverPosition = new Vector3(
-				4f,
-				0f,
-				2f
-			);
-			var receiverSize = new Vector3(
-				9f,
-				2.5f,
-				3f
-			);
-			AddPart(
-				name: "Receiver",
-				position: receiverPosition,
-				size: receiverSize,
-				color: metal
-			);
-			var barrelPosition = new Vector3(
-				15f,
-				0f,
-				3f
-			);
-			var barrelSize = new Vector3(
-				14f,
-				1.2f,
-				1.2f
-			);
-			AddPart(
-				name: "Barrel",
-				position: barrelPosition,
-				size: barrelSize,
-				color: metal
-			);
-			var magazinePosition = new Vector3(
-				13f,
-				0f,
-				1.5f
-			);
-			var magazineSize = new Vector3(
-				10f,
-				1.1f,
-				1.1f
-			);
-			AddPart(
-				name: "Magazine Tube",
-				position: magazinePosition,
-				size: magazineSize,
-				color: metal
-			);
-			var pumpPosition = new Vector3(
-				11f,
-				0f,
-				1.5f
-			);
-			var pumpSize = new Vector3(
-				5f,
-				2f,
-				2f
-			);
-			AddPart(
-				name: "Pump",
-				position: pumpPosition,
-				size: pumpSize,
-				color: wood
-			);
-			var stockNeckPosition = new Vector3(
-				-3f,
-				0f,
-				1f
-			);
-			var stockNeckSize = new Vector3(
-				5f,
-				2f,
-				2.5f
-			);
-			AddPart(
-				name: "Stock Neck",
-				position: stockNeckPosition,
-				size: stockNeckSize,
-				color: wood
-			);
-			var stockPosition = new Vector3(
-				-8f,
-				0f,
-				0f
-			);
-			var stockSize = new Vector3(
-				6f,
-				2.5f,
-				4f
-			);
-			AddPart(
-				name: "Stock",
-				position: stockPosition,
-				size: stockSize,
-				color: wood
-			);
-			_muzzleOffset = new Vector3(
-				22f,
-				0f,
-				3f
-			);
-			return;
-		}
-
-		if (_weapon.HoldType == Sandbox.Citizen.CitizenAnimationHelper.HoldTypes.Rifle)
-		{
-			var color = new Color(0.2f, 0.35f, 0.45f);
-			AddPart("Receiver", new Vector3(8f, 0f, 3f), new Vector3(20f, 4f, 5f), color);
-			AddPart("Barrel", new Vector3(24f, 0f, 4f), new Vector3(12f, 2f, 2f), new Color(0.18f, 0.2f, 0.23f));
-			_muzzleOffset = new Vector3(30f, 0f, 4f);
-			AddPart("Stock", new Vector3(-8f, 0f, 1f), new Vector3(12f, 4f, 7f), color);
-			AddPart("Grip", new Vector3(0f, 0f, -2f), new Vector3(3f, 3f, 6f), color);
-			return;
-		}
-
-		// Simple silhouettes until authored world models are assigned.
-		AddPart("Slide", new Vector3(3f, 0f, 3f), new Vector3(10f, 3f, 3f), new Color(0.18f, 0.2f, 0.23f));
-		_muzzleOffset = new Vector3(8f, 0f, 3f);
-		AddPart("Grip", new Vector3(-0.5f, 0f, -0.5f), new Vector3(3f, 2.5f, 6f), new Color(0.07f, 0.08f, 0.09f));
 	}
 
 	public bool TryGetMuzzlePosition(out Vector3 position)
@@ -253,35 +123,8 @@ public sealed class GamePlayerHeldWeaponModel : Component
 			return false;
 		}
 
-		if (_authoredRenderer.IsValid())
-		{
-			if (_authoredRenderer.Model.Attachments.GetTransform("muzzle") is not { } muzzle)
-			{
-				if (!_missingMuzzleLogged)
-				{
-					Log.Error($"Weapon '{_weapon.ResourcePath}' requires a muzzle attachment on its world model.");
-					_missingMuzzleLogged = true;
-				}
-
-				return false;
-			}
-
-			position = _model.WorldTransform.PointToWorld(muzzle.Position);
-			return true;
-		}
-
-		position = _model.WorldTransform.PointToWorld(_muzzleOffset);
+		position = _weaponModel.Muzzle.WorldPosition;
 		return true;
-	}
-
-	private void AddPart(string name, Vector3 position, Vector3 size, Color color)
-	{
-		var part = new GameObject(_model, true, name);
-		part.LocalPosition = position;
-		part.LocalScale = size / 50f;
-		var renderer = part.AddComponent<ModelRenderer>();
-		renderer.Model = Model.Load("models/dev/box.vmdl");
-		renderer.Tint = color;
 	}
 
 	protected override void OnDisabled()

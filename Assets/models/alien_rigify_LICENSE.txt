@@ -1,0 +1,49 @@
+Alien Rigify game asset
+
+Source model: user-supplied models/alien.fbx (superseded original removed during
+unused-asset cleanup; the active alien_rigify FBX build sources are retained).
+Original geometry and UVs are preserved: 3,873 vertices, 7,676 triangles.
+The replacement uses a fitted Rigify rig and normalized, at most four
+deform-bone weights per vertex. Rigid head details retain their head binding.
+
+Animation: Quaternius Universal Animation Library (UAL), CC0 1.0.
+Source: https://quaternius.com/packs/universalanimationlibrary.html
+walk: Walk_Fwd_Loop, frames 0-40, 30 FPS, retargeted to Alien_Rig controls.
+The model imports frames 0-40, retaining the matching interpolation endpoint.
+The walk is in-place; gameplay owns world movement. Horizontal distance traveled
+controls playback, including on remote peers, so pursuit surges and slows also
+speed up and slow down the gait. The current walk pose is held
+while stationary or descending; no additional idle clip is supplied.
+Pursuit uses staggered, 0.65-second surge/recovery steps with 30% planted recovery.
+PursuitStepDuration and PursuitStepRecoveryFraction tune this cadence for all
+enemy variants; MoveSpeed/RangedMoveSpeed cap peak speed, not average speed.
+The default 100-unit peak yields roughly 35 units/second and 23 units per step.
+Recovery never boosts surge speed to compensate for the pause. Crowd separation
+shares the cadence, while committed melee lunges retain their existing timing.
+
+melee: Punch_Cross, frames 0-30, 30 FPS, non-looping.
+hit: Hit_Chest, frames 0-10, 30 FPS, non-looping.
+Both are retargeted to the same Alien Rigify controls and deform skeleton.
+The melee clip is timed to the existing windup, lunge and recovery. Its maximum
+right-hand forward reach (source frame 9 of 30) coincides with the existing
+damage instant; animation never moves the actor or applies damage.
+Visual recovery has a minimum 0.08-second fade even if combat recovery is zero.
+Hit flinches take visual priority, then return to the still-advancing punch or
+walk. Repeated hits do not restart an already playing flinch. HitStaggerDuration
+still decides whether damage actually interrupts combat; its zero default
+does not gain hitstun. Host-only broadcasts trigger both one-shots on all peers.
+Runtime uses a three-clip AnimGraph2 blend, with independently timed attack and
+hit-reaction weights. ModelDoc sequences remain available for asset preview.
+
+Texture: Quaternius Ultimate Monsters atlas, CC0 1.0.
+Source: https://quaternius.com/packs/ultimatemonsters.html
+Material: materials/quaternius_monsters_atlas.vmat, shared without modification.
+
+Both body and walk FBXs bake the same 0.2 scale; ModelDoc import scale is 1.
+ModelDoc retains all 58 skeleton bones with BoneMarkupList bone_cull_type None.
+The unweighted root is required: removing it loses the native graph's root
+orientation and turns rendered locomotion/punches 90 degrees from actor facing.
+The visual child remains unrotated; gameplay facing and hitboxes are unchanged.
+The editable Alien_Rigify.blend, Alien_Rigify_Walk.blend and
+Alien_Rigify_Combat.blend authoring sources
+retain the metarig, control rig, drivers, packed atlas and unpruned weights.

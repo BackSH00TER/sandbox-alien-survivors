@@ -1,4 +1,5 @@
 using Sandbox;
+using Sandbox.Animation;
 
 public sealed class GameEnemy : GameEntity
 {
@@ -35,13 +36,14 @@ public sealed class GameEnemy : GameEntity
 		: GetComponent<GameEnemyExploding>().IsValid() ? GameEnemyKind.Exploding
 		: GameEnemyKind.Melee;
 
-	[Property, RequireComponent] public PlayerController Controller { get; set; }
-	[Property, Group("Movement"), Range(0f, 1000f), Description("Pursuit speed for melee and exploding enemies, in world units per second.")] public float MoveSpeed { get; set; } = 100f;
-	[Property, Group("Movement"), Range(0f, 1000f), Description("Pursuit and wandering speed for ranged enemies, in world units per second.")] public float RangedMoveSpeed { get; set; } = 77f;
+	[Property, Group("Movement"), Range(0f, 1000f), Description("Base pursuit speed for melee and exploding enemies, before the pursuit multiplier and slows.")] public float MoveSpeed { get; set; } = 100f;
+	[Property, Group("Movement"), Range(0f, 1000f), Description("Base pursuit and wandering speed for ranged enemies, before the pursuit multiplier and slows.")] public float RangedMoveSpeed { get; set; } = 77f;
+	[Property, Group("Movement"), Range(0f, 1f), Description("Steady pursuit fraction of base speed. The default preserves the previous step cadence's average pace without periodic stops. Does not affect attack lunges.")] public float PursuitSpeedMultiplier { get; set; } = 0.35f;
+	[Property, Group("Movement"), Range(1f, 100f)] public float HitboxRadius { get; set; } = 18f;
 	[Property, Group("Movement"), Range(1f, 2000f), Description("Maximum pursuit velocity change per second. Attack lunges use their own speed.")] public float PursuitAcceleration { get; set; } = 400f;
 	[Property, Group("Movement"), Range(0.1f, 20f), Description("How quickly enemies turn toward their target. Higher values turn faster.")] public float PursuitTurnSpeed { get; set; } = 4f;
 	[Property, Group("Movement"), Range(1f, 200f), Description("Minimum crowd-spacing radius, in world units. Expands to fit larger enemy bodies.")] public float SeparationRadius { get; set; } = 48f;
-	[Property, Group("Movement"), Range(0f, 500f), Description("Maximum combined spacing velocity. Crowd size cannot increase it beyond this limit or raise pursuit above its normal speed.")] public float SeparationSpeed { get; set; } = 100f;
+	[Property, Group("Movement"), Range(0f, 500f), Description("Maximum combined spacing velocity before the pursuit multiplier. Crowd size cannot raise the pursuit speed limit.")] public float SeparationSpeed { get; set; } = 100f;
 	[Property, Range(1f, 200f), Description("Distance at which the enemy starts winding up a punch.")] public float PunchRange { get; set; } = 64f;
 	[Property, Range(1f, 200f), Description("Reach of the punch when the lunge ends.")] public float PunchHitRange { get; set; } = 54f;
 	[Property, Range(0.1f, 10f)] public float PunchInterval { get; set; } = 1f;
@@ -54,45 +56,60 @@ public sealed class GameEnemy : GameEntity
 	[Property, Range(0.1f, 10f)] public float SpawnDuration { get; set; } = 2f;
 	[Property, Description("Disabled for enemies deployed directly from a landed dropship.")] public bool DescendOnSpawn { get; set; } = true;
 	[Property, Range(0, 100)] public int ExperienceDrop { get; set; } = 1;
-	[Property, Group("Hit Reaction"), Range(0f, 1f)] public float HitReactionStrength { get; set; } = 0.6f;
 	[Property, Group("Hit Reaction"), Range(0f, 2f), Description("Movement and attack interruption after damage, in seconds. Zero disables hitstun.")] public float HitStaggerDuration { get; set; } = 0f;
 
 	[Sync(SyncFlags.FromHost)] private bool IsDescending { get; set; } = true;
 	[Sync(SyncFlags.FromHost)] private Vector3 LandingPosition { get; set; }
-	[Sync(SyncFlags.FromHost)] private float DescentStartTime { get; set; }
+	private float DescentStartTime { get; set; }
 	private LineRenderer _spawnBeam;
 	private bool _descentVisualsActive;
 
-	[Sync(SyncFlags.FromHost)] private float NextPunchTime { get; set; }
-	[Sync(SyncFlags.FromHost)] private bool IsWindingUp { get; set; }
-	[Sync(SyncFlags.FromHost)] private float WindupEndTime { get; set; }
-	[Sync(SyncFlags.FromHost)] private bool IsLunging { get; set; }
-	[Sync(SyncFlags.FromHost)] private float LungeEndTime { get; set; }
-	[Sync(SyncFlags.FromHost)] private Vector3 LungeDirection { get; set; }
-	[Sync(SyncFlags.FromHost)] private float MovementUnlockTime { get; set; }
-	[Sync(SyncFlags.FromHost)] private bool IsTargetInPunchRange { get; set; }
-	[Sync(SyncFlags.FromHost)] private float StaggerEndTime { get; set; }
+	private float NextPunchTime { get; set; }
+	private bool IsWindingUp { get; set; }
+	private float WindupEndTime { get; set; }
+	private bool IsLunging { get; set; }
+	private float LungeEndTime { get; set; }
+	private Vector3 LungeDirection { get; set; }
+	private float MovementUnlockTime { get; set; }
+	private float StaggerEndTime { get; set; }
+	[Sync(SyncFlags.FromHost)] public Vector3 FacingDirection { get; private set; } = Vector3.Forward;
 	private const float AggroSwitchCooldown = 5f;
+	private const float HitboxHeight = 72f;
 	private readonly EnemyAggro<GamePlayer> _aggro = new(AggroSwitchCooldown, IsEligibleAggroTarget);
 	private Vector3 _pursuitVelocity;
+	private SkinnedModelRenderer _animationRenderer;
+	private Vector3 _lastAnimationPosition;
+	private float _walkDuration = 40f / 30f;
+	private float _hitDuration = 10f / 30f;
+	private const float WalkAnimationSpeedMultiplier = 1.3f;
+	private const float MeleeImpactPhase = 9f / 30f;
+	private float _walkPhase;
+	private float _meleeStarted = float.NegativeInfinity;
+	private float _meleeImpactDelay;
+	private float _meleeRecovery;
+	private float _hitStarted = float.NegativeInfinity;
+	private bool _animationReady;
+	private string _skeletonPath = "models/alien_rigify.skel";
+	private string _animationFolder = "models/alien_animations";
 
 	protected override void OnStart()
 	{
 		base.OnStart();
-		var enemyRigidbody = Controller.Body;
-		if (!AddCollisionTag(enemyRigidbody, EnemyCollisionTag))
+		EnsureCapsuleHitbox(radius: HitboxRadius, height: HitboxHeight);
+
+		_lastAnimationPosition = WorldPosition;
+		_animationRenderer = GetComponentsInChildren<SkinnedModelRenderer>().FirstOrDefault();
+		if (!_animationRenderer.IsValid())
 		{
-			Log.Error("Game enemy requires physics shapes to assign its collision tag.");
+			Log.Error("Enemy animation requires a SkinnedModelRenderer.");
+		}
+		else
+		{
+			InitializeAnimation();
 		}
 
 		var burningVisual = GameObject.GetOrAddComponent<BurningVisual>();
 		burningVisual.Flags |= ComponentFlags.NotNetworked | ComponentFlags.NotSaved;
-		Controller.UseInputControls = false;
-		Controller.UseLookControls = false;
-		Controller.UseCameraControls = false;
-		Controller.RunByDefault = true;
-		Controller.Enabled = false;
-		Controller.Body.MotionEnabled = false;
 		_descentVisualsActive = true;
 
 		if (!Networking.IsHost || IsProxy)
@@ -100,11 +117,8 @@ public sealed class GameEnemy : GameEntity
 			return;
 		}
 
-		var ground = Scene.Trace
-			.FromTo(WorldPosition + Vector3.Up * 64f, WorldPosition - Vector3.Up * 2000f)
-			.IgnoreGameObjectHierarchy(GameObject)
-			.Run();
-		if (!ground.Hit)
+		var ground = FindSpawnGround(Scene, WorldPosition);
+		if (!ground.Hit || ground.StartedSolid)
 		{
 			Log.Error("Enemy spawn requires ground beneath its spawn position.");
 			GameObject.Destroy();
@@ -115,30 +129,12 @@ public sealed class GameEnemy : GameEntity
 		DescentStartTime = Time.Now;
 		IsDescending = DescendOnSpawn;
 		WorldPosition = DescendOnSpawn ? LandingPosition + Vector3.Up * SpawnHeight : LandingPosition;
-
-		var dresser = GetComponent<Dresser>();
-		if (dresser == null)
-		{
-			Log.Error("Enemy must include a Dresser.");
-			GameObject.Destroy();
-			return;
-		}
-
-		dresser.Source = Dresser.ClothingSource.Manual;
-		dresser.Randomize();
 	}
 
 	protected override void OnUpdate()
 	{
 		base.OnUpdate();
-		if (Controller.Renderer.IsValid())
-		{
-			var punching = !IsDescending && Health > 0f && Time.Now >= StaggerEndTime
-				&& (IsWindingUp || IsLunging || Time.Now < MovementUnlockTime);
-			Controller.Renderer.Set("holdtype", (int)(punching
-				? Sandbox.Citizen.CitizenAnimationHelper.HoldTypes.Punch
-				: Sandbox.Citizen.CitizenAnimationHelper.HoldTypes.None));
-		}
+		UpdateAnimation();
 		if (IsDescending)
 		{
 			if (!_spawnBeam.IsValid())
@@ -159,15 +155,6 @@ public sealed class GameEnemy : GameEntity
 
 			_spawnBeam.VectorPoints[0] = LandingPosition + Vector3.Up * 4f;
 			_spawnBeam.VectorPoints[1] = LandingPosition + Vector3.Up * (SpawnHeight + 150f);
-			if (Controller.Renderer.IsValid())
-			{
-				var progress = ((Time.Now - DescentStartTime) / System.MathF.Max(0.1f, SpawnDuration)).Clamp(0f, 1f);
-				var fallSpeed = -SpawnHeight * 6f * progress * (1f - progress) / System.MathF.Max(0.1f, SpawnDuration);
-				Controller.Renderer.Set("b_grounded", false);
-				Controller.Renderer.Set("move_z", fallSpeed);
-				Controller.Renderer.Set("move_groundspeed", 0f);
-				Controller.Renderer.Set("wish_groundspeed", 0f);
-			}
 		}
 		else if (_descentVisualsActive)
 		{
@@ -177,13 +164,6 @@ public sealed class GameEnemy : GameEntity
 				_spawnBeam.Destroy();
 			}
 
-			Controller.Body.MotionEnabled = true;
-			Controller.Enabled = true;
-			if (Controller.Renderer.IsValid())
-			{
-				Controller.Renderer.Set("b_grounded", true);
-				Controller.Renderer.Set("move_z", 0f);
-			}
 		}
 	}
 
@@ -194,7 +174,6 @@ public sealed class GameEnemy : GameEntity
 			return;
 		}
 
-		Controller.WishVelocity = Vector3.Zero;
 		if (IsDescending)
 		{
 			var progress = ((Time.Now - DescentStartTime) / System.MathF.Max(0.1f, SpawnDuration)).Clamp(0f, 1f);
@@ -220,7 +199,6 @@ public sealed class GameEnemy : GameEntity
 			GetComponent<GameEnemyRanged>()?.CancelAttack();
 			IsWindingUp = false;
 			IsLunging = false;
-			IsTargetInPunchRange = false;
 			MovementUnlockTime = 0f;
 			StopAttackMovement();
 			return;
@@ -235,33 +213,27 @@ public sealed class GameEnemy : GameEntity
 			return;
 		}
 
-		PlayerController target = null;
+		GamePlayer target = null;
 		var nearestDistanceSquared = float.PositiveInfinity;
 
-		foreach (var controller in Scene.GetAllComponents<PlayerController>())
+		foreach (var player in Scene.GetAllComponents<GamePlayer>())
 		{
-			if (!controller.Active || controller.GameObject.GetComponent<GameEnemy>() != null)
+			if (!IsEligibleAggroTarget(player))
 			{
 				continue;
 			}
 
-			GamePlayer player = controller.GameObject.GetComponent<GamePlayer>();
-			if (player != null && player.IsDead)
-			{
-				continue;
-			}
-
-			var distanceSquared = (controller.WorldPosition - WorldPosition).LengthSquared;
+			var distanceSquared = (player.WorldPosition - WorldPosition).LengthSquared;
 			if (_aggro.Target.IsValid() && player == _aggro.Target)
 			{
-				target = controller;
+				target = player;
 				nearestDistanceSquared = distanceSquared;
 				break;
 			}
 
 			if (distanceSquared < nearestDistanceSquared)
 			{
-				target = controller;
+				target = player;
 				nearestDistanceSquared = distanceSquared;
 			}
 		}
@@ -271,7 +243,6 @@ public sealed class GameEnemy : GameEntity
 		{
 			IsWindingUp = false;
 			IsLunging = false;
-			IsTargetInPunchRange = false;
 			StopAttackMovement();
 			return;
 		}
@@ -293,7 +264,7 @@ public sealed class GameEnemy : GameEntity
 				UpdatePursuitFacing(direction: horizontal);
 			}
 
-			var rangedStoppingDistance = Controller.BodyRadius + target.BodyRadius;
+			var rangedStoppingDistance = HitboxRadius + target.HitboxRadius;
 			if (ranged.TryAttack(this, target, out var combatVelocity))
 			{
 				if (combatVelocity.LengthSquared <= 0.001f)
@@ -318,7 +289,7 @@ public sealed class GameEnemy : GameEntity
 			return;
 		}
 
-		IsTargetInPunchRange = target != null && PunchRange > 0f
+		var isTargetInPunchRange = target != null && PunchRange > 0f
 			&& nearestDistanceSquared <= PunchRange * PunchRange;
 
 		if (IsWindingUp)
@@ -334,7 +305,6 @@ public sealed class GameEnemy : GameEntity
 			var lungeDuration = System.MathF.Max(0.05f, PunchLungeDuration);
 			LungeEndTime = Time.Now + lungeDuration;
 			NextPunchTime = Time.Now + System.MathF.Max(0.1f, PunchInterval);
-			PlayPunch();
 		}
 
 		if (IsLunging)
@@ -345,7 +315,7 @@ public sealed class GameEnemy : GameEntity
 				MovementUnlockTime = Time.Now + System.MathF.Max(0f, PunchRecovery);
 				StopAttackMovement();
 				Punch<GamePlayer>(
-					controller: Controller,
+					forward: FacingDirection,
 					range: PunchHitRange,
 					damage: PunchDamage
 				);
@@ -375,28 +345,30 @@ public sealed class GameEnemy : GameEntity
 			UpdatePursuitFacing(direction: direction);
 		}
 
-		if (IsTargetInPunchRange)
+		if (isTargetInPunchRange)
 		{
 			StopAttackMovement();
 			if (Time.Now >= NextPunchTime)
 			{
-				LungeDirection = Controller.EyeAngles.ToRotation().Forward.WithZ(0f).Normal;
+				LungeDirection = FacingDirection.WithZ(0f).Normal;
 				IsWindingUp = true;
 				WindupEndTime = Time.Now + System.MathF.Max(0f, PunchWindup);
+				var impactDelay = System.MathF.Max(0f, PunchWindup) + System.MathF.Max(0.05f, PunchLungeDuration);
+				var recovery = System.MathF.Max(0f, PunchRecovery);
+				PlayMeleeAnimation(impactDelay: impactDelay, recovery: recovery);
 			}
 
 			return;
 		}
 
-		var stoppingDistance = Controller.BodyRadius + target.BodyRadius;
+		var stoppingDistance = HitboxRadius + target.HitboxRadius;
 		if (direction.LengthSquared <= stoppingDistance * stoppingDistance)
 		{
 			StopAttackMovement();
 			return;
 		}
 
-		var forward = Controller.EyeAngles.ToRotation().Forward.WithZ(0f).Normal;
-		SetPursuitMovement(velocity: forward * MoveSpeed, maximumSpeed: MoveSpeed);
+		SetPursuitMovement(velocity: FacingDirection.WithZ(0f).Normal * MoveSpeed, maximumSpeed: MoveSpeed);
 	}
 
 	internal void SetAggroTarget(GamePlayer player)
@@ -415,15 +387,165 @@ public sealed class GameEnemy : GameEntity
 		_aggro.RecordHit(player, Time.Now);
 	}
 
+	private void InitializeAnimation()
+	{
+		var modelName = Kind switch
+		{
+			GameEnemyKind.Ranged => "hywirl",
+			GameEnemyKind.Boss => "fish",
+			GameEnemyKind.Exploding => "mushroom_king",
+			_ => null
+		};
+		if (modelName != null)
+		{
+			var modelPath = $"models/{modelName}.vmdl";
+			var model = Model.Load(modelPath);
+			if (model.IsError)
+			{
+				Log.Error($"Enemy model could not load '{modelPath}'.");
+				return;
+			}
+
+			_animationRenderer.Model = model;
+			_skeletonPath = $"models/{modelName}.skel";
+			_animationFolder = $"models/{modelName}_animations";
+		}
+
+		var skeleton = Skeleton.Load(_skeletonPath);
+		if (skeleton.IsError)
+		{
+			Log.Error($"Enemy animation could not load '{_skeletonPath}'.");
+			return;
+		}
+
+		var walk = LoadAnimationClip("walk");
+		var hit = LoadAnimationClip("hit");
+		_walkDuration = walk.Duration;
+		_hitDuration = hit.Duration;
+		var graphName = modelName ?? "alien_rigify";
+		var graph = Graph.Load($"models/animation_graphs/{graphName}_enemy.ag");
+		if (graph.IsError)
+		{
+			Log.Error($"Enemy animation could not load the '{graphName}' graph.");
+			return;
+		}
+
+		_animationRenderer.UseAnimGraph = true;
+		_animationRenderer.Animation.Graph = graph;
+		_animationReady = true;
+	}
+
+	private Clip LoadAnimationClip(string name)
+	{
+		var path = $"{_animationFolder}/{name}.anim";
+		var clip = Clip.Load(path);
+		if (clip.IsError || clip.SkeletonName != _skeletonPath || clip.Duration <= 0f)
+		{
+			throw new System.InvalidOperationException($"Enemy animation could not load '{path}' against '{_skeletonPath}'.");
+		}
+
+		return clip;
+	}
+
+	private void UpdateAnimation()
+	{
+		var displacement = (WorldPosition - _lastAnimationPosition).WithZ(0f);
+		_lastAnimationPosition = WorldPosition;
+		if (!_animationReady || !_animationRenderer.IsValid() || Time.Delta <= 0f)
+		{
+			return;
+		}
+
+		if (IsDescending || Health <= 0f)
+		{
+			return;
+		}
+
+		var manager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
+		var roundOver = manager.IsValid() && manager.State != GameState.InProgress;
+		if (roundOver)
+		{
+			_meleeStarted = float.NegativeInfinity;
+			_hitStarted = float.NegativeInfinity;
+		}
+
+		var velocity = displacement / Time.Delta;
+		if (!roundOver && Kind != GameEnemyKind.Ranged && velocity.LengthSquared > 1f)
+		{
+			var referenceSpeed = GetComponent<GameEnemyRanged>().IsValid() ? RangedMoveSpeed : MoveSpeed;
+			var walkDistance = System.MathF.Max(1f, referenceSpeed) * _walkDuration;
+			_walkPhase = (_walkPhase + displacement.Length * WalkAnimationSpeedMultiplier / walkDistance) % 1f;
+		}
+
+		var hitElapsed = Time.Now - _hitStarted;
+		var meleeElapsed = Time.Now - _meleeStarted;
+		var meleeDuration = _meleeImpactDelay + _meleeRecovery;
+		var meleePhase = 0f;
+		var meleeWeight = 0f;
+		if (meleeElapsed >= 0f && meleeElapsed < meleeDuration)
+		{
+			// Match the punch's extended-hand pose to the existing damage instant.
+			if (meleeElapsed < _meleeImpactDelay)
+			{
+				meleePhase = MeleeImpactPhase * meleeElapsed / _meleeImpactDelay;
+			}
+			else
+			{
+				var recoveryProgress = (meleeElapsed - _meleeImpactDelay) / System.MathF.Max(0.001f, _meleeRecovery);
+				meleePhase = MeleeImpactPhase + (1f - MeleeImpactPhase) * recoveryProgress;
+			}
+
+			var fadeIn = (meleeElapsed / 0.08f).Clamp(0f, 1f);
+			var fadeOut = ((meleeDuration - meleeElapsed) / 0.08f).Clamp(0f, 1f);
+			meleeWeight = System.MathF.Min(fadeIn, fadeOut);
+		}
+
+		var hitWeight = 0f;
+		if (hitElapsed >= 0f && hitElapsed < _hitDuration)
+		{
+			var fadeIn = (hitElapsed / 0.04f).Clamp(0f, 1f);
+			var fadeOut = ((_hitDuration - hitElapsed) / 0.08f).Clamp(0f, 1f);
+			hitWeight = System.MathF.Min(fadeIn, fadeOut);
+		}
+
+		var parameters = _animationRenderer.Animation.Parameters;
+		parameters.Set("walk_phase", _walkPhase);
+		parameters.Set("melee_phase", meleePhase.Clamp(0f, 1f));
+		parameters.Set("melee_weight", meleeWeight);
+		parameters.Set("hit_phase", (hitElapsed / _hitDuration).Clamp(0f, 1f));
+		parameters.Set("hit_weight", hitWeight);
+	}
+
+	[Rpc.Broadcast(NetFlags.HostOnly)]
+	private void PlayMeleeAnimation(float impactDelay, float recovery)
+	{
+		_meleeStarted = Time.Now;
+		_meleeImpactDelay = impactDelay;
+		_meleeRecovery = System.MathF.Max(0.08f, recovery);
+	}
+
+	[Rpc.Broadcast(NetFlags.HostOnly)]
+	private void PlayHitAnimation(bool cancelMelee)
+	{
+		if (Time.Now - _hitStarted >= _hitDuration)
+		{
+			_hitStarted = Time.Now;
+		}
+
+		if (cancelMelee)
+		{
+			_meleeStarted = float.NegativeInfinity;
+		}
+	}
+
 	private static bool IsEligibleAggroTarget(GamePlayer player)
 	{
-		return player.IsValid() && player.Active && !player.IsDead
-			&& player.Controller.IsValid() && player.Controller.Active;
+		return player.IsValid() && player.Active && !player.IsDead;
 	}
 
 	private void UpdatePursuitFacing(Vector3 direction)
 	{
-		var currentRotation = Controller.EyeAngles.ToRotation();
+		var currentRotation = WorldRotation;
 		var targetRotation = Rotation.LookAt(direction);
 		var turnSpeed = System.MathF.Max(0.1f, PursuitTurnSpeed);
 		var blend = 1f - System.MathF.Exp(-turnSpeed * Time.Delta);
@@ -432,14 +554,16 @@ public sealed class GameEnemy : GameEntity
 			b: targetRotation,
 			frac: blend
 		);
-		Controller.EyeAngles = rotation.Angles();
+		WorldRotation = rotation;
+		FacingDirection = rotation.Forward.WithZ(0f).Normal;
 	}
 
 	private void SetPursuitMovement(Vector3 velocity, float maximumSpeed)
 	{
 		var separation = GetSeparationVelocity();
-		var desiredVelocity = velocity + separation;
-		var speedLimit = System.MathF.Max(0f, maximumSpeed);
+		var pursuitMultiplier = PursuitSpeedMultiplier.Clamp(0f, 1f);
+		var desiredVelocity = (velocity + separation) * pursuitMultiplier;
+		var speedLimit = System.MathF.Max(0f, maximumSpeed) * pursuitMultiplier;
 		if (desiredVelocity.LengthSquared > speedLimit * speedLimit)
 		{
 			desiredVelocity = desiredVelocity.Normal * speedLimit;
@@ -453,7 +577,12 @@ public sealed class GameEnemy : GameEntity
 		}
 
 		_pursuitVelocity += velocityChange;
-		Controller.WishVelocity = _pursuitVelocity * MovementMultiplier;
+		var displacement = _pursuitVelocity * MovementMultiplier * Time.Delta;
+		WorldPosition += MoveWithWorldCollision(
+			displacement: displacement,
+			radius: HitboxRadius,
+			collisionHeight: GameWeaponProjectile.CollisionHeight
+		);
 	}
 
 	private Vector3 GetSeparationVelocity()
@@ -462,14 +591,14 @@ public sealed class GameEnemy : GameEntity
 		var speedLimit = System.MathF.Max(0f, SeparationSpeed);
 		foreach (var other in Scene.GetAllComponents<GameEnemy>())
 		{
-			if (other == this || other.Health <= 0f || other.IsDescending || !other.Controller.IsValid())
+			if (other == this || other.Health <= 0f || other.IsDescending)
 			{
 				continue;
 			}
 
 			var offset = (WorldPosition - other.WorldPosition).WithZ(0f);
 			var distanceSquared = offset.LengthSquared;
-			var bodySpacing = Controller.BodyRadius + other.Controller.BodyRadius;
+			var bodySpacing = HitboxRadius + other.HitboxRadius;
 			var radius = System.MathF.Max(SeparationRadius, bodySpacing);
 			if (distanceSquared >= radius * radius)
 			{
@@ -498,21 +627,21 @@ public sealed class GameEnemy : GameEntity
 
 	private void ApplyLungeMovement()
 	{
-		Controller.EyeAngles = Rotation.LookAt(LungeDirection).Angles();
+		WorldRotation = Rotation.LookAt(LungeDirection);
+		FacingDirection = LungeDirection.WithZ(0f).Normal;
 		var lungeDistance = System.MathF.Max(0f, PunchLungeDistance);
 		var lungeDuration = System.MathF.Max(0.05f, PunchLungeDuration);
-		Controller.WishVelocity = LungeDirection * (lungeDistance / lungeDuration);
+		var displacement = LungeDirection * (lungeDistance / lungeDuration) * Time.Delta;
+		WorldPosition += MoveWithWorldCollision(
+			displacement: displacement,
+			radius: HitboxRadius,
+			collisionHeight: GameWeaponProjectile.CollisionHeight
+		);
 	}
 
 	private void StopAttackMovement()
 	{
 		_pursuitVelocity = Vector3.Zero;
-		Controller.WishVelocity = Vector3.Zero;
-		if (Controller.Body.IsValid())
-		{
-			var velocity = Controller.Body.Velocity;
-			Controller.Body.Velocity = new Vector3(0f, 0f, velocity.z);
-		}
 	}
 
 	protected override void OnDamaged(Vector3 hitDirection)
@@ -522,11 +651,12 @@ public sealed class GameEnemy : GameEntity
 			return;
 		}
 
+		PlayHitAnimation(cancelMelee: HitStaggerDuration > 0f);
+
 		if (HitStaggerDuration > 0f)
 		{
 			IsWindingUp = false;
 			IsLunging = false;
-			IsTargetInPunchRange = false;
 			GetComponent<GameEnemyRanged>()?.CancelAttack();
 			StaggerEndTime = Time.Now + HitStaggerDuration;
 			MovementUnlockTime = System.MathF.Max(MovementUnlockTime, StaggerEndTime);
@@ -534,26 +664,6 @@ public sealed class GameEnemy : GameEntity
 			StopAttackMovement();
 		}
 
-		PlayHitReaction(hitDirection);
-	}
-
-	[Rpc.Broadcast(NetFlags.HostOnly)]
-	private void PlayHitReaction(Vector3 hitDirection)
-	{
-		var renderer = Controller.Renderer;
-		if (!renderer.IsValid())
-		{
-			Log.Error("Enemy requires an animated renderer for hit reactions.");
-			return;
-		}
-
-		var bone = renderer.GetClosestBone(WorldPosition + Vector3.Up * 48f);
-		renderer.Set("hit_bone", bone.Index);
-		renderer.Set("hit_offset", Vector3.Zero);
-		renderer.Set("hit_direction", hitDirection.LengthSquared > 0.001f
-			? hitDirection.Normal : -Controller.EyeAngles.ToRotation().Forward);
-		renderer.Set("hit_strength", HitReactionStrength);
-		renderer.Set("hit", true);
 	}
 
 	protected override void OnHealthDepleted()
@@ -561,8 +671,13 @@ public sealed class GameEnemy : GameEntity
 		GetComponent<GameEnemyRanged>()?.CancelAttack();
 		IsWindingUp = false;
 		IsLunging = false;
-		IsTargetInPunchRange = false;
 		StopAttackMovement();
+		var hitbox = GetComponent<CapsuleCollider>();
+		if (hitbox.IsValid())
+		{
+			hitbox.Enabled = false;
+		}
+
 		var boss = GetComponent<GameEnemyBoss>();
 		if (boss.IsValid())
 		{
@@ -575,50 +690,15 @@ public sealed class GameEnemy : GameEntity
 			amount: ExperienceDrop
 		);
 
-		if (!Controller.Renderer.IsValid())
-		{
-			Log.Error("Enemy requires an animated renderer to create a ragdoll.");
-			return;
-		}
-
-		RestoreMaterials();
-		var ragdoll = Controller.CreateRagdoll("Enemy Ragdoll");
-		ragdoll.AddComponent<GameBloodiedModel>().Amount = 1f;
-		var ragdollCollision = ragdoll.AddComponent<GameEnemyRagdollCollision>();
-		if (!ragdollCollision.ApplyCollisionTags())
-		{
-			ragdoll.Destroy();
-			Log.Error("Failed to assign collision tags to the enemy ragdoll.");
-			return;
-		}
-
 		var exploder = GetComponent<GameEnemyExploding>();
 		if (exploder.IsValid())
 		{
-			exploder.ConfigureDeathExplosion(ragdoll);
-		}
-
-		if (!ragdoll.NetworkSpawn())
-		{
-			ragdoll.Destroy();
-			Log.Error("Failed to network-spawn enemy ragdoll.");
+			RestoreMaterials();
+			exploder.ConfigureDeathExplosion(GameObject);
 			return;
 		}
 
 		GameObject.Destroy();
-	}
-
-	[Rpc.Broadcast(NetFlags.HostOnly)]
-	private void PlayPunch()
-	{
-		if (!Controller.Renderer.IsValid())
-		{
-			Log.Error("Enemy requires an animated renderer to punch.");
-			return;
-		}
-
-		Controller.Renderer.Set("holdtype", (int)Sandbox.Citizen.CitizenAnimationHelper.HoldTypes.Punch);
-		Controller.Renderer.Set("b_attack", true);
 	}
 
 	protected override void OnDisabled()
@@ -629,7 +709,7 @@ public sealed class GameEnemy : GameEntity
 			_spawnBeam.Destroy();
 		}
 
-		if (Networking.IsHost && !IsProxy && Controller.IsValid())
+		if (Networking.IsHost && !IsProxy)
 		{
 			IsWindingUp = false;
 			IsLunging = false;

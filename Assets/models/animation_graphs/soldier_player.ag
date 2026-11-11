@@ -1,0 +1,660 @@
+{
+  "Version": 1,
+  "nodes": [
+    {
+      "_class": "FloatParameterNode",
+      "ParameterIdentifier": "60ed7d2c-c554-4704-8ad0-454b3796adba",
+      "ParameterName": "walk_phase",
+      "Identifier": "8ed8e246-901e-445d-98c0-526ec151867e",
+      "Position": "0,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "FloatParameterNode",
+      "ParameterIdentifier": "ec073491-1084-4cef-8966-7c7a6a2103df",
+      "ParameterName": "idle_phase",
+      "Identifier": "a0ea92c8-40e8-42fe-8b81-04a175551138",
+      "Position": "240,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "FloatParameterNode",
+      "ParameterIdentifier": "d941e783-8f0e-46f6-aec0-aed52c4c93be",
+      "ParameterName": "move_forward",
+      "Identifier": "7d395a25-6f8c-4d14-9dc0-cff4c6888bcf",
+      "Position": "480,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "FloatParameterNode",
+      "ParameterIdentifier": "529c0071-83c0-4a45-892b-9bd48355510d",
+      "ParameterName": "move_right",
+      "Identifier": "566fcb0f-47d4-430d-b761-27a5d3e81516",
+      "Position": "720,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "FloatParameterNode",
+      "ParameterIdentifier": "f9d488d2-d9e9-4f6a-9239-a63c717b47e2",
+      "ParameterName": "shoot_phase",
+      "Identifier": "db7c3975-1327-4d2e-8592-c0c1c355d798",
+      "Position": "960,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "FloatParameterNode",
+      "ParameterIdentifier": "c4f00cd4-25f0-4977-aedc-0a300eae4e08",
+      "ParameterName": "shoot_weight",
+      "Identifier": "ffeb5e1e-8290-4854-9a58-c6752d19fe4e",
+      "Position": "1200,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "ConstFloatNode",
+      "Value": 0,
+      "Identifier": "e67a2526-df51-4f4e-99af-1efaefd5fc68",
+      "Position": "1440,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "ConstFloatNode",
+      "Value": 1,
+      "Identifier": "2d10bbcc-17f9-40d8-8856-7e96ff923a00",
+      "Position": "1680,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "Blend2DNode",
+      "X": {
+        "Identifier": "7d395a25-6f8c-4d14-9dc0-cff4c6888bcf",
+        "Output": "Value"
+      },
+      "Y": {
+        "Identifier": "566fcb0f-47d4-430d-b761-27a5d3e81516",
+        "Output": "Value"
+      },
+      "Points": [
+        {
+          "Name": "idle",
+          "Position": "0,0",
+          "Graph": {
+            "Version": 1,
+            "nodes": [
+              {
+                "_class": "FloatParameterNode",
+                "ParameterIdentifier": "ec073491-1084-4cef-8966-7c7a6a2103df",
+                "ParameterName": "idle_phase",
+                "Identifier": "2c8a2427-1c99-4e7c-82db-46549180d7bf",
+                "Position": "0,0",
+                "HandleOffsets": {}
+              },
+              {
+                "_class": "TimeControlledAnimationClipNode",
+                "Time": {
+                  "Identifier": "2c8a2427-1c99-4e7c-82db-46549180d7bf",
+                  "Output": "Value"
+                },
+                "SampleRootMotion": false,
+                "GraphEvents": [],
+                "DefaultVariationData": {
+                  "AnimationName": "models/soldier_animations/idle.anim"
+                },
+                "Overrides": [],
+                "Identifier": "00df9365-a494-4efc-b385-3b43f9988a18",
+                "Position": "240,0",
+                "HandleOffsets": {}
+              },
+              {
+                "_class": "PoseResultNode",
+                "Pose": {
+                  "Identifier": "00df9365-a494-4efc-b385-3b43f9988a18",
+                  "Output": "Result"
+                },
+                "Identifier": "85677410-24fc-4372-9a5f-2cd621c10a6e",
+                "Position": "480,0",
+                "HandleOffsets": {}
+              }
+            ]
+          }
+        },
+        {
+          "Name": "walk",
+          "Position": "1.00000000,0.00000000",
+          "Graph": {
+            "Version": 1,
+            "nodes": [
+              {
+                "_class": "FloatParameterNode",
+                "ParameterIdentifier": "60ed7d2c-c554-4704-8ad0-454b3796adba",
+                "ParameterName": "walk_phase",
+                "Identifier": "035456b1-bb92-4275-8bad-dc8fae253634",
+                "Position": "0,0",
+                "HandleOffsets": {}
+              },
+              {
+                "_class": "TimeControlledAnimationClipNode",
+                "Time": {
+                  "Identifier": "035456b1-bb92-4275-8bad-dc8fae253634",
+                  "Output": "Value"
+                },
+                "SampleRootMotion": false,
+                "GraphEvents": [],
+                "DefaultVariationData": {
+                  "AnimationName": "models/soldier_animations/walk.anim"
+                },
+                "Overrides": [],
+                "Identifier": "abd71c8f-af93-4eae-bdb2-d03e4499841e",
+                "Position": "240,0",
+                "HandleOffsets": {}
+              },
+              {
+                "_class": "PoseResultNode",
+                "Pose": {
+                  "Identifier": "abd71c8f-af93-4eae-bdb2-d03e4499841e",
+                  "Output": "Result"
+                },
+                "Identifier": "1f00c265-559c-44e0-8e91-cd56196c2aed",
+                "Position": "480,0",
+                "HandleOffsets": {}
+              }
+            ]
+          }
+        },
+        {
+          "Name": "walk_forward_right",
+          "Position": "0.70710678,0.70710678",
+          "Graph": {
+            "Version": 1,
+            "nodes": [
+              {
+                "_class": "FloatParameterNode",
+                "ParameterIdentifier": "60ed7d2c-c554-4704-8ad0-454b3796adba",
+                "ParameterName": "walk_phase",
+                "Identifier": "95af2e22-e9af-444b-9968-a3126edfa51b",
+                "Position": "0,0",
+                "HandleOffsets": {}
+              },
+              {
+                "_class": "TimeControlledAnimationClipNode",
+                "Time": {
+                  "Identifier": "95af2e22-e9af-444b-9968-a3126edfa51b",
+                  "Output": "Value"
+                },
+                "SampleRootMotion": false,
+                "GraphEvents": [],
+                "DefaultVariationData": {
+                  "AnimationName": "models/soldier_animations/walk_forward_right.anim"
+                },
+                "Overrides": [],
+                "Identifier": "5d791431-6dc8-40a2-a7d9-18bc6134f8ad",
+                "Position": "240,0",
+                "HandleOffsets": {}
+              },
+              {
+                "_class": "PoseResultNode",
+                "Pose": {
+                  "Identifier": "5d791431-6dc8-40a2-a7d9-18bc6134f8ad",
+                  "Output": "Result"
+                },
+                "Identifier": "8ca9dd17-294b-48f4-a612-6fdfa211deba",
+                "Position": "480,0",
+                "HandleOffsets": {}
+              }
+            ]
+          }
+        },
+        {
+          "Name": "walk_right",
+          "Position": "0.00000000,1.00000000",
+          "Graph": {
+            "Version": 1,
+            "nodes": [
+              {
+                "_class": "FloatParameterNode",
+                "ParameterIdentifier": "60ed7d2c-c554-4704-8ad0-454b3796adba",
+                "ParameterName": "walk_phase",
+                "Identifier": "8885259e-13bb-46c7-b29b-ba10807c3637",
+                "Position": "0,0",
+                "HandleOffsets": {}
+              },
+              {
+                "_class": "TimeControlledAnimationClipNode",
+                "Time": {
+                  "Identifier": "8885259e-13bb-46c7-b29b-ba10807c3637",
+                  "Output": "Value"
+                },
+                "SampleRootMotion": false,
+                "GraphEvents": [],
+                "DefaultVariationData": {
+                  "AnimationName": "models/soldier_animations/walk_right.anim"
+                },
+                "Overrides": [],
+                "Identifier": "4496e6cd-13b5-408e-9c6b-a66c2dbc9d9a",
+                "Position": "240,0",
+                "HandleOffsets": {}
+              },
+              {
+                "_class": "PoseResultNode",
+                "Pose": {
+                  "Identifier": "4496e6cd-13b5-408e-9c6b-a66c2dbc9d9a",
+                  "Output": "Result"
+                },
+                "Identifier": "c4039bd1-1da8-4b36-b868-728adce20034",
+                "Position": "480,0",
+                "HandleOffsets": {}
+              }
+            ]
+          }
+        },
+        {
+          "Name": "walk_backward_right",
+          "Position": "-0.70710678,0.70710678",
+          "Graph": {
+            "Version": 1,
+            "nodes": [
+              {
+                "_class": "FloatParameterNode",
+                "ParameterIdentifier": "60ed7d2c-c554-4704-8ad0-454b3796adba",
+                "ParameterName": "walk_phase",
+                "Identifier": "b75f6d16-520a-40c0-b4c8-78cd2f0d1e38",
+                "Position": "0,0",
+                "HandleOffsets": {}
+              },
+              {
+                "_class": "TimeControlledAnimationClipNode",
+                "Time": {
+                  "Identifier": "b75f6d16-520a-40c0-b4c8-78cd2f0d1e38",
+                  "Output": "Value"
+                },
+                "SampleRootMotion": false,
+                "GraphEvents": [],
+                "DefaultVariationData": {
+                  "AnimationName": "models/soldier_animations/walk_backward_right.anim"
+                },
+                "Overrides": [],
+                "Identifier": "98ac2e38-0f12-4cd0-9add-b888b0c7ab1c",
+                "Position": "240,0",
+                "HandleOffsets": {}
+              },
+              {
+                "_class": "PoseResultNode",
+                "Pose": {
+                  "Identifier": "98ac2e38-0f12-4cd0-9add-b888b0c7ab1c",
+                  "Output": "Result"
+                },
+                "Identifier": "331ad8bc-c703-42d7-b617-257a479b3e1d",
+                "Position": "480,0",
+                "HandleOffsets": {}
+              }
+            ]
+          }
+        },
+        {
+          "Name": "walk_backward",
+          "Position": "-1.00000000,0.00000000",
+          "Graph": {
+            "Version": 1,
+            "nodes": [
+              {
+                "_class": "FloatParameterNode",
+                "ParameterIdentifier": "60ed7d2c-c554-4704-8ad0-454b3796adba",
+                "ParameterName": "walk_phase",
+                "Identifier": "e6d20a30-4af8-44f9-9fea-6e96e21629f3",
+                "Position": "0,0",
+                "HandleOffsets": {}
+              },
+              {
+                "_class": "TimeControlledAnimationClipNode",
+                "Time": {
+                  "Identifier": "e6d20a30-4af8-44f9-9fea-6e96e21629f3",
+                  "Output": "Value"
+                },
+                "SampleRootMotion": false,
+                "GraphEvents": [],
+                "DefaultVariationData": {
+                  "AnimationName": "models/soldier_animations/walk_backward.anim"
+                },
+                "Overrides": [],
+                "Identifier": "76fc05df-5f35-4491-9399-fe9c24a5ae7d",
+                "Position": "240,0",
+                "HandleOffsets": {}
+              },
+              {
+                "_class": "PoseResultNode",
+                "Pose": {
+                  "Identifier": "76fc05df-5f35-4491-9399-fe9c24a5ae7d",
+                  "Output": "Result"
+                },
+                "Identifier": "43039c28-bb0c-4857-b3d8-68017f78ffaa",
+                "Position": "480,0",
+                "HandleOffsets": {}
+              }
+            ]
+          }
+        },
+        {
+          "Name": "walk_backward_left",
+          "Position": "-0.70710678,-0.70710678",
+          "Graph": {
+            "Version": 1,
+            "nodes": [
+              {
+                "_class": "FloatParameterNode",
+                "ParameterIdentifier": "60ed7d2c-c554-4704-8ad0-454b3796adba",
+                "ParameterName": "walk_phase",
+                "Identifier": "ffbe9b10-42a4-459a-bd60-7af9857bf770",
+                "Position": "0,0",
+                "HandleOffsets": {}
+              },
+              {
+                "_class": "TimeControlledAnimationClipNode",
+                "Time": {
+                  "Identifier": "ffbe9b10-42a4-459a-bd60-7af9857bf770",
+                  "Output": "Value"
+                },
+                "SampleRootMotion": false,
+                "GraphEvents": [],
+                "DefaultVariationData": {
+                  "AnimationName": "models/soldier_animations/walk_backward_left.anim"
+                },
+                "Overrides": [],
+                "Identifier": "b2250220-3f9b-4de5-bcfd-b9dfc6bcf91b",
+                "Position": "240,0",
+                "HandleOffsets": {}
+              },
+              {
+                "_class": "PoseResultNode",
+                "Pose": {
+                  "Identifier": "b2250220-3f9b-4de5-bcfd-b9dfc6bcf91b",
+                  "Output": "Result"
+                },
+                "Identifier": "e2a88390-1c15-46d8-ba10-b514a7e39808",
+                "Position": "480,0",
+                "HandleOffsets": {}
+              }
+            ]
+          }
+        },
+        {
+          "Name": "walk_left",
+          "Position": "-0.00000000,-1.00000000",
+          "Graph": {
+            "Version": 1,
+            "nodes": [
+              {
+                "_class": "FloatParameterNode",
+                "ParameterIdentifier": "60ed7d2c-c554-4704-8ad0-454b3796adba",
+                "ParameterName": "walk_phase",
+                "Identifier": "d7368887-7778-4eea-b073-41027309a981",
+                "Position": "0,0",
+                "HandleOffsets": {}
+              },
+              {
+                "_class": "TimeControlledAnimationClipNode",
+                "Time": {
+                  "Identifier": "d7368887-7778-4eea-b073-41027309a981",
+                  "Output": "Value"
+                },
+                "SampleRootMotion": false,
+                "GraphEvents": [],
+                "DefaultVariationData": {
+                  "AnimationName": "models/soldier_animations/walk_left.anim"
+                },
+                "Overrides": [],
+                "Identifier": "077128ef-c0fb-4e63-8cb2-76840069e74b",
+                "Position": "240,0",
+                "HandleOffsets": {}
+              },
+              {
+                "_class": "PoseResultNode",
+                "Pose": {
+                  "Identifier": "077128ef-c0fb-4e63-8cb2-76840069e74b",
+                  "Output": "Result"
+                },
+                "Identifier": "94bc32e0-e600-46a9-9e54-dbe11e44974b",
+                "Position": "480,0",
+                "HandleOffsets": {}
+              }
+            ]
+          }
+        },
+        {
+          "Name": "walk_forward_left",
+          "Position": "0.70710678,-0.70710678",
+          "Graph": {
+            "Version": 1,
+            "nodes": [
+              {
+                "_class": "FloatParameterNode",
+                "ParameterIdentifier": "60ed7d2c-c554-4704-8ad0-454b3796adba",
+                "ParameterName": "walk_phase",
+                "Identifier": "c95504a9-4702-4cdc-b53a-2040aad42777",
+                "Position": "0,0",
+                "HandleOffsets": {}
+              },
+              {
+                "_class": "TimeControlledAnimationClipNode",
+                "Time": {
+                  "Identifier": "c95504a9-4702-4cdc-b53a-2040aad42777",
+                  "Output": "Value"
+                },
+                "SampleRootMotion": false,
+                "GraphEvents": [],
+                "DefaultVariationData": {
+                  "AnimationName": "models/soldier_animations/walk_forward_left.anim"
+                },
+                "Overrides": [],
+                "Identifier": "d3d2cabe-91b6-40dc-be18-c7b254f999ef",
+                "Position": "240,0",
+                "HandleOffsets": {}
+              },
+              {
+                "_class": "PoseResultNode",
+                "Pose": {
+                  "Identifier": "d3d2cabe-91b6-40dc-be18-c7b254f999ef",
+                  "Output": "Result"
+                },
+                "Identifier": "818f3c21-bb17-4d41-8a32-cdfde78400a0",
+                "Position": "480,0",
+                "HandleOffsets": {}
+              }
+            ]
+          }
+        }
+      ],
+      "Loop": false,
+      "Identifier": "89500f26-ad34-45d1-803a-56d0e94bec23",
+      "Position": "1920,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "TimeControlledAnimationClipNode",
+      "Time": {
+        "Identifier": "e67a2526-df51-4f4e-99af-1efaefd5fc68",
+        "Output": "Result"
+      },
+      "SampleRootMotion": false,
+      "GraphEvents": [],
+      "DefaultVariationData": {
+        "AnimationName": "models/soldier_animations/idle.anim"
+      },
+      "Overrides": [],
+      "Identifier": "c58d20f6-f13c-4521-ab9c-d438925e1e1d",
+      "Position": "2160,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "TimeControlledAnimationClipNode",
+      "Time": {
+        "Identifier": "db7c3975-1327-4d2e-8592-c0c1c355d798",
+        "Output": "Value"
+      },
+      "SampleRootMotion": false,
+      "GraphEvents": [],
+      "DefaultVariationData": {
+        "AnimationName": "models/soldier_animations/shoot.anim"
+      },
+      "Overrides": [],
+      "Identifier": "2fde4640-673b-47b6-9c76-0ddfc27b0695",
+      "Position": "2400,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "BoneMaskNode",
+      "BoneName": "lower_body",
+      "DefaultWeight": 1,
+      "DefaultVariationData": {
+        "MaskOverride": ""
+      },
+      "Overrides": [],
+      "Identifier": "84a4a81a-f7e3-40a2-9c19-537a5320d4d6",
+      "Position": "2640,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "LocalLayerNode",
+      "Input": {
+        "Identifier": "89500f26-ad34-45d1-803a-56d0e94bec23",
+        "Output": "Result"
+      },
+      "Weight": {
+        "Identifier": "2d10bbcc-17f9-40d8-8856-7e96ff923a00",
+        "Output": "Result"
+      },
+      "BlendMode": "Overlay",
+      "IsSynchronized": false,
+      "IgnoreEvents": true,
+      "BoneMask": {
+        "Identifier": "84a4a81a-f7e3-40a2-9c19-537a5320d4d6",
+        "Output": "Mask"
+      },
+      "Identifier": "69a1ba52-a343-4840-8701-60fe096437b1",
+      "Position": "2880,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "BoneMaskNode",
+      "BoneName": "upper_body",
+      "DefaultWeight": 1,
+      "DefaultVariationData": {
+        "MaskOverride": ""
+      },
+      "Overrides": [],
+      "Identifier": "2d5033d4-ffde-47c7-99f3-2b4aff13e934",
+      "Position": "3120,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "LocalLayerNode",
+      "Input": {
+        "Identifier": "2fde4640-673b-47b6-9c76-0ddfc27b0695",
+        "Output": "Result"
+      },
+      "Weight": {
+        "Identifier": "ffeb5e1e-8290-4854-9a58-c6752d19fe4e",
+        "Output": "Value"
+      },
+      "BlendMode": "Overlay",
+      "IsSynchronized": false,
+      "IgnoreEvents": true,
+      "BoneMask": {
+        "Identifier": "2d5033d4-ffde-47c7-99f3-2b4aff13e934",
+        "Output": "Mask"
+      },
+      "Identifier": "4a83a994-e561-4e4c-bc43-c15f0e3e225e",
+      "Position": "3360,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "LayerBlendNode",
+      "Base": {
+        "Identifier": "c58d20f6-f13c-4521-ab9c-d438925e1e1d",
+        "Output": "Result"
+      },
+      "Layers": [
+        {
+          "Identifier": "69a1ba52-a343-4840-8701-60fe096437b1",
+          "Output": "Layer"
+        },
+        {
+          "Identifier": "4a83a994-e561-4e4c-bc43-c15f0e3e225e",
+          "Output": "Layer"
+        }
+      ],
+      "OnlySampleBaseRootMotion": true,
+      "Identifier": "a0fc5f62-ff88-4fbc-aa5a-87dc343aac98",
+      "Position": "3600,0",
+      "HandleOffsets": {}
+    },
+    {
+      "_class": "PoseResultNode",
+      "Pose": {
+        "Identifier": "a0fc5f62-ff88-4fbc-aa5a-87dc343aac98",
+        "Output": "Result"
+      },
+      "Identifier": "1a407e17-ff33-4b16-8c51-98a42672dfd7",
+      "Position": "3840,0",
+      "HandleOffsets": {}
+    }
+  ],
+  "Model": "models/soldier_rigify.vmdl",
+  "Skeleton": "models/soldier_rigify.skel",
+  "parameters": [
+    {
+      "Identifier": "60ed7d2c-c554-4704-8ad0-454b3796adba",
+      "Type": "Float",
+      "Name": "walk_phase",
+      "RuntimeDefaultFloat": 0,
+      "DefaultFloat": 0,
+      "Min": -1,
+      "Max": 1
+    },
+    {
+      "Identifier": "ec073491-1084-4cef-8966-7c7a6a2103df",
+      "Type": "Float",
+      "Name": "idle_phase",
+      "RuntimeDefaultFloat": 0,
+      "DefaultFloat": 0,
+      "Min": -1,
+      "Max": 1
+    },
+    {
+      "Identifier": "d941e783-8f0e-46f6-aec0-aed52c4c93be",
+      "Type": "Float",
+      "Name": "move_forward",
+      "RuntimeDefaultFloat": 0,
+      "DefaultFloat": 0,
+      "Min": -1,
+      "Max": 1
+    },
+    {
+      "Identifier": "529c0071-83c0-4a45-892b-9bd48355510d",
+      "Type": "Float",
+      "Name": "move_right",
+      "RuntimeDefaultFloat": 0,
+      "DefaultFloat": 0,
+      "Min": -1,
+      "Max": 1
+    },
+    {
+      "Identifier": "f9d488d2-d9e9-4f6a-9239-a63c717b47e2",
+      "Type": "Float",
+      "Name": "shoot_phase",
+      "RuntimeDefaultFloat": 0,
+      "DefaultFloat": 0,
+      "Min": -1,
+      "Max": 1
+    },
+    {
+      "Identifier": "c4f00cd4-25f0-4977-aedc-0a300eae4e08",
+      "Type": "Float",
+      "Name": "shoot_weight",
+      "RuntimeDefaultFloat": 0,
+      "DefaultFloat": 0,
+      "Min": -1,
+      "Max": 1
+    }
+  ],
+  "virtualParameters": [],
+  "variations": []
+}

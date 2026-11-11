@@ -5,6 +5,10 @@ internal static class LootCatalogTests
 {
 	internal static void Coverage()
 	{
+		var previousHealthDefinition = GameLootCatalog.Get(LootKind.Health);
+		GameLootCatalog.Rebuild();
+		Check(!ReferenceEquals(previousHealthDefinition, GameLootCatalog.Get(LootKind.Health)), "Rebuilding the catalog must replace definitions preserved by hotload.");
+
 		var kinds = Enum.GetValues<LootKind>();
 		Check(GameLootCatalog.All.Select(item => item.Id).SequenceEqual(kinds), "Every loot kind needs exactly one definition, preserving existing IDs.");
 		foreach (var item in GameLootCatalog.All)
@@ -15,6 +19,7 @@ internal static class LootCatalogTests
 			if (item.Effect == LootEffect.Weapon)
 			{
 				Check(!string.IsNullOrWhiteSpace(item.WeaponResourcePath), "Weapon drops need a resource path.");
+				Check(item.VisualParts.Count == 0, "Weapon drops must use their weapon prefab, not procedural visual parts.");
 				Check(item.CanCollect == null && item.Collect == null, "Weapons must not have contact collection callbacks.");
 			}
 			else if (item.Effect != LootEffect.ReviveFlare)
@@ -234,7 +239,7 @@ internal static class LootCatalogTests
 	{
 		foreach (var item in GameLootCatalog.All)
 		{
-			Check(item.VisualParts.Count > 0, "Every item needs visible geometry.");
+			Check(item.Effect == LootEffect.Weapon || item.VisualParts.Count > 0, "Non-weapon items need visible geometry.");
 			foreach (var part in item.VisualParts)
 			{
 				Check(!string.IsNullOrWhiteSpace(part.Name) && !string.IsNullOrWhiteSpace(part.ModelPath), "Visual parts need names and model paths.");
@@ -245,8 +250,8 @@ internal static class LootCatalogTests
 		Check(GameLootCatalog.Get(LootKind.Health).VisualParts.Count == 3, "Medkit must retain its box and two cross parts.");
 		Check(GameLootCatalog.Get(LootKind.Armor).VisualParts.Count == 3, "Armor must retain its three parts.");
 		Check(GameLootCatalog.Get(LootKind.Flare).VisualParts.Count == 3, "Flare must retain its three parts.");
-		Check(GameLootCatalog.Get(LootKind.Rifle).VisualParts.Count == 4 && GameLootCatalog.Get(LootKind.Shotgun).VisualParts.Count == 4,
-			"Weapon prototypes must retain their four parts.");
+		Check(GameLootCatalog.Get(LootKind.Rifle).VisualParts.Count == 0 && GameLootCatalog.Get(LootKind.Shotgun).VisualParts.Count == 0,
+			"Weapon visuals must come from their prefabs.");
 		var pips = GameLootCatalog.Get(LootKind.RerollDice).VisualParts.Where(part => part.Name == "Die Pip").ToArray();
 		Check(pips.Length == 21 && pips.All(part => part.ScaleToModelWidth && part.Size.x == 3.5f), "Dice must retain 21 model-scaled pips.");
 		Check(pips.Count(part => part.Position.z == 11f) == 1 && pips.Count(part => part.Position.z == -11f) == 6,

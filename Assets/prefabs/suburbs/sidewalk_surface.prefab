@@ -1,0 +1,61 @@
+{
+  "RootObject": {
+    "__guid": "0e2ef705-5220-4e03-8a3d-0a0841512f87",
+    "__version": 2,
+    "Flags": 0,
+    "Name": "sidewalk_surface",
+    "Position": "0,0,0",
+    "Rotation": "0,0,0,1",
+    "Scale": "1,1,1",
+    "Tags": "",
+    "Enabled": true,
+    "NetworkMode": 0,
+    "NetworkFlags": 0,
+    "NetworkOrphaned": 0,
+    "NetworkTransmit": true,
+    "OwnerTransfer": 1,
+    "Components": [
+      {
+        "__type": "Sandbox.ModelRenderer",
+        "__guid": "5bd0e241-dbd1-4b49-8860-87430d9d037d",
+        "__enabled": true,
+        "Flags": 0,
+        "BodyGroups": 18446744073709551615,
+        "CreateAttachments": false,
+        "LodOverride": null,
+        "MaterialGroup": null,
+        "MaterialOverride": {
+          "Id": "eaa543a0-3df1-48b8-9cfd-1a27c5fc3dc7",
+          "Path": "materials/default.vmat"
+        },
+        "Materials": null,
+        "Model": {
+          "Id": "8a84e5a0-01f8-0000-f0db-b088f8010000",
+          "Path": "models/dev/box.vmdl"
+        },
+        "OnComponentDestroy": null,
+        "OnComponentDisabled": null,
+        "OnComponentEnabled": null,
+        "OnComponentFixedUpdate": null,
+        "OnComponentStart": null,
+        "OnComponentUpdate": null,
+        "RenderOptions": {
+          "GameLayer": true,
+          "OverlayLayer": false,
+          "BloomLayer": false,
+          "AfterUILayer": false
+        },
+        "RenderType": "Off",
+        "Tint": "0.73725,0.76471,0.79216,1"
+      }
+    ],
+    "Children": []
+  },
+  "ResourceVersion": 2,
+  "ShowInMenu": false,
+  "MenuPath": null,
+  "MenuIcon": null,
+  "DontBreakAsTemplate": false,
+  "__references": [],
+  "__version": 2
+}

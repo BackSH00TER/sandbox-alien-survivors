@@ -1,0 +1,63 @@
+{
+  "RootObject": {
+    "__guid": "118cdddb-9a7f-4f69-9881-e662e5549259",
+    "__version": 2,
+    "Flags": 0,
+    "Name": "Rifle",
+    "Position": "0,0,0",
+    "Rotation": "0,0,0,1",
+    "Scale": "1,1,1",
+    "Enabled": true,
+    "NetworkMode": 0,
+    "Components": [
+      {
+        "__type": "GameWeaponModel",
+        "__guid": "01c24123-5bba-4988-aa5e-61aa42b44ae4",
+        "__enabled": true,
+        "Muzzle": {
+          "_type": "gameobject",
+          "go": "03e70ab5-24bb-4b6a-911b-b070c471bfc1"
+        }
+      }
+    ],
+    "Children": [
+      {
+        "__guid": "61fda21d-3886-4f69-90ee-c3affb172dde",
+        "__version": 2,
+        "Flags": 0,
+        "Name": "Model",
+        "Position": "8,0,0",
+        "Rotation": "0,0,1,0",
+        "Scale": "0.5,0.5,0.5",
+        "Enabled": true,
+        "NetworkMode": 0,
+        "Components": [
+          {
+            "__type": "Sandbox.ModelRenderer",
+            "__guid": "4448bf11-45a6-46cd-a517-2f205cc7de75",
+            "__enabled": true,
+            "Model": "models/weapons/rifle.vmdl",
+            "Tint": "1,1,1,1"
+          }
+        ],
+        "Children": [
+          {
+            "__guid": "03e70ab5-24bb-4b6a-911b-b070c471bfc1",
+            "__version": 2,
+            "Flags": 0,
+            "Name": "Muzzle",
+            "Position": "-42.5,0,9.25",
+            "Rotation": "0,0,1,0",
+            "Scale": "1,1,1",
+            "Enabled": true,
+            "NetworkMode": 0,
+            "Components": [],
+            "Children": []
+          }
+        ]
+      }
+    ]
+  },
+  "__references": [],
+  "__version": 2
+}

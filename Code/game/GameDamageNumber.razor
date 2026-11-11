@@ -6,13 +6,14 @@
 <root>
 	@if (_visible)
 	{
-		<div class="damage-number" style="left: @ScreenLeft; top: @ScreenTop; opacity: @Opacity;">@DamageText</div>
+		<div class="damage-number @(IsPlayerDamage ? "player-damage" : "")" style="left: @ScreenLeft; top: @ScreenTop; opacity: @Opacity;">@DamageText</div>
 	}
 </root>
 
 @code
 {
 	[Property] public float Damage { get; set; }
+	[Property] public bool IsPlayerDamage { get; set; }
 
 	private const float Lifetime = 0.9f;
 	private const float RiseHeight = 48f;
@@ -70,7 +71,8 @@
 			value1: Damage,
 			value2: _opacity,
 			value3: _screenPosition,
-			value4: _visible
+			value4: _visible,
+			value5: IsPlayerDamage
 		);
 	}
 }
