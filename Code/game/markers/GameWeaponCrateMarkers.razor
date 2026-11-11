@@ -1,0 +1,61 @@
+@using Sandbox;
+@using Sandbox.UI;
+@inherits Panel
+@namespace Sandbox
+
+<root style="position: absolute; width: 100%; height: 100%; pointer-events: none;">
+	@foreach (var target in _targets)
+	{
+		<GameObjectiveMarker Visible="@(true)"
+							 TargetPosition="@target"
+							 OriginPosition="@(_originPosition)"
+							 Label="Weapon crate"
+							 MarkerClass="weapon-crate"
+							 MarkerColor="#ffc857" />
+	}
+</root>
+
+@code
+{
+	private readonly List<Vector3> _targets = new();
+	private Vector3 _originPosition;
+
+	public override void Tick()
+	{
+		base.Tick();
+		_targets.Clear();
+		var scene = Game.ActiveScene;
+		if (!scene.IsValid())
+		{
+			return;
+		}
+
+		var player = scene.GetAllComponents<GamePlayer>().FirstOrDefault(x => !x.IsProxy);
+		if (!player.IsValid() || player.IsDead || player.IsRoundOver)
+		{
+			return;
+		}
+
+		_originPosition = player.WorldPosition;
+		foreach (var crate in scene.GetAllComponents<GameSupplyCrate>())
+		{
+			if (crate.Kind != GameCrateKind.Weapon || !crate.CanTakeDamage)
+			{
+				continue;
+			}
+
+			_targets.Add(crate.WorldPosition);
+		}
+	}
+
+	protected override int BuildHash()
+	{
+		var hash = new System.HashCode();
+		hash.Add(_originPosition);
+		foreach (var target in _targets)
+		{
+			hash.Add(target);
+		}
+		return hash.ToHashCode();
+	}
+}

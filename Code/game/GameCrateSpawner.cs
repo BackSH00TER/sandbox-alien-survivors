@@ -130,7 +130,7 @@ public sealed class GameCrateSpawner : Component
 		return (FlareBaseChance + FlareChanceGainPerSecond * longestDeadSeconds).Clamp(0f, FlareMaxChance);
 	}
 
-	private bool TryFindPosition(out Vector3 position)
+	internal bool TryFindPosition(out Vector3 position)
 	{
 		for (var attempt = 0; attempt < 24; attempt++)
 		{
@@ -149,6 +149,13 @@ public sealed class GameCrateSpawner : Component
 			var hasNearbyCrate = Scene.GetAllComponents<GameSupplyCrate>()
 				.Any(crate => (crate.WorldPosition - candidate).Length < 100f);
 			if (hasNearbyCrate)
+			{
+				continue;
+			}
+
+			var hasNearbyAirdrop = Scene.GetAllComponents<GameWeaponAirdrop>()
+				.Any(drop => (drop.DropPosition - candidate).Length < 100f);
+			if (hasNearbyAirdrop)
 			{
 				continue;
 			}

@@ -101,6 +101,33 @@ internal static class LootCatalogTests
 		}
 	}
 
+	internal static void Bonuses()
+	{
+		var collector = new TestCollector
+		{
+			Health = 1f,
+			MaxHealth = 200f,
+			HealthPickupMultiplier = 1.25f,
+			ArmorPickupMultiplier = 1.25f
+		};
+		var health = GameLootCatalog.Get(LootKind.Health);
+		Check(health.Collect(collector, health.Amount), "Boosted healing must collect.");
+		Check(collector.Health == 63.5f, "One medicine pick must grant 62.5 health from a 50-health pickup.");
+		collector.Health = 190f;
+		Check(health.Collect(collector, health.Amount) && collector.Health == 200f, "Healing must still clamp to max health.");
+
+		var armor = GameLootCatalog.Get(LootKind.Armor);
+		Check(armor.Collect(collector, armor.Amount) && collector.Armor == 7, "One armor pick must round 6.25 up to seven.");
+		collector.Armor = int.MaxValue - 6;
+		Check(!armor.CanCollect(collector, armor.Amount), "Eligibility must use boosted armor, not the base five.");
+		Check(!armor.Collect(collector, armor.Amount), "Direct collection must also reject boosted overflow.");
+		collector.Armor = int.MaxValue - 7;
+		Check(armor.CanCollect(collector, armor.Amount), "Exact boosted capacity must be eligible.");
+		Check(armor.Collect(collector, armor.Amount) && collector.Armor == int.MaxValue, "Exact boosted capacity must collect.");
+		collector.ArmorPickupMultiplier = float.MaxValue;
+		Check(!armor.CanCollect(collector, armor.Amount), "Amounts beyond integer capacity must be rejected before casting.");
+	}
+
 	internal static void Drops()
 	{
 		var counts = Enum.GetValues<LootKind>().ToDictionary(kind => kind, _ => 0);
@@ -108,22 +135,23 @@ internal static class LootCatalogTests
 		{
 			for (var rarity = 0; rarity < 100; rarity++)
 			{
-				for (var common = 0; common < 4; common++)
+				for (var common = 0; common < 2; common++)
 				{
 					var item = Roll(
 						flareChance: 0.25f,
 						flareRoll: (flare + 0.5f) / 100f,
 						rarityRoll: (rarity + 0.5f) / 100f,
-						itemRoll: (common + 0.5f) / 4f
+						itemRoll: (common + 0.5f) / 2f
 					);
 					counts[item.Id]++;
 				}
 			}
 		}
 
-		Check(counts[LootKind.Flare] == 10000, "Flare roll must retain priority and its 25% contextual chance.");
-		Check(counts[LootKind.Armor] == 3000, "Rare must have a 10% chance after the flare roll fails.");
-		foreach (var kind in new[] { LootKind.Health, LootKind.Rifle, LootKind.Shotgun, LootKind.RerollDice })
+		Check(counts[LootKind.Flare] == 5000, "Flare roll must retain priority and its 25% contextual chance.");
+		Check(counts[LootKind.Armor] == 1500, "Rare must have a 10% chance after the flare roll fails.");
+		Check(counts[LootKind.Rifle] == 0 && counts[LootKind.Shotgun] == 0, "Supply crates must never drop weapons.");
+		foreach (var kind in new[] { LootKind.Health, LootKind.RerollDice })
 		{
 			Check(counts[kind] == 6750, "Common items must be equally likely within their 90% bucket.");
 		}
@@ -152,21 +180,21 @@ internal static class LootCatalogTests
 		var noFlareCounts = Enum.GetValues<LootKind>().ToDictionary(kind => kind, _ => 0);
 		for (var rarity = 0; rarity < 100; rarity++)
 		{
-			for (var common = 0; common < 4; common++)
+			for (var common = 0; common < 2; common++)
 			{
 				var item = Roll(
 					flareChance: 0f,
 					flareRoll: 0.5f,
 					rarityRoll: (rarity + 0.5f) / 100f,
-					itemRoll: (common + 0.5f) / 4f
+					itemRoll: (common + 0.5f) / 2f
 				);
 				noFlareCounts[item.Id]++;
 			}
 		}
-		Check(noFlareCounts[LootKind.Flare] == 0 && noFlareCounts[LootKind.Armor] == 40, "No-death drops must exclude flares and retain 10% armor.");
-		Check(noFlareCounts[LootKind.Health] == 90 && noFlareCounts[LootKind.Rifle] == 90
-			&& noFlareCounts[LootKind.Shotgun] == 90 && noFlareCounts[LootKind.RerollDice] == 90,
-			"Each common item must retain its 22.5% no-flare probability.");
+		Check(noFlareCounts[LootKind.Flare] == 0 && noFlareCounts[LootKind.Armor] == 20, "No-death drops must exclude flares and retain 10% armor.");
+		Check(noFlareCounts[LootKind.Health] == 90 && noFlareCounts[LootKind.Rifle] == 0
+			&& noFlareCounts[LootKind.Shotgun] == 0 && noFlareCounts[LootKind.RerollDice] == 90,
+			"Each common consumable must have a 45% no-flare probability.");
 		for (var item = 0; item <= 100; item++)
 		{
 			var rare = Roll(
@@ -176,6 +204,29 @@ internal static class LootCatalogTests
 				itemRoll: item / 100f
 			);
 			Check(rare.Rarity == GameRarity.Rare, "Item selection must never change the chosen rarity.");
+		}
+	}
+
+	internal static void WeaponDrops()
+	{
+		var counts = GameLootCatalog.All.ToDictionary(item => item.Id, _ => 0);
+		for (var index = 0; index < 1000; index++)
+		{
+			var roll = (index + 0.5f) / 1000f;
+			var item = GameLootCatalog.RollWeapon(random: () => roll);
+			Check(condition: item.Effect == LootEffect.Weapon, message: "Weapon crates must exclude every consumable, including contextual flares.");
+			counts[item.Id]++;
+		}
+
+		Check(condition: counts[LootKind.Rifle] == 500 && counts[LootKind.Shotgun] == 500, message: "Weapon crate drops must choose weapons equally.");
+		var first = GameLootCatalog.RollWeapon(random: () => 0f);
+		var boundary = GameLootCatalog.RollWeapon(random: () => 0.5f);
+		var last = GameLootCatalog.RollWeapon(random: () => 1f);
+		Check(condition: first.Id == LootKind.Rifle, message: "Zero must choose the first weapon.");
+		Check(condition: boundary.Id == LootKind.Shotgun && last.Id == LootKind.Shotgun, message: "Weapon interval boundaries and endpoint one must be valid.");
+		foreach (var invalidRoll in new[] { -0.1f, 1.1f, float.NaN, float.PositiveInfinity })
+		{
+			Reject(() => GameLootCatalog.RollWeapon(random: () => invalidRoll));
 		}
 	}
 
@@ -271,6 +322,8 @@ internal static class LootCatalogTests
 		public float MaxHealth { get; set; } = 100f;
 		public int Armor { get; set; }
 		public int RerollDice { get; set; }
+		public float HealthPickupMultiplier { get; set; } = 1f;
+		public float ArmorPickupMultiplier { get; set; } = 1f;
 		public bool IsRoundOver { get; set; }
 		public bool HasDeadTeammate { get; set; }
 		public bool AcceptActions { get; set; } = true;

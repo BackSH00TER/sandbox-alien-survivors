@@ -425,7 +425,7 @@ public abstract class GameEntity : Component
 		);
 	}
 
-	private static bool HasEffectLineOfSight(
+	internal static bool HasEffectLineOfSight(
 		Scene scene,
 		Vector3 originPosition,
 		GameObject originObject,

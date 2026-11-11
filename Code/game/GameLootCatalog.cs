@@ -27,6 +27,8 @@ public interface ILootCollector
 	float MaxHealth { get; }
 	int Armor { get; }
 	int RerollDice { get; }
+	float HealthPickupMultiplier { get; }
+	float ArmorPickupMultiplier { get; }
 	bool IsRoundOver { get; }
 	bool HasDeadTeammate { get; }
 	bool RestoreHealth(float amount);
@@ -90,7 +92,11 @@ public static class GameLootCatalog
 			CanBeMagnetAttracted = true,
 			Rarity = GameRarity.Common,
 			CanCollect = (collector, amount) => collector.Health < collector.MaxHealth,
-			Collect = (collector, amount) => collector.RestoreHealth(amount),
+			Collect = (collector, amount) =>
+			{
+				var healing = amount * collector.HealthPickupMultiplier;
+				return collector.RestoreHealth(healing);
+			},
 			VisualParts = HealthParts()
 		},
 		new LootDefinition
@@ -133,8 +139,20 @@ public static class GameLootCatalog
 			Amount = 5,
 			CanBeMagnetAttracted = true,
 			Rarity = GameRarity.Rare,
-			CanCollect = (collector, amount) => collector.Armor <= int.MaxValue - amount,
-			Collect = (collector, amount) => collector.AddArmor(amount),
+			CanCollect = (collector, amount) =>
+			{
+				var armor = ArmorPickupAmount(collector, amount);
+				return armor <= int.MaxValue - collector.Armor;
+			},
+			Collect = (collector, amount) =>
+			{
+				var armor = ArmorPickupAmount(collector, amount);
+				if (armor > int.MaxValue - collector.Armor)
+				{
+					return false;
+				}
+				return collector.AddArmor((int)armor);
+			},
 			VisualParts = ArmorParts()
 		},
 		new LootDefinition
@@ -154,8 +172,9 @@ public static class GameLootCatalog
 	private static readonly IReadOnlyDictionary<LootKind, LootDefinition> ById = All.ToDictionary(item => item.Id);
 	private static readonly IReadOnlyDictionary<GameRarity, LootDefinition[]> RarityDrops = Rarities.ToDictionary(
 		keySelector: rarity => rarity.Id,
-		elementSelector: rarity => All.Where(item => item.Rarity == rarity.Id).ToArray()
+		elementSelector: rarity => All.Where(item => item.Rarity == rarity.Id && item.Effect != LootEffect.Weapon).ToArray()
 	);
+	private static readonly LootDefinition[] WeaponDrops = All.Where(item => item.Effect == LootEffect.Weapon).ToArray();
 
 	static GameLootCatalog()
 	{
@@ -211,6 +230,11 @@ public static class GameLootCatalog
 		return definition;
 	}
 
+	public static double ArmorPickupAmount(ILootCollector collector, int amount)
+	{
+		return Math.Ceiling(amount * (double)collector.ArmorPickupMultiplier);
+	}
+
 	public static LootDefinition Roll(float flareChance, Func<float> random)
 	{
 		if (!float.IsFinite(flareChance) || flareChance < 0f || flareChance > 1f)
@@ -228,6 +252,13 @@ public static class GameLootCatalog
 			getCandidates: rarity => RarityDrops[rarity],
 			random: () => NextRoll(random)
 		);
+	}
+
+	public static LootDefinition RollWeapon(Func<float> random)
+	{
+		var roll = NextRoll(random);
+		var index = Math.Min((int)(roll * WeaponDrops.Length), WeaponDrops.Length - 1);
+		return WeaponDrops[index];
 	}
 
 	private static float NextRoll(Func<float> random)
