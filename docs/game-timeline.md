@@ -7,6 +7,12 @@ event icons move left as the host-synchronized round clock advances. Events
 dim once their timestamp has passed and leave the view after another 18 seconds.
 Time labels show total elapsed minutes and seconds, without a fixed endpoint.
 
+When the boss is defeated or every player dies, the end scoreboard displays
+**Time Taken** beneath **Round Complete** on both the Timeline and Summary tabs.
+It uses the host-synchronized final round duration in `minutes:seconds` (for
+example, `5:07`), measured from round start, including time spent fighting the
+boss. The duration stays frozen while the scoreboard is open.
+
 Events beyond the right edge appear as smaller pipeline icons. Their tiny
 `min` labels round up the time until they enter the visible window, **not**
 the time until they occur. For example, a boss due at 5:00 starts in the

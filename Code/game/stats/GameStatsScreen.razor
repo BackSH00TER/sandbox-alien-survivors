@@ -6,6 +6,10 @@
 <root>
 	<div class="stats-panel">
 		<div class="stats-title">Round Complete</div>
+		@if (_roundDuration != null)
+		{
+			<div class="stats-duration">Time Taken: @_roundDuration</div>
+		}
 		<div class="stats-tabs">
 			<button class="stats-button @(!_showSummary ? "selected" : "")" @onclick="@(() => _showSummary = false)">Timeline</button>
 			<button class="stats-button @(_showSummary ? "selected" : "")" @onclick="@(() => _showSummary = true)">Summary</button>
@@ -63,6 +67,7 @@
 {
 	private List<GamePlayerStats> _players = new();
 	private bool _showSummary;
+	private string _roundDuration;
 
 	private static string PlayerClass(GamePlayerStats player) => player.IsProxy ? "" : "local";
 
@@ -81,12 +86,24 @@
 	// The local player comes first so their column sits next to everyone else's.
 	protected override int BuildHash()
 	{
+		var manager = FindGameManager();
+		_roundDuration = null;
+		if (manager.IsValid() && manager.State == GameState.Ended)
+		{
+			var seconds = (int)manager.ElapsedSeconds;
+			_roundDuration = $"{seconds / 60}:{seconds % 60:00}";
+		}
+
 		_players = Game.ActiveScene.GetAllComponents<GamePlayerStats>()
 			.OrderBy(player => player.IsProxy)
 			.ThenByDescending(player => player.Get(GameStatKeys.DamageDealt))
 			.ToList();
 
-		int hash = System.HashCode.Combine(_players.Count, _showSummary);
+		int hash = System.HashCode.Combine(
+			value1: _players.Count,
+			value2: _showSummary,
+			value3: _roundDuration
+		);
 		foreach (GamePlayerStats player in _players)
 		{
 			var content = (
