@@ -34,6 +34,8 @@ var tests = new (string Name, Action Run)[]
 	("invalid loot rolls and kinds are rejected", LootCatalogTests.Invalid),
 	("enemy aggro switches only after the cooldown", EnemyAggroTests.Cooldown),
 	("enemy aggro handles unavailable targets", EnemyAggroTests.Unavailable),
+	("enemy prefabs contain one typed enemy and preserve their tuning", EnemyPrefabTests.Variants),
+	("gameplay spawner references all four enemy prefabs", EnemyPrefabTests.SpawnerReferences),
 	("XP orbs merge only within fixed short reach without overflow", ExperienceOrbTests.Reach),
 	("XP orbs share eight value-based colors and capped size growth", ExperienceOrbTests.Appearance),
 	("XP orb presentation rejects invalid values", ExperienceOrbTests.Invalid),

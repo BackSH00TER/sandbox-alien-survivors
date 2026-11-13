@@ -1,9 +1,10 @@
 using Sandbox;
 
-/// <summary>Ranged enemy settings, firing and post-shot wandering, driven by Enemy's lifecycle.</summary>
-public sealed class GameEnemyRanged : Component
+/// <summary>An enemy that shoots projectiles and wanders between shots instead of punching.</summary>
+public sealed class GameEnemyRanged : GameEnemy
 {
-	[Property, Range(0, 100), Description("XP dropped by this ranged variant instead of the base enemy reward.")] public int ExperienceDrop { get; set; } = 4;
+	public override GameEnemyKind Kind => GameEnemyKind.Ranged;
+	[Property, Range(0, 100), Description("XP dropped by this ranged variant instead of the base enemy reward.")] public override int ExperienceDrop { get; set; } = 4;
 	[Property, Range(1f, 2000f)] public float FiringRange { get; set; } = 400f;
 	[Property, Range(0.1f, 10f)] public float ShotInterval { get; set; } = 2f;
 	[Property, Range(0.1f, 5f), Description("Visible charge time before each shot, in seconds.")] public float ShotWindup { get; set; } = 0.5f;
@@ -20,19 +21,12 @@ public sealed class GameEnemyRanged : Component
 
 	protected override void OnStart()
 	{
-		if (Networking.IsHost && !IsProxy)
-		{
-			var enemy = GetComponent<GameEnemy>();
-			if (!enemy.IsValid())
-			{
-				Log.Error("Ranged enemy settings require a GameEnemy component.");
-				return;
-			}
-
-			enemy.ExperienceDrop = ExperienceDrop;
-		}
-
-		_beacon = new GameObject(GameObject, true, "Ranged Enemy Beacon");
+		base.OnStart();
+		_beacon = new GameObject(
+			parent: GameObject,
+			enabled: true,
+			name: "Ranged Enemy Beacon"
+		);
 		_beacon.Flags |= GameObjectFlags.NotNetworked | GameObjectFlags.NotSaved;
 		_beacon.LocalPosition = Vector3.Up * 82f;
 		_beaconRenderer = _beacon.AddComponent<ModelRenderer>();
@@ -42,6 +36,7 @@ public sealed class GameEnemyRanged : Component
 
 	protected override void OnUpdate()
 	{
+		base.OnUpdate();
 		if (!_beaconRenderer.IsValid())
 		{
 			return;
@@ -52,8 +47,49 @@ public sealed class GameEnemyRanged : Component
 		_beaconRenderer.Tint = IsCharging ? new Color(1f, 0.35f, 1f) : new Color(0.6f, 0.1f, 1f);
 	}
 
-	/// <summary>Handles in-range combat movement; false lets Enemy pursue an out-of-range target.</summary>
-	public bool TryAttack(GameEnemy enemy, PlayerController target, out Vector3 wishVelocity)
+	protected override void UpdateCombat(PlayerController target, float distanceSquared)
+	{
+		if (!target.IsValid())
+		{
+			CancelAttack();
+			return;
+		}
+
+		var aim = target.WorldPosition - WorldPosition;
+		var horizontal = new Vector3(
+			x: aim.x,
+			y: aim.y,
+			z: 0f
+		);
+		if (horizontal.LengthSquared > 0.001f)
+		{
+			UpdatePursuitFacing(direction: horizontal);
+		}
+
+		var stoppingDistance = Controller.BodyRadius + target.BodyRadius;
+		if (TryAttack(target: target, wishVelocity: out var combatVelocity))
+		{
+			if (combatVelocity.LengthSquared <= 0.001f)
+			{
+				StopAttackMovement();
+			}
+			else
+			{
+				SetPursuitMovement(velocity: combatVelocity, maximumSpeed: RangedMoveSpeed);
+			}
+		}
+		else if (horizontal.LengthSquared > stoppingDistance * stoppingDistance)
+		{
+			var pursuitVelocity = horizontal.Normal * RangedMoveSpeed;
+			SetPursuitMovement(velocity: pursuitVelocity, maximumSpeed: RangedMoveSpeed);
+		}
+		else
+		{
+			StopAttackMovement();
+		}
+	}
+
+	private bool TryAttack(PlayerController target, out Vector3 wishVelocity)
 	{
 		wishVelocity = Vector3.Zero;
 		if (!Networking.IsHost || IsProxy)
@@ -66,13 +102,13 @@ public sealed class GameEnemyRanged : Component
 		var offset = target.WorldPosition + Vector3.Up * GameWeaponProjectile.CollisionHeight - origin;
 		if (offset.LengthSquared > FiringRange * FiringRange)
 		{
-			CancelAttack();
+			CancelShot();
 			return false;
 		}
 
 		if (Time.Now < _nextShotTime)
 		{
-			wishVelocity = GetWanderVelocity(enemy, offset);
+			wishVelocity = GetWanderVelocity(targetOffset: offset);
 			return true;
 		}
 
@@ -90,25 +126,37 @@ public sealed class GameEnemyRanged : Component
 
 		IsCharging = false;
 		_nextShotTime = Time.Now + ShotInterval;
-		GameWeaponProjectile.SpawnEnemy(enemy, origin, offset.LengthSquared > 0.001f
-			? offset.Normal : enemy.Controller.EyeAngles.ToRotation().Forward,
-			Damage, ProjectileSpeed, ProjectileRadius, FiringRange);
+		var shotDirection = offset.LengthSquared > 0.001f
+			? offset.Normal : Controller.EyeAngles.ToRotation().Forward;
+		GameWeaponProjectile.SpawnEnemy(
+			shooter: this,
+			position: origin,
+			direction: shotDirection,
+			damage: Damage,
+			speed: ProjectileSpeed,
+			radius: ProjectileRadius,
+			range: FiringRange
+		);
 		var horizontal = new Vector3(offset.x, offset.y, 0f);
 		var forward = horizontal.LengthSquared > 0.001f ? horizontal.Normal : Vector3.Forward;
 		var angle = Game.Random.Float(65f, 115f) * (Game.Random.Float(0f, 1f) < 0.5f ? -1f : 1f);
 		_wanderDirection = Rotation.FromYaw(angle) * forward;
-		wishVelocity = GetWanderVelocity(enemy, offset);
+		wishVelocity = GetWanderVelocity(targetOffset: offset);
 		return true;
 	}
 
-	private Vector3 GetWanderVelocity(GameEnemy enemy, Vector3 targetOffset)
+	private Vector3 GetWanderVelocity(Vector3 targetOffset)
 	{
 		if (_wanderDirection.LengthSquared <= 0.001f)
 		{
 			return Vector3.Zero;
 		}
 
-		var horizontal = new Vector3(targetOffset.x, targetOffset.y, 0f);
+		var horizontal = new Vector3(
+			x: targetOffset.x,
+			y: targetOffset.y,
+			z: 0f
+		);
 		var direction = _wanderDirection;
 		// Steer back into firing range, or away from a player who is too close.
 		if (horizontal.Length > FiringRange * 0.8f)
@@ -121,7 +169,11 @@ public sealed class GameEnemyRanged : Component
 		}
 
 		var origin = WorldPosition + Vector3.Up * GameWeaponProjectile.CollisionHeight;
-		var trace = Scene.Trace.Sphere(enemy.Controller.BodyRadius, origin, origin + direction * 48f)
+		var trace = Scene.Trace.Sphere(
+			radius: Controller.BodyRadius,
+			from: origin,
+			to: origin + direction * 48f
+		)
 			.IgnoreGameObjectHierarchy(GameObject)
 			.Run();
 		if (trace.StartedSolid)
@@ -132,20 +184,27 @@ public sealed class GameEnemyRanged : Component
 		if (trace.Hit)
 		{
 			direction -= trace.Normal * System.MathF.Min(0f, direction.Dot(trace.Normal));
-			direction = new Vector3(direction.x, direction.y, 0f);
+			direction = direction.WithZ(0f);
 		}
 
-		return direction * enemy.RangedMoveSpeed;
+		return direction * RangedMoveSpeed;
 	}
 
-	public void CancelAttack()
+	private void CancelShot()
 	{
 		IsCharging = false;
 		_wanderDirection = Vector3.Zero;
 	}
 
+	protected override void CancelAttack()
+	{
+		CancelShot();
+		base.CancelAttack();
+	}
+
 	protected override void OnDisabled()
 	{
+		base.OnDisabled();
 		if (_beacon.IsValid())
 		{
 			_beacon.Destroy();

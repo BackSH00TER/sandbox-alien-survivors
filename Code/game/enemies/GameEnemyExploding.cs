@@ -1,8 +1,9 @@
 using Sandbox;
 
 /// <summary>An enemy variant that leaves a timed, damaging blast on its corpse.</summary>
-public sealed class GameEnemyExploding : Component
+public sealed class GameEnemyExploding : GameEnemy
 {
+	public override GameEnemyKind Kind => GameEnemyKind.Exploding;
 	[Property, Range(0.1f, 5f), Description("Warning time after death, in seconds.")] public float FuseDuration { get; set; } = DamageEffectCatalog.DefaultExplosionFuseDuration;
 	[Property, Range(1f, 1000f), Description("Blast radius in world units.")] public float BlastRadius { get; set; } = DamageEffectCatalog.DefaultExplosionBlastRadius;
 	[Property, Range(1f, 1000f)] public float BlastDamage { get; set; } = DamageEffectCatalog.DefaultExplosionBlastDamage;
@@ -11,7 +12,12 @@ public sealed class GameEnemyExploding : Component
 
 	protected override void OnStart()
 	{
-		_beacon = new GameObject(GameObject, true, "Exploder Beacon");
+		base.OnStart();
+		_beacon = new GameObject(
+			parent: GameObject,
+			enabled: true,
+			name: "Exploder Beacon"
+		);
 		_beacon.Flags |= GameObjectFlags.NotNetworked | GameObjectFlags.NotSaved;
 		_beacon.LocalPosition = Vector3.Up * 82f;
 		var renderer = _beacon.AddComponent<ModelRenderer>();
@@ -26,7 +32,7 @@ public sealed class GameEnemyExploding : Component
 		light.Shadows = false;
 	}
 
-	public void ConfigureDeathExplosion(GameObject corpse)
+	protected override void ConfigureCorpse(GameObject corpse)
 	{
 		if (!Networking.IsHost)
 		{
@@ -55,6 +61,7 @@ public sealed class GameEnemyExploding : Component
 
 	protected override void OnDisabled()
 	{
+		base.OnDisabled();
 		if (_beacon.IsValid())
 		{
 			_beacon.Destroy();

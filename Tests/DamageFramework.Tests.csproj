@@ -10,9 +10,11 @@
     <Error Condition="!Exists('$(EngineDirectory)\bin\managed\Sandbox.System.dll')" Text="Set FACEPUNCH_ENGINE or pass -p:EngineDirectory to your s&amp;box installation." />
   </Target>
   <ItemGroup>
+    <None Include="..\Assets\prefabs\game_enemy*.prefab" Link="EnemyPrefabs\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\Assets\scenes\game.scene" Link="EnemyPrefabs\game.scene" CopyToOutputDirectory="PreserveNewest" />
     <Compile Include="..\Code\game\DamageEffect.cs" Link="DamageEffect.cs" />
     <Compile Include="..\Code\game\DamageEffectChain.cs" Link="DamageEffectChain.cs" />
-    <Compile Include="..\Code\game\EnemyAggro.cs" Link="EnemyAggro.cs" />
+    <Compile Include="..\Code\game\enemies\EnemyAggro.cs" Link="EnemyAggro.cs" />
     <Compile Include="..\Code\game\ExperienceOrbRules.cs" Link="ExperienceOrbRules.cs" />
     <Compile Include="..\Code\game\TimedDamageEffects.cs" Link="TimedDamageEffects.cs" />
     <Compile Include="..\Code\game\WeightedDraw.cs" Link="WeightedDraw.cs" />

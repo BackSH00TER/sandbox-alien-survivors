@@ -121,11 +121,19 @@
           "__guid": "139f007c-6468-43d4-98e8-9d5ef4cdd79c",
           "__enabled": true,
           "Flags": 0,
+          "BossPrefab": {
+            "_type": "gameobject",
+            "prefab": "prefabs/game_enemy_boss.prefab"
+          },
           "EnemyPrefab": {
             "_type": "gameobject",
             "prefab": "prefabs/game_enemy.prefab"
           },
           "ExplodingEnemyChance": 5,
+          "ExplodingEnemyPrefab": {
+            "_type": "gameobject",
+            "prefab": "prefabs/game_enemy_exploding.prefab"
+          },
           "OnComponentDestroy": null,
           "OnComponentDisabled": null,
           "OnComponentEnabled": null,
@@ -134,6 +142,10 @@
           "OnComponentUpdate": null,
           "MinimumSpawnInterval": 0.6,
           "RangedEnemyChance": 5,
+          "RangedEnemyPrefab": {
+            "_type": "gameobject",
+            "prefab": "prefabs/game_enemy_ranged.prefab"
+          },
           "SpawnInterval": 1,
           "SpawnRampDuration": 60,
           "SpawnRadius": 400

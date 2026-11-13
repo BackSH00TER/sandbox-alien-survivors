@@ -1,6 +1,7 @@
 using Sandbox;
 
-public sealed class GameEnemy : GameEntity
+/// <summary>Shared enemy lifecycle and default melee combat. Variants override only their specialized behavior.</summary>
+public class GameEnemy : GameEntity
 {
 	public override bool CanTakeDamage => Health > 0f && !IsDescending;
 	[Sync(SyncFlags.FromHost)] private float SlowEndTime { get; set; }
@@ -30,10 +31,7 @@ public sealed class GameEnemy : GameEntity
 		);
 	}
 
-	public GameEnemyKind Kind => GetComponent<GameEnemyBoss>().IsValid() ? GameEnemyKind.Boss
-		: GetComponent<GameEnemyRanged>().IsValid() ? GameEnemyKind.Ranged
-		: GetComponent<GameEnemyExploding>().IsValid() ? GameEnemyKind.Exploding
-		: GameEnemyKind.Melee;
+	public virtual GameEnemyKind Kind => GameEnemyKind.Melee;
 
 	[Property, RequireComponent] public PlayerController Controller { get; set; }
 	[Property, Group("Movement"), Range(0f, 1000f), Description("Pursuit speed for melee and exploding enemies, in world units per second.")] public float MoveSpeed { get; set; } = 100f;
@@ -42,18 +40,18 @@ public sealed class GameEnemy : GameEntity
 	[Property, Group("Movement"), Range(0.1f, 20f), Description("How quickly enemies turn toward their target. Higher values turn faster.")] public float PursuitTurnSpeed { get; set; } = 4f;
 	[Property, Group("Movement"), Range(1f, 200f), Description("Minimum crowd-spacing radius, in world units. Expands to fit larger enemy bodies.")] public float SeparationRadius { get; set; } = 48f;
 	[Property, Group("Movement"), Range(0f, 500f), Description("Maximum combined spacing velocity. Crowd size cannot increase it beyond this limit or raise pursuit above its normal speed.")] public float SeparationSpeed { get; set; } = 100f;
-	[Property, Range(1f, 200f), Description("Distance at which the enemy starts winding up a punch.")] public float PunchRange { get; set; } = 64f;
-	[Property, Range(1f, 200f), Description("Reach of the punch when the lunge ends.")] public float PunchHitRange { get; set; } = 54f;
+	[Property, Range(1f, 200f), Description("Distance at which the enemy starts winding up a punch.")] public virtual float PunchRange { get; set; } = 64f;
+	[Property, Range(1f, 200f), Description("Reach of the punch when the lunge ends.")] public virtual float PunchHitRange { get; set; } = 54f;
 	[Property, Range(0.1f, 10f)] public float PunchInterval { get; set; } = 1f;
 	[Property, Range(0f, 2f)] public float PunchWindup { get; set; } = 0.15f;
 	[Property, Group("Melee Attack"), Range(0f, 200f), Description("Distance the enemy lunges in its locked attack direction after the windup.")] public float PunchLungeDistance { get; set; } = 36f;
 	[Property, Group("Melee Attack"), Range(0.05f, 1f), Description("Duration of the committed punch lunge.")] public float PunchLungeDuration { get; set; } = 0.24f;
 	[Property, Range(0f, 2f)] public float PunchRecovery { get; set; } = 0.4f;
-	[Property, Range(1f, 100f)] public float PunchDamage { get; set; } = 10f;
+	[Property, Range(1f, 100f)] public virtual float PunchDamage { get; set; } = 10f;
 	[Property, Range(50f, 1000f)] public float SpawnHeight { get; set; } = 300f;
 	[Property, Range(0.1f, 10f)] public float SpawnDuration { get; set; } = 2f;
 	[Property, Description("Disabled for enemies deployed directly from a landed dropship.")] public bool DescendOnSpawn { get; set; } = true;
-	[Property, Range(0, 100)] public int ExperienceDrop { get; set; } = 1;
+	[Property, Range(0, 100)] public virtual int ExperienceDrop { get; set; } = 1;
 	[Property, Group("Hit Reaction"), Range(0f, 1f)] public float HitReactionStrength { get; set; } = 0.6f;
 	[Property, Group("Hit Reaction"), Range(0f, 2f), Description("Movement and attack interruption after damage, in seconds. Zero disables hitstun.")] public float HitStaggerDuration { get; set; } = 0f;
 
@@ -216,13 +214,8 @@ public sealed class GameEnemy : GameEntity
 		var gameManager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
 		if (gameManager != null && gameManager.State != GameState.InProgress)
 		{
-			GetComponent<GameEnemyBoss>()?.CancelStunAttack();
-			GetComponent<GameEnemyRanged>()?.CancelAttack();
-			IsWindingUp = false;
-			IsLunging = false;
-			IsTargetInPunchRange = false;
+			CancelAttack();
 			MovementUnlockTime = 0f;
-			StopAttackMovement();
 			return;
 		}
 
@@ -230,8 +223,7 @@ public sealed class GameEnemy : GameEntity
 
 		if (Time.Now < StaggerEndTime)
 		{
-			GetComponent<GameEnemyRanged>()?.CancelAttack();
-			StopAttackMovement();
+			CancelAttack();
 			return;
 		}
 
@@ -266,60 +258,13 @@ public sealed class GameEnemy : GameEntity
 			}
 		}
 
-		var boss = GetComponent<GameEnemyBoss>();
-		if (boss.IsValid() && boss.TryStunAttack(target))
-		{
-			IsWindingUp = false;
-			IsLunging = false;
-			IsTargetInPunchRange = false;
-			StopAttackMovement();
-			return;
-		}
+		UpdateCombat(target: target, distanceSquared: nearestDistanceSquared);
+	}
 
-		var ranged = GetComponent<GameEnemyRanged>();
-		if (ranged.IsValid())
-		{
-			if (target == null)
-			{
-				ranged.CancelAttack();
-				StopAttackMovement();
-				return;
-			}
-
-			var aim = target.WorldPosition - WorldPosition;
-			var horizontal = new Vector3(aim.x, aim.y, 0f);
-			if (horizontal.LengthSquared > 0.001f)
-			{
-				UpdatePursuitFacing(direction: horizontal);
-			}
-
-			var rangedStoppingDistance = Controller.BodyRadius + target.BodyRadius;
-			if (ranged.TryAttack(this, target, out var combatVelocity))
-			{
-				if (combatVelocity.LengthSquared <= 0.001f)
-				{
-					StopAttackMovement();
-				}
-				else
-				{
-					SetPursuitMovement(velocity: combatVelocity, maximumSpeed: RangedMoveSpeed);
-				}
-			}
-			else if (horizontal.LengthSquared > rangedStoppingDistance * rangedStoppingDistance)
-			{
-				var pursuitVelocity = horizontal.Normal * RangedMoveSpeed;
-				SetPursuitMovement(velocity: pursuitVelocity, maximumSpeed: RangedMoveSpeed);
-			}
-			else
-			{
-				StopAttackMovement();
-			}
-
-			return;
-		}
-
+	protected virtual void UpdateCombat(PlayerController target, float distanceSquared)
+	{
 		IsTargetInPunchRange = target != null && PunchRange > 0f
-			&& nearestDistanceSquared <= PunchRange * PunchRange;
+			&& distanceSquared <= PunchRange * PunchRange;
 
 		if (IsWindingUp)
 		{
@@ -421,7 +366,7 @@ public sealed class GameEnemy : GameEntity
 			&& player.Controller.IsValid() && player.Controller.Active;
 	}
 
-	private void UpdatePursuitFacing(Vector3 direction)
+	protected void UpdatePursuitFacing(Vector3 direction)
 	{
 		var currentRotation = Controller.EyeAngles.ToRotation();
 		var targetRotation = Rotation.LookAt(direction);
@@ -435,7 +380,7 @@ public sealed class GameEnemy : GameEntity
 		Controller.EyeAngles = rotation.Angles();
 	}
 
-	private void SetPursuitMovement(Vector3 velocity, float maximumSpeed)
+	protected void SetPursuitMovement(Vector3 velocity, float maximumSpeed)
 	{
 		var separation = GetSeparationVelocity();
 		var desiredVelocity = velocity + separation;
@@ -504,7 +449,7 @@ public sealed class GameEnemy : GameEntity
 		Controller.WishVelocity = LungeDirection * (lungeDistance / lungeDuration);
 	}
 
-	private void StopAttackMovement()
+	protected void StopAttackMovement()
 	{
 		_pursuitVelocity = Vector3.Zero;
 		Controller.WishVelocity = Vector3.Zero;
@@ -513,6 +458,14 @@ public sealed class GameEnemy : GameEntity
 			var velocity = Controller.Body.Velocity;
 			Controller.Body.Velocity = new Vector3(0f, 0f, velocity.z);
 		}
+	}
+
+	protected virtual void CancelAttack()
+	{
+		IsWindingUp = false;
+		IsLunging = false;
+		IsTargetInPunchRange = false;
+		StopAttackMovement();
 	}
 
 	protected override void OnDamaged(Vector3 hitDirection)
@@ -524,14 +477,10 @@ public sealed class GameEnemy : GameEntity
 
 		if (HitStaggerDuration > 0f)
 		{
-			IsWindingUp = false;
-			IsLunging = false;
-			IsTargetInPunchRange = false;
-			GetComponent<GameEnemyRanged>()?.CancelAttack();
+			CancelAttack();
 			StaggerEndTime = Time.Now + HitStaggerDuration;
 			MovementUnlockTime = System.MathF.Max(MovementUnlockTime, StaggerEndTime);
 			NextPunchTime = System.MathF.Max(NextPunchTime, StaggerEndTime);
-			StopAttackMovement();
 		}
 
 		PlayHitReaction(hitDirection);
@@ -558,17 +507,7 @@ public sealed class GameEnemy : GameEntity
 
 	protected override void OnHealthDepleted()
 	{
-		GetComponent<GameEnemyRanged>()?.CancelAttack();
-		IsWindingUp = false;
-		IsLunging = false;
-		IsTargetInPunchRange = false;
-		StopAttackMovement();
-		var boss = GetComponent<GameEnemyBoss>();
-		if (boss.IsValid())
-		{
-			boss.Defeated(this);
-			return;
-		}
+		CancelAttack();
 		GameExperienceOrb.Spawn(
 			scene: Scene,
 			position: WorldPosition,
@@ -592,11 +531,7 @@ public sealed class GameEnemy : GameEntity
 			return;
 		}
 
-		var exploder = GetComponent<GameEnemyExploding>();
-		if (exploder.IsValid())
-		{
-			exploder.ConfigureDeathExplosion(ragdoll);
-		}
+		ConfigureCorpse(corpse: ragdoll);
 
 		if (!ragdoll.NetworkSpawn())
 		{
@@ -606,6 +541,10 @@ public sealed class GameEnemy : GameEntity
 		}
 
 		GameObject.Destroy();
+	}
+
+	protected virtual void ConfigureCorpse(GameObject corpse)
+	{
 	}
 
 	[Rpc.Broadcast(NetFlags.HostOnly)]
@@ -631,10 +570,8 @@ public sealed class GameEnemy : GameEntity
 
 		if (Networking.IsHost && !IsProxy && Controller.IsValid())
 		{
-			IsWindingUp = false;
-			IsLunging = false;
+			CancelAttack();
 			MovementUnlockTime = 0f;
-			StopAttackMovement();
 		}
 	}
 }
