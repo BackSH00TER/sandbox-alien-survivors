@@ -15,9 +15,11 @@
 			{
 				GameModifier option = player.ModifierOptions[index];
 				ModifierDefinition definition = ModifierCatalog.Get(option);
-				<button class="modifier-card" @onclick="@(() => player.SelectModifier(offerId, option))">
+				RarityBucket rarity = ModifierCatalog.GetRarity(definition.Rarity);
+				<button class="modifier-card rarity-@rarity.Id" @onclick="@(() => player.SelectModifier(offerId, option))">
 					<div class="modifier-key">@(index + 1)</div>
 					<div class="modifier-icon">@definition.Icon</div>
+					<div class="modifier-rarity">@rarity.Name</div>
 					<div class="modifier-name">@definition.Name</div>
 					<div class="modifier-description">@definition.Description</div>
 				</button>

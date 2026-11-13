@@ -15,7 +15,6 @@ GameModifierPicker
 	{
 		font-family: Material Icons;
 		font-size: 34px;
-		color: #4de38a;
 	}
 
 	.modifier-heading
@@ -50,24 +49,125 @@ GameModifierPicker
 		min-height: 110px;
 		padding: 18px;
 		flex-direction: column;
-		background-color: #18251ff5;
-		border: 2px solid #4de38a;
+		background-color: #181d25f5;
+		border: 2px solid #c4cbd4;
 		border-radius: 8px;
 		pointer-events: all;
 		cursor: none;
 
 		&:hover
 		{
-			background-color: #2a4938;
-			border-color: #fff;
+			background-color: #303844;
 		}
+
+		&.rarity-Common
+		{
+			border-color: #c4cbd4;
+
+			.modifier-icon, .modifier-name, .modifier-rarity
+			{
+				color: #c4cbd4;
+			}
+
+			.modifier-key
+			{
+				border-color: #c4cbd4;
+			}
+		}
+
+		&.rarity-Uncommon
+		{
+			border-color: #4dff8c;
+
+			.modifier-icon, .modifier-name, .modifier-rarity
+			{
+				color: #4dff8c;
+			}
+
+			.modifier-key
+			{
+				border-color: #4dff8c;
+			}
+
+			&:hover
+			{
+				background-color: #2a4938;
+			}
+		}
+
+		&.rarity-Rare
+		{
+			border-color: #4080ff;
+
+			.modifier-icon, .modifier-name, .modifier-rarity
+			{
+				color: #4080ff;
+			}
+
+			.modifier-key
+			{
+				border-color: #4080ff;
+			}
+
+			&:hover
+			{
+				background-color: #263d63;
+			}
+		}
+
+		&.rarity-Epic
+		{
+			border-color: #bf4dff;
+
+			.modifier-icon, .modifier-name, .modifier-rarity
+			{
+				color: #bf4dff;
+			}
+
+			.modifier-key
+			{
+				border-color: #bf4dff;
+			}
+
+			&:hover
+			{
+				background-color: #462e5c;
+			}
+		}
+
+		&.rarity-Legendary
+		{
+			border-color: #ffd933;
+
+			.modifier-icon, .modifier-name, .modifier-rarity
+			{
+				color: #ffd933;
+			}
+
+			.modifier-key
+			{
+				border-color: #ffd933;
+			}
+
+			&:hover
+			{
+				background-color: #4b4226;
+			}
+		}
+	}
+
+	.modifier-rarity
+	{
+		font-size: 11px;
+		letter-spacing: 1px;
+		text-transform: uppercase;
+		margin: 4px 0;
 	}
 
 	.modifier-name
 	{
 		font-size: 18px;
 		letter-spacing: 1px;
-		color: #4de38a;
 		margin-bottom: 10px;
 	}
 
@@ -108,7 +208,7 @@ GameModifierPicker
 		align-items: center;
 		justify-content: center;
 		background-color: #101218;
-		border: 1px solid #4de38a;
+		border: 1px solid #c4cbd4;
 		border-radius: 4px;
 		font-size: 15px;
 		color: #fff;

@@ -44,6 +44,12 @@ with individually editable `Rarity` values, currently set to `GameRarity.Common`
 Long Reach has been removed; weapon range stays at the weapon's configured base.
 Its synchronized modifier ID (1) is retired without renumbering other modifiers.
 
+Upgrade cards show their rarity name and use matching border, icon, title and
+number-key accents: Common is silver, Uncommon green, Rare blue, Epic purple,
+and Legendary gold. The green, blue, purple and gold accents follow the XP orb
+palette. Hovering preserves the rarity accent. This presentation does not change
+rarity weights or modifier eligibility.
+
 | Upgrade | Benefit per pick |
 | --- | --- |
 | Heavy Rounds | +20% base weapon damage |
