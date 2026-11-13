@@ -2,15 +2,18 @@
 
 World events use one catalog, scheduler, and runtime action registry. Do not add
 event-specific clocks, replicated event lists, spawn branches, or retry logic to
-[GameManager](../Code/game/GameManager.cs). The boss remains a separate match
-objective; this guide covers catalog-driven world events.
+[GameManager](../Code/game/GameManager.cs). The boss uses the same event pipeline,
+while defeating it remains the match's victory condition.
 
 ## 1. Define the event
 
 Append a stable ID to `GameEventKind` in
 [GameEventCatalog](../Code/game/events/GameEventCatalog.cs); do not renumber
 existing IDs. Add one entry to `AllEvents` with a label, Material Icons glyph,
-rarity, and callback dispatching that ID through `IGameEventWorld`.
+rarity, and callback dispatching that ID through `IGameEventWorld`. Set
+`RandomEligible = false` for fixed-only events so they never enter rarity draws.
+Optionally set `ArrivalMoment` to preserve a specific successful-start message;
+otherwise the manager records `"<label> arrived"`.
 
 The weapon airdrop is an existing example:
 
@@ -25,8 +28,8 @@ new GameEventDefinition
 }
 ```
 
-The manager reads this metadata for the timeline and records
-`"<label> arrived"` only after the callback succeeds. Do not record that same
+The manager reads this metadata for the timeline and records the arrival
+moment only after the callback succeeds. Do not record that same
 arrival again inside the action.
 
 ## 2. Implement and register the action
@@ -41,7 +44,7 @@ event with inspector configuration.
 - Own event-specific settings, validation, placement, and spawning in the action.
 - Reuse existing placement and spawning helpers when suitable.
 - Log a clear failure and return `false` if the event cannot start. The shared
-  manager retries pending events on its one-second retry cadence; do not create
+  manager retries each pending occurrence on a one-second cadence; do not create
   a separate event-start retry clock or return success when nothing spawned.
 - Return `true` only after successful creation, so the schedule can mark the
   occurrence and replace its planned timestamp with the actual arrival time.
@@ -65,9 +68,36 @@ more events; it does not add another guaranteed event or increase that rarity's
 weight. `None` is an explicit Common quiet outcome, not a failed spawn.
 Unpopulated rarities are excluded and their weights redistribute across populated
 rarities. With the current defaults, the two Rare events each have a 12.5%
-chance per slot and quiet has a 75% chance.
+chance per slot and quiet has a 75% chance, before reservation filtering.
 
-Keep `DefaultSlots` built in its getter and create the scheduler in host
+### Fixed events and reserved times
+
+Add a `GameFixedEvent` to `GameEventSchedule.DefaultFixedEvents` for a guaranteed
+one-shot event. Set `Kind` and `StartAtSeconds` (total elapsed round seconds at
+which the event is due, not a relative delay), plus optional
+`PaddingBeforeSeconds` and `PaddingAfterSeconds` (both default to zero).
+The boss defaults to 300 seconds with 30 seconds of padding on either side.
+Fixed events appear in the initial replicated timeline without consuming RNG.
+Any executable catalog event can be fixed; it need not be fixed-only.
+
+Reservations include both boundaries. Zero padding locks only the exact
+timestamp; the default boss locks 270 through 330 seconds. A random event whose
+drawn timestamp falls in a reservation is skipped, with no reroll or deferral.
+Its slot remains consumed and recurring cadence does not shift. Pending random
+events with earlier timestamps also cannot start or retry during a reservation;
+they may resume afterward. Fixed events bypass this start gate and have their
+own per-occurrence retry deadline, so another event's failure cannot delay them.
+Reservations remain anchored to planned times even if a fixed start fails.
+Already active events and regular enemy spawning are not stopped or despawned.
+These locks govern new event starts, not event lifetimes.
+
+Overlapping fixed reservations (including shared endpoints), quiet kinds, and
+invalid times/padding are rejected rather than silently displacing a fixed event.
+Pass `fixedEvents` to the scheduler constructor to override defaults; pass an
+empty list to disable fixed events. To disable all events, pass empty lists for
+both `slots` and `fixedEvents`.
+
+Keep `DefaultSlots` and `DefaultFixedEvents` built in their getters and create the scheduler in host
 `OnStart`. s&box hotload preserves cached static and component state; a new round
 must snapshot the current tuning. Changing defaults does not retune a round
 already in progress. Clients consume replicated schedules and never roll events.
@@ -109,7 +139,9 @@ player states. Timeline metadata requires no event-specific HUD layout.
 
 Extend [EventCatalogTests](../Tests/EventCatalogTests.cs) to cover the new ID,
 metadata, callback dispatch, failure propagation, exact rarity/item boundaries,
-and opening/recurring slot selection. Update probability expectations for other
+and opening/recurring slot selection. For fixed events, cover exact times,
+padding boundaries, collision skipping without rerolls, catch-up, and invalid or
+overlapping reservations. Update probability expectations for other
 events sharing its rarity. Keep quiet outcomes, consumed slots, catch-up timing,
 and invalid inputs covered. Add reward tests when reward rules change.
 

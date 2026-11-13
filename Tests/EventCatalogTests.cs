@@ -20,7 +20,7 @@ internal static class EventCatalogTests
 		var world = new TestWorld();
 		var quiet = GameEventCatalog.Get(GameEventKind.None);
 		Check(quiet.TryStart(world) && world.Attempts == 0, "Quiet intervals must not spawn anything.");
-		foreach (var kind in new[] { GameEventKind.Dropship, GameEventKind.WeaponAirdrop })
+		foreach (var kind in new[] { GameEventKind.Dropship, GameEventKind.WeaponAirdrop, GameEventKind.Boss })
 		{
 			var definition = GameEventCatalog.Get(kind);
 			var attempts = world.Attempts;
@@ -49,13 +49,33 @@ internal static class EventCatalogTests
 		Check(Roll(rarityRoll: 0.75f, itemRoll: 0.49999f).Id == GameEventKind.Dropship, "The first half of Rare selects a dropship.");
 		Check(Roll(rarityRoll: 0.75f, itemRoll: 0.5f).Id == GameEventKind.WeaponAirdrop, "The second half of Rare selects a weapon airdrop.");
 		Check(Roll(rarityRoll: 1f, itemRoll: 1f).Id == GameEventKind.WeaponAirdrop, "The upper RNG endpoint is supported.");
+		Check(counts[GameEventKind.Boss] == 0 && !GameEventCatalog.Get(GameEventKind.Boss).RandomEligible,
+			"The fixed boss must never dilute random event probabilities.");
+		Check(GameEventCatalog.Get(GameEventKind.Boss).ArrivalMoment == "Boss spawned",
+			"The shared arrival path must preserve the boss's round moment.");
+
+		var allRarities = Enum.GetValues<GameRarity>()
+			.Select(rarity => new RarityBucket(id: rarity, chance: 1f)).ToArray();
+		foreach (var rarityRoll in new[] { 0f, 0.5f, 1f })
+		{
+			foreach (var itemRoll in new[] { 0f, 0.5f, 1f })
+			{
+				var definition = Roll(
+					rarityRoll: rarityRoll,
+					itemRoll: itemRoll,
+					rarities: allRarities
+				);
+				Check(definition.Id != GameEventKind.Boss,
+					"Even enabling every rarity must never make the fixed-only boss randomly eligible.");
+			}
+		}
 	}
 
 	internal static void WeaponAirdrops()
 	{
 		foreach (var timeRoll in new[] { 0f, 0.5f, 1f })
 		{
-			var schedule = new GameEventSchedule();
+			var schedule = RandomSchedule();
 			var openingRolls = new Queue<float>(new[] { 1f, 0.5f, timeRoll });
 			var opening = schedule.Advance(elapsedSeconds: 0f, random: () => openingRolls.Dequeue());
 			Check(opening.Count == 1 && opening[0].Kind == GameEventKind.WeaponAirdrop && !opening[0].Occurred,
@@ -80,7 +100,7 @@ internal static class EventCatalogTests
 	{
 		foreach (var roll in new[] { 0f, 0.5f, 1f })
 		{
-			var firstSchedule = new GameEventSchedule();
+			var firstSchedule = RandomSchedule();
 			var firstRolls = new Queue<float>(new[] { 0.75f, 0f, roll });
 			var first = firstSchedule.Advance(elapsedSeconds: 0f, random: () => firstRolls.Dequeue());
 			Check(first.Count == 1 && first[0].Kind == GameEventKind.Dropship && !first[0].Occurred,
@@ -89,7 +109,7 @@ internal static class EventCatalogTests
 			Check(firstRolls.Count == 0, "Opening slots must consume rarity, item and timestamp rolls.");
 		}
 
-		var schedule = new GameEventSchedule();
+		var schedule = RandomSchedule();
 		var openingRolls = new Queue<float>(new[] { 0.74999f, 0f });
 		var opening = schedule.Advance(elapsedSeconds: 0f, random: () => openingRolls.Dequeue());
 		Check(opening.Count == 0
@@ -113,7 +133,7 @@ internal static class EventCatalogTests
 		Check(schedule.NextRollSeconds == 1200f, "Catch-up must preserve the next exact boundary.");
 		Check(schedule.Advance(elapsedSeconds: 1199f, random: UnexpectedRoll).Count == 0, "Old windows must stay consumed.");
 
-		var quietRound = new GameEventSchedule(new[]
+		var quietRound = RandomSchedule(new[]
 		{
 			new GameEventSlot
 			{
@@ -150,7 +170,7 @@ internal static class EventCatalogTests
 				Rarities = rare
 			}
 		};
-		var schedule = new GameEventSchedule(slots);
+		var schedule = RandomSchedule(slots);
 		common.Clear();
 		common.Add(new RarityBucket(id: GameRarity.Rare, chance: 1f));
 		rare.Clear();
@@ -163,11 +183,11 @@ internal static class EventCatalogTests
 			"Catch-up must interleave due slots chronologically and preserve independent cadences.");
 		Check(schedule.Advance(elapsedSeconds: 150f, random: UnexpectedRoll).Count == 0, "Consumed slots must not reroll.");
 
-		var noSlots = new GameEventSchedule(Array.Empty<GameEventSlot>());
+		var noSlots = RandomSchedule(Array.Empty<GameEventSlot>());
 		Check(noSlots.Advance(elapsedSeconds: 1000f, random: UnexpectedRoll).Count == 0,
 			"An explicitly empty slot configuration must disable events.");
 
-		var oneShot = new GameEventSchedule(new[]
+		var oneShot = RandomSchedule(new[]
 		{
 			new GameEventSlot
 			{
@@ -206,7 +226,7 @@ internal static class EventCatalogTests
 			}
 		}
 		Check(ships == 2500, "Empty rarity weight must redistribute proportionally among populated buckets.");
-		var rareSlot = new GameEventSchedule(new[]
+		var rareSlot = RandomSchedule(new[]
 		{
 			new GameEventSlot
 			{
@@ -242,13 +262,13 @@ internal static class EventCatalogTests
 		})
 		{
 			Throws<ArgumentException>(() => GameEventCatalog.Roll(rarities: buckets, random: UnexpectedRoll));
-			Throws<ArgumentException>(() => new GameEventSchedule(new[] { new GameEventSlot { Rarities = buckets } }));
+			Throws<ArgumentException>(() => RandomSchedule(new[] { new GameEventSlot { Rarities = buckets } }));
 		}
 		foreach (var value in new[] { -0.1f, 1.1f, float.NaN, float.PositiveInfinity })
 		{
 			Throws<ArgumentOutOfRangeException>(() => Roll(rarityRoll: value, itemRoll: 0f));
 			Throws<ArgumentOutOfRangeException>(() => Roll(rarityRoll: 0f, itemRoll: value));
-			var schedule = new GameEventSchedule();
+			var schedule = RandomSchedule();
 			Throws<ArgumentOutOfRangeException>(() => schedule.Advance(elapsedSeconds: 0f, random: () => value));
 			var timeRolls = new Queue<float>(new[] { 1f, 0f, value });
 			Throws<ArgumentOutOfRangeException>(() => schedule.Advance(elapsedSeconds: 0f, random: () => timeRolls.Dequeue()));
@@ -256,10 +276,10 @@ internal static class EventCatalogTests
 
 		foreach (var elapsed in new[] { -1f, float.NaN, float.PositiveInfinity })
 		{
-			var schedule = new GameEventSchedule();
+			var schedule = RandomSchedule();
 			Throws<ArgumentOutOfRangeException>(() => schedule.Advance(elapsedSeconds: elapsed, random: UnexpectedRoll));
 		}
-		var missingRandom = new GameEventSchedule();
+		var missingRandom = RandomSchedule();
 		Throws<ArgumentNullException>(() => missingRandom.Advance(elapsedSeconds: 0f, random: null));
 		foreach (var slot in new[]
 		{
@@ -274,8 +294,177 @@ internal static class EventCatalogTests
 			new GameEventSlot { Rarities = null }
 		})
 		{
-			Throws<ArgumentException>(() => new GameEventSchedule(new[] { slot }));
+			Throws<ArgumentException>(() => RandomSchedule(new[] { slot }));
 		}
+	}
+
+	internal static void FixedEvents()
+	{
+		var defaults = GameEventSchedule.DefaultFixedEvents;
+		var nextDefaults = GameEventSchedule.DefaultFixedEvents;
+		Check(!ReferenceEquals(defaults, nextDefaults) && !ReferenceEquals(defaults[0], nextDefaults[0]),
+			"Fixed defaults must also rebuild current tuning for each new round.");
+		Check(defaults.Count == 1 && defaults[0].Kind == GameEventKind.Boss && defaults[0].StartAtSeconds == 300f,
+			"The match must guarantee exactly one boss at five minutes.");
+		Check(defaults[0].PaddingBeforeSeconds == 30f && defaults[0].PaddingAfterSeconds == 30f,
+			"The default boss reserves thirty seconds on either side.");
+
+		foreach (var roll in new[] { 0f, 0.75f, 1f })
+		{
+			var schedule = new GameEventSchedule();
+			var opening = schedule.Advance(elapsedSeconds: 0f, random: () => roll);
+			Check(opening.Count(item => item.Kind == GameEventKind.Boss) == 1,
+				"The boss must appear in the opening timeline regardless of the random draw.");
+			var boss = opening.Single(item => item.Kind == GameEventKind.Boss);
+			Check(boss.Seconds == 300f && boss.IsFixed && !boss.Occurred,
+				"Fixed scheduling must not mark the boss as already spawned.");
+			var later = schedule.Advance(elapsedSeconds: 1800f, random: () => roll);
+			Check(later.All(item => item.Kind != GameEventKind.Boss),
+				"Catch-up and recurring slots must never inject another boss.");
+		}
+
+		var fixedOnly = new GameEventSchedule(slots: Array.Empty<GameEventSlot>());
+		var initial = fixedOnly.Advance(elapsedSeconds: 0f, random: UnexpectedRoll);
+		Check(initial.Count == 1 && initial[0].Kind == GameEventKind.Boss && initial[0].Seconds == 300f,
+			"The boss's one fixed occurrence must be planned at round start without RNG.");
+		foreach (var elapsed in new[] { 299f, 300f, 301f, 600f })
+		{
+			Check(fixedOnly.Advance(elapsedSeconds: elapsed, random: UnexpectedRoll).Count == 0,
+				"Crossing the boss deadline must not schedule duplicate occurrences.");
+		}
+
+		var lateSchedule = new GameEventSchedule(slots: Array.Empty<GameEventSlot>());
+		var caughtUp = lateSchedule.Advance(elapsedSeconds: 500f, random: UnexpectedRoll);
+		Check(caughtUp.Count == 1 && caughtUp[0].Seconds == 300f && caughtUp[0].IsFixed,
+			"A first advance after the deadline must retain the fixed event and original timestamp without RNG.");
+		Check(lateSchedule.Advance(elapsedSeconds: 600f, random: UnexpectedRoll).Count == 0,
+			"Fixed events are emitted only once, even without random slots.");
+	}
+
+	internal static void Reservations()
+	{
+		var reservations = new List<GameFixedEvent>
+		{
+			new()
+			{
+				Kind = GameEventKind.Boss,
+				StartAtSeconds = 300f,
+				PaddingBeforeSeconds = 30f,
+				PaddingAfterSeconds = 30f
+			}
+		};
+		foreach (var seconds in new[] { 269.99f, 270f, 300f, 330f, 330.01f })
+		{
+			var schedule = new GameEventSchedule(
+				slots: new[]
+				{
+					new GameEventSlot
+					{
+						MinimumDelaySeconds = seconds,
+						MaximumDelaySeconds = seconds,
+						Rarities = new[] { new RarityBucket(id: GameRarity.Rare, chance: 1f) }
+					}
+				},
+				fixedEvents: reservations
+			);
+			var rolls = new Queue<float>(new[] { 0f, 0f, 0f });
+			var events = schedule.Advance(elapsedSeconds: 0f, random: () => rolls.Dequeue());
+			var blocked = seconds >= 270f && seconds <= 330f;
+			Check(events.Count == (blocked ? 1 : 2) && events.Count(item => item.IsFixed) == 1,
+				"Random timestamps in the inclusive reservation must be skipped, never the guaranteed event.");
+			Check(rolls.Count == 0, "A collision consumes its original draw without rerolling.");
+			Check(schedule.IsReserved(seconds) == blocked,
+				"Runtime start checks must use the same lock boundaries as scheduling.");
+			Check(schedule.Advance(elapsedSeconds: 1000f, random: UnexpectedRoll).Count == 0,
+				"A blocked one-shot slot must stay consumed.");
+		}
+
+		var lockedEvent = reservations[0];
+		var snapshot = new GameEventSchedule(
+			slots: Array.Empty<GameEventSlot>(),
+			fixedEvents: reservations
+		);
+		reservations.Clear();
+		Check(snapshot.IsReserved(270f) && snapshot.IsReserved(330f),
+			"Mutating the caller's fixed-event list must not remove reservations.");
+		Check(!snapshot.IsReserved(269f) && !snapshot.IsReserved(331f),
+			"Only start times inside the reservation are locked, not existing event lifetimes.");
+
+		var pointLock = new GameEventSchedule(
+			slots: Array.Empty<GameEventSlot>(),
+			fixedEvents: new[] { new GameFixedEvent { Kind = GameEventKind.Dropship, StartAtSeconds = 10f } }
+		);
+		Check(pointLock.IsReserved(10f) && !pointLock.IsReserved(9.99f) && !pointLock.IsReserved(10.01f),
+			"Zero padding must reserve only the exact timestamp, for any executable event kind.");
+
+		var recurring = new GameEventSchedule(
+			slots: new[]
+			{
+				new GameEventSlot
+				{
+					FirstRollSeconds = 270f,
+					RepeatIntervalSeconds = 30f,
+					Rarities = new[] { new RarityBucket(id: GameRarity.Rare, chance: 1f) }
+				}
+			},
+			fixedEvents: new[] { lockedEvent }
+		);
+		var catchUp = recurring.Advance(elapsedSeconds: 360f, random: () => 0f);
+		Check(catchUp.Count == 2 && catchUp[1].Seconds == 360f && recurring.NextRollSeconds == 390f,
+			"Catch-up must skip every locked window and preserve the recurring cadence after the lock.");
+	}
+
+	internal static void InvalidFixedEvents()
+	{
+		foreach (var fixedEvent in new[]
+		{
+			null,
+			new GameFixedEvent { Kind = GameEventKind.None },
+			new GameFixedEvent { Kind = (GameEventKind)99 },
+			new GameFixedEvent { Kind = GameEventKind.Boss, StartAtSeconds = -1f },
+			new GameFixedEvent { Kind = GameEventKind.Boss, StartAtSeconds = float.NaN },
+			new GameFixedEvent { Kind = GameEventKind.Boss, StartAtSeconds = float.PositiveInfinity },
+			new GameFixedEvent { Kind = GameEventKind.Boss, PaddingBeforeSeconds = -1f },
+			new GameFixedEvent { Kind = GameEventKind.Boss, PaddingBeforeSeconds = float.NaN },
+			new GameFixedEvent { Kind = GameEventKind.Boss, PaddingBeforeSeconds = float.PositiveInfinity },
+			new GameFixedEvent { Kind = GameEventKind.Boss, PaddingAfterSeconds = -1f },
+			new GameFixedEvent { Kind = GameEventKind.Boss, PaddingAfterSeconds = float.NaN },
+			new GameFixedEvent { Kind = GameEventKind.Boss, PaddingAfterSeconds = float.PositiveInfinity },
+			new GameFixedEvent { Kind = GameEventKind.Boss, StartAtSeconds = float.MaxValue, PaddingAfterSeconds = float.MaxValue }
+		})
+		{
+			Throws<ArgumentException>(() => new GameEventSchedule(fixedEvents: new[] { fixedEvent }));
+		}
+
+		foreach (var seconds in new[] { 270f, 300f, 330f })
+		{
+			Throws<ArgumentException>(() => new GameEventSchedule(fixedEvents: new[]
+			{
+				new GameFixedEvent
+				{
+					Kind = GameEventKind.Boss,
+					StartAtSeconds = 300f,
+					PaddingBeforeSeconds = 30f,
+					PaddingAfterSeconds = 30f
+				},
+				new GameFixedEvent { Kind = GameEventKind.Dropship, StartAtSeconds = seconds }
+			}));
+		}
+
+		var schedule = new GameEventSchedule();
+		foreach (var seconds in new[] { -1f, float.NaN, float.PositiveInfinity })
+		{
+			Throws<ArgumentOutOfRangeException>(() => schedule.IsReserved(seconds));
+		}
+		Throws<ArgumentException>(() => GameEventCatalog.Roll(
+			rarities: new[] { new RarityBucket(id: GameRarity.Legendary, chance: 1f) },
+			random: UnexpectedRoll
+		));
+	}
+
+	private static GameEventSchedule RandomSchedule(IReadOnlyList<GameEventSlot> slots = null)
+	{
+		return new GameEventSchedule(slots: slots, fixedEvents: Array.Empty<GameFixedEvent>());
 	}
 
 	private static GameEventDefinition Roll(
@@ -325,7 +514,8 @@ internal static class EventCatalogTests
 
 		public bool TryStartEvent(GameEventKind kind)
 		{
-			Check(kind is GameEventKind.Dropship or GameEventKind.WeaponAirdrop, "Only executable event kinds may reach the world dispatcher.");
+			Check(kind is GameEventKind.Dropship or GameEventKind.WeaponAirdrop or GameEventKind.Boss,
+				"Only executable event kinds may reach the world dispatcher.");
 			LastKind = kind;
 			Attempts++;
 			return Success;

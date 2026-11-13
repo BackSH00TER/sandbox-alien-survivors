@@ -18,9 +18,8 @@ Events beyond the right edge appear as smaller pipeline icons. Their tiny
 the time until they occur. For example, a boss due at 5:00 starts in the
 pipeline with `4 min` and enters the view at 3:18.
 
-`GameManager.TimelineEvents` combines the existing boss spawn with replicated
-world-event schedules. The boss uses `CountdownTime` and then its actual spawn
-time once spawning succeeds. World events use their scheduled time until they
+`GameManager.TimelineEvents` reads all events, including the boss, from replicated
+world-event schedules. Events use their scheduled time until they
 successfully spawn, then their actual arrival time. Failed spawns retry once
 per second and do not record a successful occurrence.
 
@@ -29,8 +28,9 @@ per second and do not record a successful occurrence.
 For implementation steps and validation requirements, see
 [Adding a world event](event-authoring.md).
 
-`GameEventSchedule` controls event frequency through `GameEventSlot` definitions;
-there is no ship-specific guarantee in the scheduler. `GameEventCatalog` only defines event types,
+`GameEventSchedule` controls random frequency through `GameEventSlot` definitions
+and guaranteed arrivals through `GameFixedEvent` definitions.
+`GameEventCatalog` only defines event types,
 their rarities, icons, labels, and start callbacks, like the loot/modifier catalogs.
 The framework lives in `Code/game/events/`. `GameManager` dispatches catalog
 callbacks through the common `IGameEventAction` interface; event implementations
@@ -38,10 +38,12 @@ are registered by `GameEventActions`, not hard-coded into the manager.
 `GameDropshipEvent` owns the dropship configuration and spawn logic, while
 `GameDropship` handles the ship's lifecycle. `GameWeaponAirdropEvent` owns weapon
 delivery placement and starts `GameWeaponAirdrop` through the same action registry.
-The manager has no weapon-specific schedule, retry clock, or dispatch branch.
+`GameBossEvent` spawns the match boss using the existing enemy spawner and owns
+its replicated identity. The manager has no event-specific schedule, spawn
+branch, or retry clock. Defeating that registered boss still ends the match.
 `GameEventCatalog.AllEvents` exposes
 the catalog's definitions.
-Every slot draws a rarity using the shared `RarityDraw`, then an equally likely
+Every random slot draws a rarity using the shared `RarityDraw`, then an equally likely
 event in that rarity. Slots have independent timing and rarity weights, so an
 early slot can use different rarities from a later or recurring slot.
 
@@ -55,23 +57,41 @@ The current configuration lives in `GameEventSchedule.DefaultSlots`:
 Common currently contains an explicit quiet interval (no event); Rare contains
 the alien dropship and weapon airdrop. Both opening and recurring slots have
 a 75% quiet chance, a 12.5% dropship chance, and a 12.5% weapon airdrop chance.
-Neither event is guaranteed. Quiet is a real Common catalog choice, not an empty
+These are draw probabilities before reserved-time filtering; conflicting arrivals
+are skipped. Neither random event is guaranteed. Quiet is a real Common catalog choice, not an empty
 rarity. Weapon airdrops no longer have separate fixed arrivals at 1:00, 5:00,
 10:00, etc.; they use the same slot delays and rarity draws as dropships.
 Rarities without event definitions are excluded and their weight is redistributed
 proportionally among populated, enabled rarities. This does not retry random rolls.
 A configuration with no populated positive-weight rarity is rejected explicitly.
-New event types can populate those rarities without changing the scheduler.
+New random-eligible event types can populate those rarities without changing
+the scheduler. The boss has Legendary metadata but is fixed-only
+(`RandomEligible = false`), so it never changes random rarity populations.
 
 Configure each slot's `FirstRollSeconds`, `MinimumDelaySeconds`,
 `MaximumDelaySeconds`, `RepeatIntervalSeconds`, and `Rarities` in `DefaultSlots`,
 or supply a custom slot list to the scheduler constructor. Zero repeat interval
-makes a slot one-shot; an empty slot list disables events. The scheduler snapshots
+makes a slot one-shot; an empty slot list disables random events. The scheduler snapshots
 configuration so later list mutations do not alter an active round.
 Default definitions are rebuilt from current code and the host creates a new
 scheduler at round start. This avoids s&box hotload preserving obsolete static
 slot settings or editor-created scheduler state. Start a new round after
 changing slot tuning; an already-running round retains its snapshot.
+
+`GameEventSchedule.DefaultFixedEvents` guarantees one boss at **5:00**, using
+`StartAtSeconds = 300` (total elapsed round seconds, not a relative delay).
+Its reservation includes **4:30 through 5:30**, using configurable 30-second
+padding before and after the timestamp. Padding defaults to zero for new fixed
+definitions, which reserves just their exact timestamp. Fixed entries appear on
+the timeline at round start without consuming random rolls. Random arrivals
+inside a lock are skipped without rerolling or changing the next slot boundary.
+Overdue random events cannot start or retry inside a lock; they resume afterward.
+Fixed events have independent one-second retries, so failed random starts cannot
+delay the boss's initial attempt. Locks stay at their planned times on failure.
+Already active ships/deliveries and normal enemy spawns continue; a reservation
+does not enforce exclusive event lifetimes. Overlapping fixed locks are rejected.
+Supply custom `fixedEvents` to the constructor to override the guaranteed list;
+empty `slots` and `fixedEvents` together disable the entire schedule.
 
 A selected event is scheduled uniformly within its slot's delay window and
 immediately appears on the timeline/pipeline. Multiple ships may remain alive.
@@ -117,8 +137,8 @@ their default inset.
 Arrival, landing, and destruction are recorded as actual round-results moments.
 Scheduled events after round end do not execute. There are no recurring bosses.
 Defeating the boss still ends the match; the clock freezes at round end.
-With the current default boss at 1:00, some dropships may not arrive before a
-quick boss victory; increase `CountdownTime` in the inspector for longer rounds.
+Change the boss timestamp and padding in `DefaultFixedEvents` for different
+round tuning; the manager no longer has a separate countdown setting.
 `ShouldEndWhenAllDead` is enabled by default and in the game scene: a solo
 death or a full-team wipe opens the round results. A teammate dying while
 another player is alive still allows revives. Disable this setting in the
@@ -150,8 +170,8 @@ Actual airdrop launches and crate landings are recorded as world moments in the
 round results. Launches use the catalog's generic arrival moment; landing remains
 part of the weapon delivery lifecycle.
 
-The default boss countdown is still 60 seconds. Airdrops only occur if the match
-lasts long enough; this feature does not extend the round or delay the boss.
+The boss is due at five minutes. Airdrops only occur if the match lasts long
+enough and their selected timestamps are outside the boss's reservation.
 
 ## Round results
 
