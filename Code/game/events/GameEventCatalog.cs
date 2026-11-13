@@ -152,13 +152,14 @@ public sealed class GameEventSlot
 public sealed class GameFixedEvent
 {
 	public GameEventKind Kind { get; init; }
-	public float Seconds { get; init; }
+	/// <summary>Total elapsed round seconds at which this event is due to start.</summary>
+	public float StartAtSeconds { get; init; }
 	public float PaddingBeforeSeconds { get; init; }
 	public float PaddingAfterSeconds { get; init; }
 
 	public bool Contains(float seconds)
 	{
-		return seconds >= Seconds - PaddingBeforeSeconds && seconds <= Seconds + PaddingAfterSeconds;
+		return seconds >= StartAtSeconds - PaddingBeforeSeconds && seconds <= StartAtSeconds + PaddingAfterSeconds;
 	}
 }
 
@@ -175,7 +176,7 @@ public sealed class GameEventSchedule
 				new GameFixedEvent
 				{
 					Kind = GameEventKind.Boss,
-					Seconds = 300f,
+					StartAtSeconds = 300f,
 					PaddingBeforeSeconds = 30f,
 					PaddingAfterSeconds = 30f
 				}
@@ -236,18 +237,18 @@ public sealed class GameEventSchedule
 		foreach (var fixedEvent in fixedEvents ?? DefaultFixedEvents)
 		{
 			if (fixedEvent == null || !Enum.IsDefined(fixedEvent.Kind) || fixedEvent.Kind == GameEventKind.None
-				|| !float.IsFinite(fixedEvent.Seconds) || fixedEvent.Seconds < 0f
+				|| !float.IsFinite(fixedEvent.StartAtSeconds) || fixedEvent.StartAtSeconds < 0f
 				|| !float.IsFinite(fixedEvent.PaddingBeforeSeconds) || fixedEvent.PaddingBeforeSeconds < 0f
 				|| !float.IsFinite(fixedEvent.PaddingAfterSeconds) || fixedEvent.PaddingAfterSeconds < 0f
-				|| !float.IsFinite(fixedEvent.Seconds + fixedEvent.PaddingAfterSeconds))
+				|| !float.IsFinite(fixedEvent.StartAtSeconds + fixedEvent.PaddingAfterSeconds))
 			{
 				throw new ArgumentException("Fixed events require an executable kind and finite non-negative times and padding.", nameof(fixedEvents));
 			}
 
-			var start = fixedEvent.Seconds - fixedEvent.PaddingBeforeSeconds;
-			var end = fixedEvent.Seconds + fixedEvent.PaddingAfterSeconds;
-			if (_fixedEvents.Any(existing => start <= existing.Seconds + existing.PaddingAfterSeconds
-				&& end >= existing.Seconds - existing.PaddingBeforeSeconds))
+			var start = fixedEvent.StartAtSeconds - fixedEvent.PaddingBeforeSeconds;
+			var end = fixedEvent.StartAtSeconds + fixedEvent.PaddingAfterSeconds;
+			if (_fixedEvents.Any(existing => start <= existing.StartAtSeconds + existing.PaddingAfterSeconds
+				&& end >= existing.StartAtSeconds - existing.PaddingBeforeSeconds))
 			{
 				throw new ArgumentException("Fixed event reservations must not overlap, including their boundaries.", nameof(fixedEvents));
 			}
@@ -293,7 +294,7 @@ public sealed class GameEventSchedule
 			{
 				scheduled.Add(new GameScheduledEvent(
 					Kind: fixedEvent.Kind,
-					Seconds: fixedEvent.Seconds,
+					Seconds: fixedEvent.StartAtSeconds,
 					Occurred: false,
 					IsFixed: true
 				));

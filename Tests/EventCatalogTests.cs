@@ -53,6 +53,22 @@ internal static class EventCatalogTests
 			"The fixed boss must never dilute random event probabilities.");
 		Check(GameEventCatalog.Get(GameEventKind.Boss).ArrivalMoment == "Boss spawned",
 			"The shared arrival path must preserve the boss's round moment.");
+
+		var allRarities = Enum.GetValues<GameRarity>()
+			.Select(rarity => new RarityBucket(id: rarity, chance: 1f)).ToArray();
+		foreach (var rarityRoll in new[] { 0f, 0.5f, 1f })
+		{
+			foreach (var itemRoll in new[] { 0f, 0.5f, 1f })
+			{
+				var definition = Roll(
+					rarityRoll: rarityRoll,
+					itemRoll: itemRoll,
+					rarities: allRarities
+				);
+				Check(definition.Id != GameEventKind.Boss,
+					"Even enabling every rarity must never make the fixed-only boss randomly eligible.");
+			}
+		}
 	}
 
 	internal static void WeaponAirdrops()
@@ -288,7 +304,7 @@ internal static class EventCatalogTests
 		var nextDefaults = GameEventSchedule.DefaultFixedEvents;
 		Check(!ReferenceEquals(defaults, nextDefaults) && !ReferenceEquals(defaults[0], nextDefaults[0]),
 			"Fixed defaults must also rebuild current tuning for each new round.");
-		Check(defaults.Count == 1 && defaults[0].Kind == GameEventKind.Boss && defaults[0].Seconds == 300f,
+		Check(defaults.Count == 1 && defaults[0].Kind == GameEventKind.Boss && defaults[0].StartAtSeconds == 300f,
 			"The match must guarantee exactly one boss at five minutes.");
 		Check(defaults[0].PaddingBeforeSeconds == 30f && defaults[0].PaddingAfterSeconds == 30f,
 			"The default boss reserves thirty seconds on either side.");
@@ -308,10 +324,20 @@ internal static class EventCatalogTests
 		}
 
 		var fixedOnly = new GameEventSchedule(slots: Array.Empty<GameEventSlot>());
-		var caughtUp = fixedOnly.Advance(elapsedSeconds: 500f, random: UnexpectedRoll);
+		var initial = fixedOnly.Advance(elapsedSeconds: 0f, random: UnexpectedRoll);
+		Check(initial.Count == 1 && initial[0].Kind == GameEventKind.Boss && initial[0].Seconds == 300f,
+			"The boss's one fixed occurrence must be planned at round start without RNG.");
+		foreach (var elapsed in new[] { 299f, 300f, 301f, 600f })
+		{
+			Check(fixedOnly.Advance(elapsedSeconds: elapsed, random: UnexpectedRoll).Count == 0,
+				"Crossing the boss deadline must not schedule duplicate occurrences.");
+		}
+
+		var lateSchedule = new GameEventSchedule(slots: Array.Empty<GameEventSlot>());
+		var caughtUp = lateSchedule.Advance(elapsedSeconds: 500f, random: UnexpectedRoll);
 		Check(caughtUp.Count == 1 && caughtUp[0].Seconds == 300f && caughtUp[0].IsFixed,
 			"A first advance after the deadline must retain the fixed event and original timestamp without RNG.");
-		Check(fixedOnly.Advance(elapsedSeconds: 600f, random: UnexpectedRoll).Count == 0,
+		Check(lateSchedule.Advance(elapsedSeconds: 600f, random: UnexpectedRoll).Count == 0,
 			"Fixed events are emitted only once, even without random slots.");
 	}
 
@@ -322,7 +348,7 @@ internal static class EventCatalogTests
 			new()
 			{
 				Kind = GameEventKind.Boss,
-				Seconds = 300f,
+				StartAtSeconds = 300f,
 				PaddingBeforeSeconds = 30f,
 				PaddingAfterSeconds = 30f
 			}
@@ -366,7 +392,7 @@ internal static class EventCatalogTests
 
 		var pointLock = new GameEventSchedule(
 			slots: Array.Empty<GameEventSlot>(),
-			fixedEvents: new[] { new GameFixedEvent { Kind = GameEventKind.Dropship, Seconds = 10f } }
+			fixedEvents: new[] { new GameFixedEvent { Kind = GameEventKind.Dropship, StartAtSeconds = 10f } }
 		);
 		Check(pointLock.IsReserved(10f) && !pointLock.IsReserved(9.99f) && !pointLock.IsReserved(10.01f),
 			"Zero padding must reserve only the exact timestamp, for any executable event kind.");
@@ -395,16 +421,16 @@ internal static class EventCatalogTests
 			null,
 			new GameFixedEvent { Kind = GameEventKind.None },
 			new GameFixedEvent { Kind = (GameEventKind)99 },
-			new GameFixedEvent { Kind = GameEventKind.Boss, Seconds = -1f },
-			new GameFixedEvent { Kind = GameEventKind.Boss, Seconds = float.NaN },
-			new GameFixedEvent { Kind = GameEventKind.Boss, Seconds = float.PositiveInfinity },
+			new GameFixedEvent { Kind = GameEventKind.Boss, StartAtSeconds = -1f },
+			new GameFixedEvent { Kind = GameEventKind.Boss, StartAtSeconds = float.NaN },
+			new GameFixedEvent { Kind = GameEventKind.Boss, StartAtSeconds = float.PositiveInfinity },
 			new GameFixedEvent { Kind = GameEventKind.Boss, PaddingBeforeSeconds = -1f },
 			new GameFixedEvent { Kind = GameEventKind.Boss, PaddingBeforeSeconds = float.NaN },
 			new GameFixedEvent { Kind = GameEventKind.Boss, PaddingBeforeSeconds = float.PositiveInfinity },
 			new GameFixedEvent { Kind = GameEventKind.Boss, PaddingAfterSeconds = -1f },
 			new GameFixedEvent { Kind = GameEventKind.Boss, PaddingAfterSeconds = float.NaN },
 			new GameFixedEvent { Kind = GameEventKind.Boss, PaddingAfterSeconds = float.PositiveInfinity },
-			new GameFixedEvent { Kind = GameEventKind.Boss, Seconds = float.MaxValue, PaddingAfterSeconds = float.MaxValue }
+			new GameFixedEvent { Kind = GameEventKind.Boss, StartAtSeconds = float.MaxValue, PaddingAfterSeconds = float.MaxValue }
 		})
 		{
 			Throws<ArgumentException>(() => new GameEventSchedule(fixedEvents: new[] { fixedEvent }));
@@ -417,11 +443,11 @@ internal static class EventCatalogTests
 				new GameFixedEvent
 				{
 					Kind = GameEventKind.Boss,
-					Seconds = 300f,
+					StartAtSeconds = 300f,
 					PaddingBeforeSeconds = 30f,
 					PaddingAfterSeconds = 30f
 				},
-				new GameFixedEvent { Kind = GameEventKind.Dropship, Seconds = seconds }
+				new GameFixedEvent { Kind = GameEventKind.Dropship, StartAtSeconds = seconds }
 			}));
 		}
 

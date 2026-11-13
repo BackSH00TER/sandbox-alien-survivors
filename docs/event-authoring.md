@@ -73,7 +73,8 @@ chance per slot and quiet has a 75% chance, before reservation filtering.
 ### Fixed events and reserved times
 
 Add a `GameFixedEvent` to `GameEventSchedule.DefaultFixedEvents` for a guaranteed
-one-shot event. Set `Kind` and absolute round-clock `Seconds`, plus optional
+one-shot event. Set `Kind` and `StartAtSeconds` (total elapsed round seconds at
+which the event is due, not a relative delay), plus optional
 `PaddingBeforeSeconds` and `PaddingAfterSeconds` (both default to zero).
 The boss defaults to 300 seconds with 30 seconds of padding on either side.
 Fixed events appear in the initial replicated timeline without consuming RNG.

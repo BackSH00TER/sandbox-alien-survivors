@@ -72,7 +72,8 @@ scheduler at round start. This avoids s&box hotload preserving obsolete static
 slot settings or editor-created scheduler state. Start a new round after
 changing slot tuning; an already-running round retains its snapshot.
 
-`GameEventSchedule.DefaultFixedEvents` guarantees one boss at **5:00**.
+`GameEventSchedule.DefaultFixedEvents` guarantees one boss at **5:00**, using
+`StartAtSeconds = 300` (total elapsed round seconds, not a relative delay).
 Its reservation includes **4:30 through 5:30**, using configurable 30-second
 padding before and after the timestamp. Padding defaults to zero for new fixed
 definitions, which reserves just their exact timestamp. Fixed entries appear on
