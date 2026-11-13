@@ -6,7 +6,7 @@ public abstract class GameEntity : Component
 	internal const string EnemyCollisionTag = "alien_survivors_enemy";
 	internal const string EnemyRagdollCollisionTag = "alien_survivors_enemy_ragdoll";
 
-	[Property, Range(1f, 1000f), Sync(SyncFlags.FromHost)] public float MaxHealth { get; set; } = 100f;
+	[Property, Range(1f, 1000f), Sync(SyncFlags.FromHost)] public virtual float MaxHealth { get; set; } = 100f;
 	[Property, Range(0.01f, 1f)] public float HitFlashDuration { get; set; } = 0.12f;
 	[Sync(SyncFlags.FromHost)] public float Health { get; private set; } = 100f;
 	[Property, Group("Armor"), Range(0, int.MaxValue), Sync(SyncFlags.FromHost), Description("Current armor. Set on creation; the cost of blocking a hit depends on its damage type.")]

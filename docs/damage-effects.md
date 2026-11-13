@@ -363,6 +363,46 @@ it is hidden if every player has zero. Rejected requests and dice pickups do not
   and acquired modifiers are host-synchronized; inventory icons expose upgrade
   descriptions on hover.
 
+## Enemy architecture
+
+Enemy code lives in `Code/game/enemies`, including spawning, aggro and ragdoll
+collision helpers. `GameEnemy` is the concrete default melee enemy and the shared
+base for `GameEnemyRanged`, `GameEnemyExploding` and `GameEnemyBoss`. Each spawned
+object has one enemy component, not a base component plus variant components.
+Existing `GameEnemy` prefab references remain valid.
+
+The base owns descent, target selection, aggro, slowing, hit reactions, crowd
+spacing, melee combat and ordinary XP/ragdoll death. Variants override
+`UpdateCombat`, `CancelAttack`, `ConfigureCorpse` or `OnHealthDepleted` as needed.
+Ranged enemies own their projectile charge and wandering; exploders attach the
+shared explosion effect to their corpse; bosses add their stun attack and end
+the match without dropping XP or creating a ragdoll. `Kind` is polymorphic, so
+damage and kill statistics still see every variant through `GameEnemy`.
+
+The gameplay spawner references four editor-authored prefabs in `Assets/prefabs`:
+`game_enemy.prefab` (melee), `game_enemy_ranged.prefab`,
+`game_enemy_exploding.prefab` and `game_enemy_boss.prefab`. Each prefab has exactly
+one enemy component: the base for melee, or the appropriate subclass for a variant.
+Edit inherited health, movement, melee and XP settings on that component, alongside
+the subclass's projectile, explosion or stun settings. Edit the prefab hierarchy
+for models, clothing, colliders and scale; the boss prefab owns its 1.8 scale,
+1000 health, 25 punch damage and reduced hit-reaction strength.
+
+The spawner selects a prefab using the existing exploder-first probability rules,
+then clones it disabled, applies deployment settings, enables it and network-spawns
+it. It preserves the authored scale and rotation and never adds or replaces enemy
+components. Missing selected prefabs are reported rather than silently spawning a
+different type. Boss spawning uses `BossPrefab`. Reinforcements with an explicit
+prefab use it unchanged; reinforcements without one use the same random selection
+as ordinary spawns and skip the aerial descent.
+
+To add a variant, derive from `GameEnemy`, override only the relevant hooks and
+call the base lifecycle methods when overriding startup, updates or disabling.
+Author a prefab with that subclass as its only enemy component, and assign it to
+the appropriate spawner slot. Reinforcements accept custom enemy prefabs without
+changes to the common lifecycle. Do not add a separate `GameEnemy` alongside a
+subclass: the subclass already provides the base behavior and inspector properties.
+
 ## Adding another type
 
 Runtime combat types follow the upstream `Game*` naming (`GameEntity`, `GameEnemy`,
@@ -412,6 +452,9 @@ chance thresholds, unique targets, exact chain limits, post-hit eligibility,
 independent expiries, exact damage, stack replacement, spread capacity, source
 attribution and cleanup, explosion defaults, bullet-pool exclusion, and rejection
 of mixed explosion/stack/chain settings.
+Enemy prefab checks also verify one correctly typed enemy component per prefab,
+local controller references, health/XP/scale tuning and all four gameplay spawner
+references.
 
 For gameplay verification, open this worktree's `.sbproj` in s&box, pick Fire Rounds,
 then test fire bullets against enemies and crates. Burning enemies should display

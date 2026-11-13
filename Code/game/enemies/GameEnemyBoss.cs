@@ -1,14 +1,14 @@
 using Sandbox;
 
 /// <summary>A large melee boss. Its death, rather than the countdown, completes the match.</summary>
-public sealed class GameEnemyBoss : Component
+public sealed class GameEnemyBoss : GameEnemy
 {
-	[Property, Range(1f, 10000f)] public float BossHealth { get; set; } = 1000f;
-	[Property, Range(1f, 4f)] public float Size { get; set; } = 1.8f;
-	[Property, Range(0f, 1000f)] public float MoveSpeed { get; set; } = 100f;
-	[Property, Range(1f, 1000f)] public float PunchDamage { get; set; } = 25f;
-	[Property, Range(1f, 500f)] public float PunchRange { get; set; } = 100f;
-	[Property, Range(1f, 500f)] public float PunchHitRange { get; set; } = 80f;
+	public override GameEnemyKind Kind => GameEnemyKind.Boss;
+	[Property, Range(1f, 10000f), Sync(SyncFlags.FromHost)] public override float MaxHealth { get; set; } = 1000f;
+	[Property, Range(0, 100)] public override int ExperienceDrop { get; set; } = 0;
+	[Property, Range(1f, 1000f)] public override float PunchDamage { get; set; } = 25f;
+	[Property, Range(1f, 500f)] public override float PunchRange { get; set; } = 100f;
+	[Property, Range(1f, 500f)] public override float PunchHitRange { get; set; } = 80f;
 
 	[Property, Group("Stun Attack"), Range(0.1f, 10f), Sync(SyncFlags.FromHost)] public float StunChargeTime { get; set; } = 1.5f;
 	[Property, Group("Stun Attack"), Range(1f, 1000f), Sync(SyncFlags.FromHost)] public float StunRadius { get; set; } = 120f;
@@ -21,7 +21,7 @@ public sealed class GameEnemyBoss : Component
 	[Sync(SyncFlags.FromHost)] private float ChargeEndTime { get; set; }
 	[Sync(SyncFlags.FromHost)] private float ImpactTime { get; set; } = -100f;
 	private float _nextStunTime;
-	private GameObject _warning;
+	private GameObject _stunAreaIndicator;
 	private LineRenderer _boundary;
 	private LineRenderer _progress;
 
@@ -32,16 +32,21 @@ public sealed class GameEnemyBoss : Component
 			_nextStunTime = Time.Now + StunCooldown;
 		}
 
-		_warning = new GameObject(GameObject, true, "Boss Stun Warning");
-		_warning.Flags |= GameObjectFlags.NotNetworked | GameObjectFlags.NotSaved;
+		base.OnStart();
+		_stunAreaIndicator = new GameObject(
+			parent: GameObject,
+			enabled: true,
+			name: "Boss Stun Warning"
+		);
+		_stunAreaIndicator.Flags |= GameObjectFlags.NotNetworked | GameObjectFlags.NotSaved;
 		_boundary = CreateRing();
 		_progress = CreateRing();
-		_warning.Enabled = false;
+		_stunAreaIndicator.Enabled = false;
 	}
 
 	private LineRenderer CreateRing()
 	{
-		var ring = _warning.AddComponent<LineRenderer>();
+		var ring = _stunAreaIndicator.AddComponent<LineRenderer>();
 		ring.UseVectorPoints = true;
 		ring.VectorPoints = new List<Vector3>();
 		for (var i = 0; i <= 64; i++)
@@ -59,17 +64,17 @@ public sealed class GameEnemyBoss : Component
 
 	protected override void OnUpdate()
 	{
-		if (!_warning.IsValid())
+		base.OnUpdate();
+		if (!_stunAreaIndicator.IsValid())
 		{
 			return;
 		}
 
-		var enemy = GetComponent<GameEnemy>();
 		var manager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
-		_warning.Enabled = enemy.IsValid() && enemy.Health > 0f
+		_stunAreaIndicator.Enabled = Health > 0f
 			&& (manager == null || manager.State == GameState.InProgress)
 			&& (IsChargingStun || Time.Now < ImpactTime + 0.35f);
-		if (!_warning.Enabled)
+		if (!_stunAreaIndicator.Enabled)
 		{
 			return;
 		}
@@ -89,7 +94,7 @@ public sealed class GameEnemyBoss : Component
 	}
 
 	/// <summary>Predicts the target's position at impact, then locks the warning so changing direction avoids it.</summary>
-	public bool TryStunAttack(PlayerController target)
+	private bool TryStunAttack(PlayerController target)
 	{
 		if (!Networking.IsHost || IsProxy)
 		{
@@ -142,28 +147,27 @@ public sealed class GameEnemyBoss : Component
 		return true;
 	}
 
-	public void CancelStunAttack()
+	protected override void UpdateCombat(PlayerController target, float distanceSquared)
+	{
+		if (TryStunAttack(target: target))
+		{
+			base.CancelAttack();
+			return;
+		}
+
+		base.UpdateCombat(target: target, distanceSquared: distanceSquared);
+	}
+
+	protected override void CancelAttack()
 	{
 		IsChargingStun = false;
 		ImpactTime = -100f;
+		base.CancelAttack();
 	}
 
-	public void Configure(GameEnemy enemy)
+	protected override void OnHealthDepleted()
 	{
-		enemy.MaxHealth = BossHealth;
-		enemy.MoveSpeed = MoveSpeed;
-		enemy.PunchDamage = PunchDamage;
-		enemy.PunchRange = PunchRange;
-		enemy.PunchHitRange = PunchHitRange;
-		enemy.HitStaggerDuration = 0f;
-		enemy.HitReactionStrength = 0.15f;
-		enemy.ExperienceDrop = 0;
-		GameObject.WorldScale *= Size;
-	}
-
-	public void Defeated(GameEnemy enemy)
-	{
-		CancelStunAttack();
+		CancelAttack();
 		var manager = Scene.GetAllComponents<GameManager>().FirstOrDefault();
 		if (!manager.IsValid())
 		{
@@ -171,14 +175,15 @@ public sealed class GameEnemyBoss : Component
 			return;
 		}
 
-		manager.BossDefeated(enemy);
+		manager.BossDefeated(enemy: this);
 	}
 
 	protected override void OnDisabled()
 	{
-		if (_warning.IsValid())
+		base.OnDisabled();
+		if (_stunAreaIndicator.IsValid())
 		{
-			_warning.Destroy();
+			_stunAreaIndicator.Destroy();
 		}
 	}
 }
