@@ -17,10 +17,18 @@ internal static class EventCatalogTests
 			Check(Enum.IsDefined(definition.Rarity), "Every event needs a known rarity.");
 		}
 
+		var catalogFields = typeof(GameEventCatalog).GetFields(System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+		foreach (var fieldName in new[] { "<AllEvents>k__BackingField", "ById", "RarityEvents" })
+		{
+			var field = catalogFields.Single(item => item.Name == fieldName);
+			var rebuildsOnHotload = field.IsDefined(typeof(Sandbox.SkipHotloadAttribute), inherit: false);
+			Check(rebuildsOnHotload, "Catalog definitions and indexes must rebuild together rather than retain stale hotloaded event IDs.");
+		}
+
 		var world = new TestWorld();
 		var quiet = GameEventCatalog.Get(GameEventKind.None);
 		Check(quiet.TryStart(world) && world.Attempts == 0, "Quiet intervals must not spawn anything.");
-		foreach (var kind in new[] { GameEventKind.Dropship, GameEventKind.WeaponAirdrop, GameEventKind.Boss })
+		foreach (var kind in expectedIds.Where(kind => kind != GameEventKind.None))
 		{
 			var definition = GameEventCatalog.Get(kind);
 			var attempts = world.Attempts;
@@ -40,10 +48,13 @@ internal static class EventCatalogTests
 				counts[definition.Id]++;
 			}
 		}
-		Check(counts[GameEventKind.None] == 7500, "Quiet intervals must retain the full 75% common weight.");
+		Check(counts[GameEventKind.None] == 3750 && counts[GameEventKind.ThickFog] == 3750,
+			"Quiet and thick fog must share the 75% common weight equally.");
 		Check(counts[GameEventKind.Dropship] == 1250 && counts[GameEventKind.WeaponAirdrop] == 1250,
 			"Both rare events must share the 25% rare weight equally.");
-		Check(Roll(rarityRoll: 0f, itemRoll: 1f).Id == GameEventKind.None, "Zero selects the common interval.");
+		Check(Roll(rarityRoll: 0f, itemRoll: 0.49999f).Id == GameEventKind.None, "The first half of Common stays quiet.");
+		Check(Roll(rarityRoll: 0f, itemRoll: 0.5f).Id == GameEventKind.ThickFog, "The second half of Common selects fog.");
+		Check(Roll(rarityRoll: 0.74999f, itemRoll: 1f).Id == GameEventKind.ThickFog, "Fog supports the upper Common item endpoint.");
 		Check(Roll(rarityRoll: 0.74999f, itemRoll: 0f).Id == GameEventKind.None, "Common ends below 75%.");
 		Check(Roll(rarityRoll: 0.75f, itemRoll: 0f).Id == GameEventKind.Dropship, "75% starts the rare interval.");
 		Check(Roll(rarityRoll: 0.75f, itemRoll: 0.49999f).Id == GameEventKind.Dropship, "The first half of Rare selects a dropship.");
@@ -68,6 +79,149 @@ internal static class EventCatalogTests
 				Check(definition.Id != GameEventKind.Boss,
 					"Even enabling every rarity must never make the fixed-only boss randomly eligible.");
 			}
+		}
+	}
+
+	internal static void ThickFog()
+	{
+		var definition = GameEventCatalog.Get(GameEventKind.ThickFog);
+		Check((int)GameEventKind.ThickFog == 4 && definition.Rarity == GameRarity.Common && definition.RandomEligible,
+			"Thick fog must append a stable ID and enter the Common random pool.");
+		Check(definition.Label == "Thick fog" && definition.Icon == "foggy"
+			&& definition.ArrivalMoment == "Thick fog rolled in", "Weather needs its own timeline and arrival metadata.");
+
+		foreach (var timeRoll in new[] { 0f, 0.5f, 1f })
+		{
+			var schedule = RandomSchedule();
+			var openingRolls = new Queue<float>(new[] { 0f, 0.5f, timeRoll });
+			var opening = schedule.Advance(elapsedSeconds: 0f, random: () => openingRolls.Dequeue());
+			Check(opening.Count == 1 && opening[0].Kind == GameEventKind.ThickFog
+				&& !opening[0].Occurred && !opening[0].IsFixed, "Common fog must use the shared opening draw.");
+			Check(opening[0].Seconds == 60f + 240f * timeRoll && openingRolls.Count == 0,
+				"Fog must consume exactly rarity, item and delay rolls with shared opening timing.");
+			var recurringRolls = new Queue<float>(new[] { 0.74999f, 1f, timeRoll });
+			var recurring = schedule.Advance(elapsedSeconds: 300f, random: () => recurringRolls.Dequeue());
+			Check(recurring.Count == 1 && recurring[0].Kind == GameEventKind.ThickFog
+				&& recurring[0].Seconds == 300f + 300f * timeRoll && recurringRolls.Count == 0,
+				"Fog must use the recurring slot's Common draw and exact delay endpoints.");
+			var repeated = schedule.Advance(elapsedSeconds: 300f, random: UnexpectedRoll);
+			Check(repeated.Count == 0,
+				"Consumed weather slots must never reroll.");
+		}
+
+		Check(GameFogTiming.DurationSeconds == 60f && GameFogTiming.FadeSeconds == 20f,
+			"Weather must last one minute including twenty-second fades.");
+		foreach (var (age, expected) in new[]
+		{
+			(-1f, 0f), (0f, 0f), (10f, 0.5f), (20f, 1f), (30f, 1f),
+			(40f, 1f), (50f, 0.5f), (60f, 0f), (61f, 0f)
+		})
+		{
+			var strength = GameFogTiming.StrengthAt(elapsedSeconds: age);
+			var difference = MathF.Abs(strength - expected);
+			Check(difference < 0.0001f, $"Fog strength at {age} seconds must be {expected}.");
+		}
+		for (var age = 0f; age <= 60f; age += 0.25f)
+		{
+			var strength = GameFogTiming.StrengthAt(elapsedSeconds: age);
+			var mirrored = GameFogTiming.StrengthAt(elapsedSeconds: 60f - age);
+			var difference = MathF.Abs(strength - mirrored);
+			Check(strength >= 0f && strength <= 1f && difference < 0.0001f,
+				"Fog fades must stay bounded and symmetric throughout the entire lifetime.");
+		}
+		foreach (var age in new[] { float.NaN, float.NegativeInfinity, float.PositiveInfinity })
+		{
+			Throws<ArgumentOutOfRangeException>(() => GameFogTiming.StrengthAt(elapsedSeconds: age));
+		}
+	}
+
+	internal static void FogDrift()
+	{
+		Check(GameFogDrift.Speed == 28f && GameFogDrift.HalfWidth == 1600f,
+			"Fog banks must drift slowly across the arena at twenty-eight units per second.");
+		var start = GameFogDrift.PositionAt(initialPosition: 0f, elapsedSeconds: 0f);
+		var later = GameFogDrift.PositionAt(initialPosition: 0f, elapsedSeconds: 1f);
+		Check(start == 0f && later == 28f, "Fog must move from the shared event age, without camera or character input.");
+		var boundary = GameFogDrift.PositionAt(initialPosition: 1572f, elapsedSeconds: 1f);
+		var wrapped = GameFogDrift.PositionAt(initialPosition: 1572f, elapsedSeconds: 2f);
+		Check(boundary == -1600f && wrapped == -1572f, "Banks must wrap continuously from downwind to upwind.");
+		var roundedBoundary = GameFogDrift.PositionAt(initialPosition: 1599.9999f, elapsedSeconds: 0.0000035f);
+		Check(roundedBoundary == -GameFogDrift.HalfWidth,
+			"Float rounding must not place a bank on the excluded downwind boundary.");
+		var extreme = GameFogDrift.PositionAt(initialPosition: float.MaxValue, elapsedSeconds: float.MaxValue);
+		Check(float.IsFinite(extreme) && extreme >= -GameFogDrift.HalfWidth && extreme < GameFogDrift.HalfWidth,
+			"Finite clock and position values must not overflow the bounded drift calculation.");
+		for (var age = -1f; age <= GameFogTiming.DurationSeconds; age += 0.25f)
+		{
+			foreach (var initial in new[] { -1200f, -400f, 400f, 1200f })
+			{
+				var position = GameFogDrift.PositionAt(initialPosition: initial, elapsedSeconds: age);
+				Check(position >= -GameFogDrift.HalfWidth && position < GameFogDrift.HalfWidth,
+					"Every bank must remain inside the fixed arena region throughout its lifetime.");
+				var repeated = GameFogDrift.PositionAt(initialPosition: initial, elapsedSeconds: age);
+				Check(position == repeated, "Peers using the same clock must reconstruct identical world-space drift.");
+			}
+		}
+		foreach (var invalid in new[] { float.NaN, float.NegativeInfinity, float.PositiveInfinity })
+		{
+			Throws<ArgumentOutOfRangeException>(() => GameFogDrift.PositionAt(initialPosition: invalid, elapsedSeconds: 0f));
+			Throws<ArgumentOutOfRangeException>(() => GameFogDrift.PositionAt(initialPosition: 0f, elapsedSeconds: invalid));
+		}
+		foreach (var halfWidth in new[] { 250f, 1600f, 5600f, float.MaxValue })
+		{
+			for (var age = 0f; age <= GameFogTiming.DurationSeconds; age += 0.25f)
+			{
+				var position = GameFogDrift.PositionAt(
+					initialPosition: halfWidth * 0.5f,
+					elapsedSeconds: age,
+					halfWidth: halfWidth
+				);
+				Check(float.IsFinite(position) && position >= -halfWidth && position < halfWidth,
+					"Banks must wrap to the measured arena width, including large and small floors.");
+			}
+		}
+		foreach (var invalid in new[] { 0f, -1f, float.NaN, float.NegativeInfinity, float.PositiveInfinity })
+		{
+			Throws<ArgumentOutOfRangeException>(() => GameFogDrift.PositionAt(
+				initialPosition: 0f,
+				elapsedSeconds: 0f,
+				halfWidth: invalid
+			));
+		}
+	}
+
+	internal static void FogLayers()
+	{
+		Check(GameFogDrift.LayerCount == 4, "Rolling fog must have four distinct height layers.");
+		for (var layer = 0; layer < GameFogDrift.LayerCount; layer++)
+		{
+			var wind = GameFogDrift.LayerWindAt(layer);
+			Check(wind.x == 18f + layer * 7f && wind.y == 5f - layer * 3f,
+				"Layers must drift at distinct, slow world-space velocities.");
+			var minimumHeight = 45f + layer * 55f - 8f;
+			var maximumHeight = minimumHeight + 16f;
+			for (var age = 0f; age <= GameFogTiming.DurationSeconds; age += 0.25f)
+			{
+				var height = GameFogDrift.LayerHeightAt(layer: layer, elapsedSeconds: age);
+				Check(height >= minimumHeight && height <= maximumHeight,
+					"Each rolling layer must stay inside its own separated height band.");
+				var repeated = GameFogDrift.LayerHeightAt(layer: layer, elapsedSeconds: age);
+				Check(height == repeated, "Late joiners must reconstruct the same rolling height from shared age.");
+			}
+			var extreme = GameFogDrift.LayerHeightAt(layer: layer, elapsedSeconds: float.MaxValue);
+			Check(float.IsFinite(extreme), "Finite shared ages must not overflow layer animation.");
+		}
+		var first = GameFogDrift.LayerHeightAt(layer: 0, elapsedSeconds: 0f);
+		var later = GameFogDrift.LayerHeightAt(layer: 0, elapsedSeconds: 10f);
+		Check(first != later, "Rolling layers must rise and fall gently rather than remaining flat in time.");
+		foreach (var invalid in new[] { -1, GameFogDrift.LayerCount })
+		{
+			Throws<ArgumentOutOfRangeException>(() => GameFogDrift.LayerWindAt(invalid));
+			Throws<ArgumentOutOfRangeException>(() => GameFogDrift.LayerHeightAt(layer: invalid, elapsedSeconds: 0f));
+		}
+		foreach (var invalid in new[] { float.NaN, float.NegativeInfinity, float.PositiveInfinity })
+		{
+			Throws<ArgumentOutOfRangeException>(() => GameFogDrift.LayerHeightAt(layer: 0, elapsedSeconds: invalid));
 		}
 	}
 
@@ -114,7 +268,7 @@ internal static class EventCatalogTests
 		var opening = schedule.Advance(elapsedSeconds: 0f, random: () => openingRolls.Dequeue());
 		Check(opening.Count == 0
 			&& openingRolls.Count == 0 && schedule.NextRollSeconds == 300f,
-			"The opening must remain quiet below the 75% rarity boundary, without drawing a timestamp.");
+			"The opening can remain quiet within Common, without drawing a timestamp.");
 		Check(schedule.Advance(elapsedSeconds: 0f, random: UnexpectedRoll).Count == 0, "The opening slot must never reroll.");
 		Check(schedule.Advance(elapsedSeconds: 299.99f, random: UnexpectedRoll).Count == 0, "No roll before the boundary.");
 		var quietRolls = new Queue<float>(new[] { 0f, 0f });
@@ -142,7 +296,7 @@ internal static class EventCatalogTests
 			}
 		});
 		Check(quietRound.Advance(elapsedSeconds: 1800f, random: () => 0f).Count == 0,
-			"An entire round can have no ships; there must be no special-case guaranteed arrival.");
+			"An entire round can stay quiet when every Common item draw selects quiet.");
 	}
 
 	internal static void Slots()
@@ -304,10 +458,12 @@ internal static class EventCatalogTests
 		var nextDefaults = GameEventSchedule.DefaultFixedEvents;
 		Check(!ReferenceEquals(defaults, nextDefaults) && !ReferenceEquals(defaults[0], nextDefaults[0]),
 			"Fixed defaults must also rebuild current tuning for each new round.");
-		Check(defaults.Count == 1 && defaults[0].Kind == GameEventKind.Boss && defaults[0].StartAtSeconds == 300f,
-			"The match must guarantee exactly one boss at five minutes.");
+		Check(defaults.Count == 2 && defaults[0].Kind == GameEventKind.Boss && defaults[0].StartAtSeconds == 300f,
+			"The playtest schedule must preserve the guaranteed boss at five minutes.");
 		Check(defaults[0].PaddingBeforeSeconds == 30f && defaults[0].PaddingAfterSeconds == 30f,
 			"The default boss reserves thirty seconds on either side.");
+		Check(defaults[1].Kind == GameEventKind.ThickFog && defaults[1].StartAtSeconds == 30f,
+			"The temporary playtest must guarantee fog at thirty seconds.");
 
 		foreach (var roll in new[] { 0f, 0.75f, 1f })
 		{
@@ -318,6 +474,9 @@ internal static class EventCatalogTests
 			var boss = opening.Single(item => item.Kind == GameEventKind.Boss);
 			Check(boss.Seconds == 300f && boss.IsFixed && !boss.Occurred,
 				"Fixed scheduling must not mark the boss as already spawned.");
+			var fog = opening.Single(item => item.Kind == GameEventKind.ThickFog && item.IsFixed);
+			Check(fog.Seconds == 30f && !fog.Occurred,
+				"Playtest fog must be scheduled at thirty seconds regardless of the random draw.");
 			var later = schedule.Advance(elapsedSeconds: 1800f, random: () => roll);
 			Check(later.All(item => item.Kind != GameEventKind.Boss),
 				"Catch-up and recurring slots must never inject another boss.");
@@ -325,9 +484,10 @@ internal static class EventCatalogTests
 
 		var fixedOnly = new GameEventSchedule(slots: Array.Empty<GameEventSlot>());
 		var initial = fixedOnly.Advance(elapsedSeconds: 0f, random: UnexpectedRoll);
-		Check(initial.Count == 1 && initial[0].Kind == GameEventKind.Boss && initial[0].Seconds == 300f,
-			"The boss's one fixed occurrence must be planned at round start without RNG.");
-		foreach (var elapsed in new[] { 299f, 300f, 301f, 600f })
+		Check(initial.Count == 2 && initial[0].Kind == GameEventKind.Boss && initial[0].Seconds == 300f
+			&& initial[1].Kind == GameEventKind.ThickFog && initial[1].Seconds == 30f && initial[1].IsFixed,
+			"The boss and temporary playtest fog must be planned at round start without RNG.");
+		foreach (var elapsed in new[] { 29f, 30f, 31f, 299f, 300f, 301f, 600f })
 		{
 			Check(fixedOnly.Advance(elapsedSeconds: elapsed, random: UnexpectedRoll).Count == 0,
 				"Crossing the boss deadline must not schedule duplicate occurrences.");
@@ -335,8 +495,9 @@ internal static class EventCatalogTests
 
 		var lateSchedule = new GameEventSchedule(slots: Array.Empty<GameEventSlot>());
 		var caughtUp = lateSchedule.Advance(elapsedSeconds: 500f, random: UnexpectedRoll);
-		Check(caughtUp.Count == 1 && caughtUp[0].Seconds == 300f && caughtUp[0].IsFixed,
-			"A first advance after the deadline must retain the fixed event and original timestamp without RNG.");
+		Check(caughtUp.Count == 2 && caughtUp[0].Seconds == 300f && caughtUp[0].IsFixed
+			&& caughtUp[1].Kind == GameEventKind.ThickFog && caughtUp[1].Seconds == 30f && caughtUp[1].IsFixed,
+			"A first advance after the deadlines must retain both fixed events and original timestamps without RNG.");
 		Check(lateSchedule.Advance(elapsedSeconds: 600f, random: UnexpectedRoll).Count == 0,
 			"Fixed events are emitted only once, even without random slots.");
 	}
@@ -514,7 +675,7 @@ internal static class EventCatalogTests
 
 		public bool TryStartEvent(GameEventKind kind)
 		{
-			Check(kind is GameEventKind.Dropship or GameEventKind.WeaponAirdrop or GameEventKind.Boss,
+			Check(kind is GameEventKind.Dropship or GameEventKind.WeaponAirdrop or GameEventKind.Boss or GameEventKind.ThickFog,
 				"Only executable event kinds may reach the world dispatcher.");
 			LastKind = kind;
 			Attempts++;

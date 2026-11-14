@@ -68,7 +68,8 @@ more events; it does not add another guaranteed event or increase that rarity's
 weight. `None` is an explicit Common quiet outcome, not a failed spawn.
 Unpopulated rarities are excluded and their weights redistribute across populated
 rarities. With the current defaults, the two Rare events each have a 12.5%
-chance per slot and quiet has a 75% chance, before reservation filtering.
+chance per slot; Common splits equally between quiet and thick fog at 37.5%
+each, before reservation filtering.
 
 ### Fixed events and reserved times
 
@@ -115,6 +116,17 @@ assembled geometry behind a visual-building method, as
 [GameSupplyCrate.BuildPrototypeVisuals](../Code/game/GameSupplyCrate.cs) does,
 so replacing it with a real model does not touch gameplay initialization.
 
+For temporary weather, see [GameThickFogEvent](../Code/game/events/GameThickFogEvent.cs)
+and [GameThickFog](../Code/game/events/GameThickFog.cs). They use the same event
+pipeline, a host-synchronized lifetime, a local `Fog` world-height layer for
+consistent arena-wide atmosphere, four procedural rolling cloud strata, and
+built-in `VolumetricFogVolume` banks drifting in world space per peer. Drive
+procedural shader animation from the synchronized event age so late joiners
+see the same motion. Measure the floor collider rather than using
+the event action as the arena center. Destroy the weather's own visual objects
+on expiry, disable, teardown, and round end; do not overwrite existing scene fog
+or camera settings.
+
 Record lifecycle moments, such as landing or destruction, through
 `GameManager.RecordRoundMoment` on the host when they happen. Stop event activity
 when the round ends. Grant rewards only for the intended gameplay condition,
@@ -134,6 +146,11 @@ Preserve s&box Razor's typed bindings, for example `Visible="@(true)"`,
 rather than passing literal strings to those properties.
 Wire the wrapper into [GameHUD](../Code/game/GameHUD.razor) for the intended
 player states. Timeline metadata requires no event-specific HUD layout.
+
+The catalog's definitions and derived indexes are marked `SkipHotload` so
+s&box rebuilds them together when event IDs or metadata change. Keep that
+attribute on all three static caches; retaining an old index can make a newly
+added event fail lookup even after starting a new round.
 
 ## 5. Validate
 
