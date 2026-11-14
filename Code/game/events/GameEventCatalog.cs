@@ -8,7 +8,8 @@ public enum GameEventKind
 	None = 0,
 	Dropship = 1,
 	WeaponAirdrop = 2,
-	Boss = 3
+	Boss = 3,
+	ThickFog = 4
 }
 
 public interface IGameEventWorld
@@ -37,7 +38,8 @@ public readonly record struct GameScheduledEvent(
 /// <summary>World-event definitions. Timing and rarity weights belong to schedule slots, not event types.</summary>
 public static class GameEventCatalog
 {
-	public static IReadOnlyList<GameEventDefinition> AllEvents { get; } = Array.AsReadOnly(new[]
+	// Hotload must rebuild definitions and both indexes together when event types change.
+	[field: Sandbox.SkipHotload] public static IReadOnlyList<GameEventDefinition> AllEvents { get; } = Array.AsReadOnly(new[]
 	{
 		new GameEventDefinition
 		{
@@ -72,10 +74,20 @@ public static class GameEventCatalog
 			RandomEligible = false,
 			ArrivalMoment = "Boss spawned",
 			TryStart = world => world.TryStartEvent(GameEventKind.Boss)
+		},
+		new GameEventDefinition
+		{
+			Id = GameEventKind.ThickFog,
+			Label = "Thick fog",
+			Icon = "foggy",
+			Rarity = GameRarity.Common,
+			ArrivalMoment = "Thick fog rolled in",
+			TryStart = world => world.TryStartEvent(GameEventKind.ThickFog)
 		}
 	});
 
-	private static readonly IReadOnlyDictionary<GameEventKind, GameEventDefinition> ById = AllEvents.ToDictionary(item => item.Id);
+	[Sandbox.SkipHotload] private static readonly IReadOnlyDictionary<GameEventKind, GameEventDefinition> ById = AllEvents.ToDictionary(item => item.Id);
+	[Sandbox.SkipHotload]
 	private static readonly IReadOnlyDictionary<GameRarity, GameEventDefinition[]> RarityEvents = AllEvents
 		.Where(item => item.RandomEligible)
 		.GroupBy(item => item.Rarity)
@@ -179,6 +191,12 @@ public sealed class GameEventSchedule
 					StartAtSeconds = 300f,
 					PaddingBeforeSeconds = 30f,
 					PaddingAfterSeconds = 30f
+				},
+				// Temporary fog playtest: remove this entry to restore random-only weather.
+				new GameFixedEvent
+				{
+					Kind = GameEventKind.ThickFog,
+					StartAtSeconds = 30f
 				}
 			});
 		}

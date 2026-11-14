@@ -41,6 +41,8 @@ delivery placement and starts `GameWeaponAirdrop` through the same action regist
 `GameBossEvent` spawns the match boss using the existing enemy spawner and owns
 its replicated identity. The manager has no event-specific schedule, spawn
 branch, or retry clock. Defeating that registered boss still ends the match.
+`GameThickFogEvent` starts temporary weather through that same registry;
+`GameThickFog` owns its replicated clock and peer-local volumetric rendering.
 `GameEventCatalog.AllEvents` exposes
 the catalog's definitions.
 Every random slot draws a rarity using the shared `RarityDraw`, then an equally likely
@@ -54,9 +56,10 @@ The current configuration lives in `GameEventSchedule.DefaultSlots`:
 | Opening | Round start | 60–300 seconds | None | Common 75%, Rare 25% |
 | Recurring | 300 seconds | 0–300 seconds | 300 seconds | Common 75%, Rare 25% |
 
-Common currently contains an explicit quiet interval (no event); Rare contains
+Common contains an explicit quiet interval (no event) and thick fog; Rare contains
 the alien dropship and weapon airdrop. Both opening and recurring slots have
-a 75% quiet chance, a 12.5% dropship chance, and a 12.5% weapon airdrop chance.
+a 37.5% quiet chance, a 37.5% thick fog chance, a 12.5% dropship chance, and a
+12.5% weapon airdrop chance.
 These are draw probabilities before reserved-time filtering; conflicting arrivals
 are skipped. Neither random event is guaranteed. Quiet is a real Common catalog choice, not an empty
 rarity. Weapon airdrops no longer have separate fixed arrivals at 1:00, 5:00,
@@ -97,6 +100,55 @@ A selected event is scheduled uniformly within its slot's delay window and
 immediately appears on the timeline/pipeline. Multiple ships may remain alive.
 Frame skips process missed slots chronologically without rerolling consumed
 windows. All clients share the host's schedule; clients never roll their own.
+
+### Thick fog weather
+
+**Temporary playtest override:** every round guarantees thick fog at **0:30**,
+independent of RNG. Remove the marked fog entry from `DefaultFixedEvents` to
+restore random-only weather. Normal random slots and the fixed boss are unchanged.
+
+Thick fog is a Common visibility event, not a damage or stat modifier. It lasts
+**60 seconds total**: **20 seconds fading in**, 20 seconds at full density, then
+**20 seconds fading out**. Its timeline entry uses the `foggy` icon. Successful
+arrival records "Thick fog rolled in"; natural expiry records "Thick fog cleared".
+Round end cancels weather and removes the effect without recording natural expiry.
+
+The host network-spawns a weather clock. Each peer, including late joiners,
+derives density and motion from that synchronized clock and creates a local,
+unsaved effect with **four rolling cloud strata**, a faint s&box `Fog`
+world-height layer, and 36 supporting `VolumetricFogVolume` banks.
+The cloud strata sit roughly 45, 100, 155, and 210 units above the floor,
+gently rising and falling by eight units. A procedural translucent shader
+creates soft, irregular billows at each height. Each stratum has its own
+world-anchored noise pattern and wind (18-39 units per second), giving visible
+layered motion and parallax instead of a uniform gray veil. Cloud patterns
+curl slowly as they drift, soften against geometry, and extend beyond every
+arena edge. Their animation uses the shared event age, not a local clock.
+
+The subtle foot-level height layer gives the same underlying atmosphere at the
+center, sides, and corners: it has no horizontal bounds or distance-from-center
+fade. Its steeper, squared gradient fades from 8 to 88 units above the floor,
+concentrating mist at the feet instead of veiling the whole character.
+Distance fog is disabled, and this height layer does not affect the sky.
+This tuning adds no layers or volumes; the rolling strata and wind are unchanged.
+Supporting banks drift at 28 units per second
+through a region sized from the measured ground bounds, centered on the arena
+rather than the event action, player, or camera. Bank centers follow the four
+rolling height bands, with soft edges and varied sizes/densities. They fade outside
+the arena before wrapping back upwind. Movement remains the same for stationary
+players, moving players, spectators, and late joiners.
+The built-in renderer enables volumetrics while a volume exists; no baked
+`VolumetricFogController`, scene edits, or permanent camera overrides are needed.
+Existing scene fog components are not modified; removing the weather removes
+only its strata, height layer, and banks. The strata and height layer remain
+visible without volumetric rendering; the supporting banks depend on the
+player's volumetric-fog graphics setting.
+
+`GameThickFogEvent.Strength` tunes peak density in the inspector (default 1.2,
+valid range greater than zero through five). The action registry preserves any
+authored component on the manager object. Timing is defined by `GameFogTiming`.
+Overlapping fog occurrences wait through the shared scheduler's retry path
+until the current fog clears, rather than stacking volumes or restarting the clock.
 
 Dropships descend for three seconds onto clear, flat ground, then become
 shootable. A landed ship deploys one enemy every three seconds from a nearby

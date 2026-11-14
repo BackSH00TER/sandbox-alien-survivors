@@ -15,7 +15,8 @@ public static class GameEventActions
 		{
 			[GameEventKind.Dropship] = owner.GetOrAddComponent<GameDropshipEvent>(),
 			[GameEventKind.WeaponAirdrop] = owner.GetOrAddComponent<GameWeaponAirdropEvent>(),
-			[GameEventKind.Boss] = owner.GetOrAddComponent<GameBossEvent>()
+			[GameEventKind.Boss] = owner.GetOrAddComponent<GameBossEvent>(),
+			[GameEventKind.ThickFog] = owner.GetOrAddComponent<GameThickFogEvent>()
 		};
 	}
 }
