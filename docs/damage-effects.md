@@ -64,6 +64,20 @@ rarity weights or modifier eligibility.
 | Slowing Rounds | One-time unlock; direct hits slow movement by 50% for 2 seconds |
 | Bonus Volley | +10 percentage points chance per trigger pull and +1 bonus bullet |
 | Power Shot | First pick guarantees double damage every 10th trigger pull; each further pick shortens the interval by 1, capped at 10 picks |
+| Critical Chance | +10 percentage points critical chance per bullet; capped at 5 picks (55% total) |
+| Critical Damage | +50 percentage points critical damage: 200% to 250%, then 300%, with no pick cap |
+
+Every player starts with `CritChance` of 5% and `CritDamage` of 200% (double
+normal damage), without needing an unlock. Each bullet, including weapon pellets
+and Bonus Volley bullets, rolls independently once on the host when spawned.
+Critical damage multiplies its direct and splash damage, and its fire or shock
+effect damage. Pierced hits, all fire ticks and spreading flames, and shock chain
+hops retain the original bullet's critical multiplier without rerolling.
+Settings stay captured even if the player later picks another upgrade.
+Critical hits do not change effect application/spread/chain chances, duration,
+stack limits, range, or damage types. Enemy attacks do not roll critical chance.
+Heavy Rounds and Power Shot stack multiplicatively with critical bullet damage;
+they still do not increase fire/shock damage.
 
 Stat percentages add against their base, not the previously upgraded value.
 Healing stays capped at maximum health and does not revive dead players.

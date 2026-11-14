@@ -2,6 +2,7 @@ using System;
 
 public sealed class GameBulletModifiers
 {
+	public float CriticalDamageMultiplier { get; init; } = 1f;
 	public bool Splash { get; init; }
 	public float SplashDamageMultiplier { get; init; }
 	public int AdditionalTargets { get; init; }
@@ -13,6 +14,20 @@ public static class GameShotModifiers
 {
 	public const float SplashRadius = 60f;
 	public const float SlowMultiplier = 0.5f;
+	public const float BaseCritChance = 0.05f;
+	public const float BaseCritDamage = 2f;
+
+	public static float CritChance(Func<GameModifier, int> stacks)
+	{
+		var bonus = ModifierCatalog.Bonus(GameModifier.CritChance, stacks);
+		return BaseCritChance + bonus;
+	}
+
+	public static float CritDamage(Func<GameModifier, int> stacks)
+	{
+		var bonus = ModifierCatalog.Bonus(GameModifier.CritDamage, stacks);
+		return BaseCritDamage + bonus;
+	}
 
 	public static bool Roll(float chance, Func<float> random)
 	{
@@ -56,8 +71,12 @@ public static class GameShotModifiers
 		var piercing = Roll(pierceChance, random);
 		var extraTargets = ModifierCatalog.Bonus(GameModifier.PierceTargets, stacks);
 		var slowDuration = ModifierCatalog.Bonus(GameModifier.SlowingRounds, stacks);
+		var critChance = CritChance(stacks);
+		var critical = Roll(critChance, random);
+		var critDamage = CritDamage(stacks);
 		return new GameBulletModifiers
 		{
+			CriticalDamageMultiplier = critical ? critDamage : 1f,
 			Splash = splash,
 			SplashDamageMultiplier = 0.5f + splashBonus,
 			AdditionalTargets = piercing ? 1 + (int)extraTargets : 0,

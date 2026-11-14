@@ -117,6 +117,8 @@ public sealed class GamePlayer : GameEntity, ILootCollector, IModifierRecipient
 	public float EffectiveAttackInterval => EquippedWeapon == null ? 0f
 		: System.MathF.Max(0.1f, 1f / (EquippedWeapon.FireRate * ModifierCatalog.AttackRateMultiplier(ModifierStacks)));
 	public float EffectiveAttackRange => EquippedWeapon?.Range ?? 0f;
+	public float CritChance => GameShotModifiers.CritChance(ModifierStacks);
+	public float CritDamage => GameShotModifiers.CritDamage(ModifierStacks);
 	public float ExperienceCollectionRangeMultiplier => ModifierCatalog.ExperienceCollectionRangeMultiplier(ModifierStacks);
 
 	float ILootCollector.HealthPickupMultiplier => 1f + ModifierCatalog.Bonus(GameModifier.HealthPickupBonus, ModifierStacks);
