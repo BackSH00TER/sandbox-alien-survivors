@@ -31,7 +31,9 @@ public enum GameModifier
 	PierceTargets = 25,
 	SlowingRounds = 26,
 	ExtraBullets = 27,
-	EmpoweredShots = 28
+	EmpoweredShots = 28,
+	CritChance = 29,
+	CritDamage = 30
 }
 
 public interface IModifierRecipient
@@ -345,6 +347,25 @@ public static class ModifierCatalog
 			Rarity = GameRarity.Common,
 			Amount = 1f,
 			MaxPicks = 10
+		},
+		new ModifierDefinition
+		{
+			Id = GameModifier.CritChance,
+			Icon = "gps_fixed",
+			Name = "Critical Chance",
+			Description = "+10 percentage points critical chance per bullet per pick, from 5% up to 55%. A critical bullet also boosts its splash, fire and shock damage.",
+			Rarity = GameRarity.Common,
+			Amount = 0.1f,
+			MaxPicks = 5
+		},
+		new ModifierDefinition
+		{
+			Id = GameModifier.CritDamage,
+			Icon = "auto_fix_high",
+			Name = "Critical Damage",
+			Description = "+50 percentage points critical damage per pick: 200% to 250%, then 300%, and so on.",
+			Rarity = GameRarity.Common,
+			Amount = 0.5f
 		}
 	});
 

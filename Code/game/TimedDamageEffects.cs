@@ -86,6 +86,35 @@ public sealed class DamageEffectSettings
 		MinimumChainDamageMultiplier = minimumChainDamageMultiplier;
 		BlastRadius = blastRadius;
 	}
+
+	public DamageEffectSettings WithDamageMultiplier(float multiplier)
+	{
+		if (!float.IsFinite(multiplier) || multiplier <= 0f)
+		{
+			throw new ArgumentOutOfRangeException(nameof(multiplier));
+		}
+		if (multiplier == 1f)
+		{
+			return this;
+		}
+
+		return new DamageEffectSettings(
+			type: Type,
+			applicationChance: ApplicationChance,
+			duration: Duration,
+			damagePerSecond: DamagePerSecond * multiplier,
+			maxStacks: MaxStacks,
+			spreadChance: SpreadChance,
+			spreadRadius: SpreadRadius,
+			instantDamage: InstantDamage * multiplier,
+			chainChance: ChainChance,
+			maxChains: MaxChains,
+			chainRadius: ChainRadius,
+			chainDamageFalloff: ChainDamageFalloff,
+			minimumChainDamageMultiplier: MinimumChainDamageMultiplier,
+			blastRadius: BlastRadius
+		);
+	}
 }
 
 /// <summary>One application with its own expiry and damage source, independent of other applications of the same type.</summary>

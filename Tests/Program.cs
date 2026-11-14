@@ -16,6 +16,8 @@ var tests = new (string Name, Action Run)[]
 	("bonus volleys roll once per trigger and cap their chance", ShotModifierTests.Volleys),
 	("power shots guarantee double damage and shorten their interval", ShotModifierTests.PowerShots),
 	("invalid shot rolls are rejected", ShotModifierTests.Invalid),
+	("critical chance progression and bullet damage are captured once", ShotModifierTests.CriticalHits),
+	("critical effects preserve fire ticks, spread and shock chains", ShotModifierTests.CriticalEffects),
 	("pickup bonuses use scaled amounts and armor capacity", LootCatalogTests.Bonuses),
 	("invalid modifier draws and IDs are rejected", ModifierCatalogTests.Invalid),
 	("vacuum range scales, caps and uses common rarity", Vacuum),

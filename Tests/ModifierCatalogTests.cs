@@ -82,7 +82,7 @@ internal static class ModifierCatalogTests
 			rarityRoll: 0.89999f,
 			itemRoll: 1f
 		);
-		Check(lastCommon == GameModifier.EmpoweredShots, "The common upper boundary must select its last eligible item.");
+		Check(lastCommon == GameModifier.CritDamage, "The common upper boundary must select its last eligible item.");
 		var firstRare = FirstDraw(
 			stacks: _ => 0,
 			rarityRoll: 0.9f,

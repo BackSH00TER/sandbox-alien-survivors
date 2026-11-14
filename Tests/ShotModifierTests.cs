@@ -54,13 +54,13 @@ internal static class ShotModifierTests
 			return 0f;
 		}
 		var baseline = GameShotModifiers.CaptureBullet(Stacks, Random);
-		Check(!baseline.Splash && baseline.AdditionalTargets == 0 && baseline.SlowDuration == 0f && rolls == 0,
-			"Unmodified bullets must not proc or consume extra random rolls.");
+		Check(!baseline.Splash && baseline.AdditionalTargets == 0 && baseline.SlowDuration == 0f && rolls == 1,
+			"Baseline bullets must roll only their innate critical chance.");
 		picks[GameModifier.SplashChance] = 1;
 		picks[GameModifier.PierceChance] = 1;
 		picks[GameModifier.SlowingRounds] = 1;
 		var first = GameShotModifiers.CaptureBullet(Stacks, Random);
-		Check(first.Splash && first.AdditionalTargets == 1 && rolls == 2, "Splash and pierce each roll once independently.");
+		Check(first.Splash && first.AdditionalTargets == 1 && rolls == 4, "Splash, pierce and critical chance each roll once independently.");
 		Near(first.SplashDamageMultiplier, 0.5f);
 		Near(first.SlowDuration, 2f);
 		Near(GameShotModifiers.SlowMultiplier, 0.5f);
@@ -162,6 +162,175 @@ internal static class ShotModifierTests
 		foreach (var roll in new[] { -0.1f, 1.1f, float.NaN, float.PositiveInfinity })
 		{
 			Reject(() => GameShotModifiers.Roll(0.5f, () => roll));
+		}
+	}
+
+	internal static void CriticalHits()
+	{
+		var picks = new Dictionary<GameModifier, int>();
+		int Stacks(GameModifier id)
+		{
+			return picks.GetValueOrDefault(id);
+		}
+		void CheckStats(float expectedChance, float expectedDamage)
+		{
+			var chance = GameShotModifiers.CritChance(Stacks);
+			var damage = GameShotModifiers.CritDamage(Stacks);
+			Near(actual: chance, expected: expectedChance);
+			Near(actual: damage, expected: expectedDamage);
+		}
+		CheckStats(expectedChance: 0.05f, expectedDamage: 2f);
+		var chanceUpgrade = ModifierCatalog.Get(GameModifier.CritChance);
+		var damageUpgrade = ModifierCatalog.Get(GameModifier.CritDamage);
+		Check(chanceUpgrade.IsAvailable(Stacks) && damageUpgrade.IsAvailable(Stacks),
+			"Both critical upgrades must be available without prerequisites.");
+		for (int rank = 1; rank <= 5; rank++)
+		{
+			picks[GameModifier.CritChance] = rank;
+			CheckStats(expectedChance: 0.05f + rank * 0.1f, expectedDamage: 2f);
+		}
+		Check(!chanceUpgrade.IsAvailable(Stacks), "Five critical-chance picks must leave the offer pool.");
+		picks[GameModifier.CritChance] = 100;
+		CheckStats(expectedChance: 0.55f, expectedDamage: 2f);
+		picks[GameModifier.CritChance] = -1;
+		CheckStats(expectedChance: 0.05f, expectedDamage: 2f);
+		foreach (int rank in new[] { 0, 5 })
+		{
+			picks[GameModifier.CritChance] = rank;
+			int criticalCount = 0;
+			for (int sample = 0; sample < 100; sample++)
+			{
+				var roll = (sample + 0.5f) / 100f;
+				var bullet = GameShotModifiers.CaptureBullet(stacks: Stacks, random: () => roll);
+				if (bullet.CriticalDamageMultiplier > 1f)
+				{
+					criticalCount++;
+				}
+			}
+			Check(criticalCount == 5 + rank * 10, "Critical chance must produce exactly 5% or 55% on evenly spaced rolls.");
+		}
+		picks.Clear();
+
+		picks[GameModifier.SplashChance] = 1;
+		picks[GameModifier.PierceChance] = 1;
+		for (int successfulRoll = 0; successfulRoll < 3; successfulRoll++)
+		{
+			var randomValues = new[] { 1f, 1f, 1f };
+			randomValues[successfulRoll] = 0f;
+			int rollIndex = 0;
+			var bullet = GameShotModifiers.CaptureBullet(
+				stacks: Stacks,
+				random: () => randomValues[rollIndex++]
+			);
+			Check(rollIndex == 3, "Splash, piercing and critical chance must each draw a separate random value.");
+			Check(bullet.Splash == (successfulRoll == 0), "Only the splash roll may determine splash success.");
+			Check(bullet.AdditionalTargets == (successfulRoll == 1 ? 1 : 0), "Only the piercing roll may determine piercing success.");
+			Near(actual: bullet.CriticalDamageMultiplier, expected: successfulRoll == 2 ? 2f : 1f);
+		}
+		picks.Clear();
+
+		int rolls = 0;
+		float Random()
+		{
+			rolls++;
+			return 0.049f;
+		}
+		var critical = GameShotModifiers.CaptureBullet(stacks: Stacks, random: Random);
+		Near(critical.CriticalDamageMultiplier, 2f);
+		Check(rolls == 1, "Each baseline bullet must consume exactly one critical roll.");
+		var boundary = GameShotModifiers.CaptureBullet(stacks: Stacks, random: () => 0.05f);
+		Near(boundary.CriticalDamageMultiplier, 1f);
+		var failed = GameShotModifiers.CaptureBullet(stacks: Stacks, random: () => 1f);
+		Near(failed.CriticalDamageMultiplier, 1f);
+
+		picks[GameModifier.CritDamage] = 1;
+		CheckStats(expectedChance: 0.05f, expectedDamage: 2.5f);
+		picks[GameModifier.CritDamage] = 2;
+		CheckStats(expectedChance: 0.05f, expectedDamage: 3f);
+		picks[GameModifier.CritChance] = 1;
+		CheckStats(expectedChance: 0.15f, expectedDamage: 3f);
+		var upgraded = GameShotModifiers.CaptureBullet(stacks: Stacks, random: () => 0.1f);
+		Near(upgraded.CriticalDamageMultiplier, 3f);
+		Near(critical.CriticalDamageMultiplier, 2f);
+		var enemyBullet = new GameBulletModifiers();
+		Near(enemyBullet.CriticalDamageMultiplier, 1f);
+
+		picks[GameModifier.AttackDamage] = 2;
+		picks[GameModifier.EmpoweredShots] = 10;
+		picks[GameModifier.SplashChance] = 10;
+		picks[GameModifier.PierceChance] = 10;
+		int counter = 0;
+		var weaponMultiplier = GameShotModifiers.DamageMultiplier(
+			stacks: Stacks,
+			shotsSincePowerShot: ref counter
+		);
+		var combined = GameShotModifiers.CaptureBullet(stacks: Stacks, random: () => 0f);
+		var bulletDamage = 10f * weaponMultiplier * combined.CriticalDamageMultiplier;
+		Near(bulletDamage, 84f);
+		Near(bulletDamage * combined.SplashDamageMultiplier, 42f);
+		Check(combined.AdditionalTargets == 1, "Critical damage must preserve piercing targets.");
+	}
+
+	internal static void CriticalEffects()
+	{
+		int Stacks(GameModifier id)
+		{
+			return id switch
+			{
+				GameModifier.FireRounds or GameModifier.FireSpread or GameModifier.ShockRounds => 1,
+				GameModifier.ShockChainChance => 8,
+				_ => 0
+			};
+		}
+		var fire = DamageEffectCatalog.Get(GameDamageType.Fire).Resolve(Stacks);
+		var criticalFire = fire.WithDamageMultiplier(multiplier: 2.5f);
+		Near(fire.DamagePerSecond, 5f);
+		Near(criticalFire.DamagePerSecond, 12.5f);
+		Near(criticalFire.Duration, fire.Duration);
+		Near(criticalFire.ApplicationChance, fire.ApplicationChance);
+		Near(criticalFire.SpreadChance, fire.SpreadChance);
+		Near(criticalFire.SpreadRadius, fire.SpreadRadius);
+		Check(criticalFire.MaxStacks == fire.MaxStacks, "Critical fire must preserve stack limits.");
+		var normalFire = fire.WithDamageMultiplier(multiplier: 1f);
+		Check(ReferenceEquals(fire, normalFire), "Noncritical effects must remain unchanged.");
+		var effects = new TimedDamageEffects<string>();
+		effects.Apply(settings: criticalFire, source: "shooter", now: 0f);
+		float total = 0f;
+		effects.Advance(now: 1f, dealDamage: (stack, damage) => total += damage);
+		Near(total, 12.5f);
+		effects.Advance(now: 5f, dealDamage: (stack, damage) => total += damage);
+		Near(total, 62.5f);
+		var spread = new TimedDamageEffects<string>();
+		spread.Apply(settings: criticalFire, source: "shooter", now: 5f);
+		float spreadDamage = 0f;
+		spread.Advance(now: 6f, dealDamage: (stack, damage) => spreadDamage += damage);
+		Near(spreadDamage, 12.5f);
+
+		var shock = DamageEffectCatalog.Get(GameDamageType.Electricity).Resolve(Stacks);
+		var criticalShock = shock.WithDamageMultiplier(multiplier: 2.5f);
+		Near(shock.InstantDamage, 10f);
+		Near(criticalShock.InstantDamage, 25f);
+		Near(criticalShock.ChainChance, shock.ChainChance);
+		Near(criticalShock.ChainRadius, shock.ChainRadius);
+		Near(criticalShock.ChainDamageFalloff, shock.ChainDamageFalloff);
+		Near(criticalShock.MinimumChainDamageMultiplier, shock.MinimumChainDamageMultiplier);
+		Check(criticalShock.MaxChains == shock.MaxChains, "Critical shock must preserve chain limits.");
+		var hits = new List<float>();
+		DamageEffectChain.Apply(
+			initialTarget: "first",
+			settings: criticalShock,
+			canHit: _ => true,
+			findNext: (previous, visited) => "second",
+			hit: (target, damage) => hits.Add(damage),
+			random: () => throw new InvalidOperationException("Guaranteed chains must not reroll critical chance.")
+		);
+		Check(hits.Count == 2, "Critical shock must damage the initial target and one chain target.");
+		Near(hits[0], 25f);
+		Near(hits[1], 22.5f);
+		foreach (var multiplier in new[] { 0f, -1f, float.NaN, float.PositiveInfinity, float.MaxValue })
+		{
+			Reject(() => fire.WithDamageMultiplier(multiplier));
+			Reject(() => shock.WithDamageMultiplier(multiplier));
 		}
 	}
 

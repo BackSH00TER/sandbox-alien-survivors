@@ -96,6 +96,8 @@ public sealed class GameWeaponProjectile : Component
 			projectile._effect = DamageEffectCatalog.Roll(player.ModifierStacks, () => Game.Random.Float());
 			projectile.EffectType = projectile._effect?.Type ?? GameDamageType.Physical;
 			projectile._modifiers = GameShotModifiers.CaptureBullet(player.ModifierStacks, () => Game.Random.Float());
+			damage *= projectile._modifiers.CriticalDamageMultiplier;
+			projectile._effect = projectile._effect?.WithDamageMultiplier(projectile._modifiers.CriticalDamageMultiplier);
 			projectile._remainingPierces = projectile._modifiers.AdditionalTargets;
 			projectile._piercing = projectile._remainingPierces > 0;
 		}
